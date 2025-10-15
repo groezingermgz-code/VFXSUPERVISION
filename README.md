@@ -43,3 +43,4 @@ npm run build
 - React Router
 - Vite
 - CSS (mit Variablen für einheitliches Design)
+Meta: SSH push verified on 2025-10-15 23:22
