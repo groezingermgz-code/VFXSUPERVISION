@@ -1,0 +1,693 @@
+/* Remaining styles that are not covered by global.css */
+
+.dashboard {
+  padding: clamp(12px, 2vw, 20px);
+  max-width: 1200px;
+  margin: 0 auto;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+/* Project Selection */
+.project-selection {
+  margin-bottom: 2rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 0.75rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+.section-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.project-count {
+  background: var(--accent-color);
+  color: white;
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Empty State */
+.empty-projects {
+  text-align: center;
+  padding: 3rem 1rem;
+  background: #f5f5f5;
+  border: 2px dashed var(--border-color);
+  border-radius: 12px;
+  margin: 1rem 0;
+}
+
+.empty-icon {
+  margin-bottom: 1rem;
+}
+
+.empty-icon svg {
+  width: 3rem;
+  height: 3rem;
+  opacity: 0.6;
+}
+
+.empty-projects h3 {
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+}
+
+.empty-projects p {
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Project Grid */
+.project-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+@media (max-width: 1024px) {
+  .project-grid {
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  }
+}
+
+/* Project Cards */
+.project-card {
+  /* background via global .card */
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid var(--project-accent-color, #4a90e2);
+  color: var(--text-color);
+}
+
+.project-card:nth-child(1) {
+  --project-accent-color: #4a90e2; /* Blau */
+}
+
+.project-card:nth-child(2) {
+  --project-accent-color: #27ae60; /* Grün */
+}
+
+.project-card:nth-child(3) {
+  --project-accent-color: #e67e22; /* Orange */
+}
+
+.project-card:nth-child(4) {
+  --project-accent-color: #9b59b6; /* Lila */
+}
+
+.project-card:nth-child(5) {
+  --project-accent-color: #f1c40f; /* Gelb */
+}
+
+.project-card:nth-child(6) {
+  --project-accent-color: #e74c3c; /* Rot */
+}
+
+.project-card:nth-child(7) {
+  --project-accent-color: #1abc9c; /* Türkis */
+}
+
+.project-card:nth-child(8) {
+  --project-accent-color: #34495e; /* Dunkelgrau */
+}
+
+.project-card:nth-child(9) {
+  --project-accent-color: #f39c12; /* Dunkelorange */
+}
+
+.project-card:nth-child(10) {
+  --project-accent-color: #2ecc71; /* Hellgrün */
+}
+
+.project-card:hover {
+  border-color: var(--project-accent-color, #4a90e2);
+  transform: translateY(-2px);
+  /* hover shadow/background handled via global .card */
+}
+
+.project-card.selected {
+  border-color: var(--project-accent-color, #4a90e2);
+  /* emphasis via border; background from global .card */
+}
+
+/* Project Header */
+.project-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.project-header h3 {
+  margin: 0;
+  color: var(--text-color);
+  font-size: 1.25rem;
+  font-weight: 600;
+  flex: 1;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.project-status {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.5rem;
+  min-width: 80px;
+}
+
+.shots-progress {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.progress-bar {
+  width: 80px;
+  height: 6px;
+  background: var(--light-gray);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: var(--project-accent-color, #4a90e2);
+  transition: width 0.3s ease;
+  border-radius: 3px;
+}
+
+/* Project Info */
+.project-info {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-color);
+  gap: 0.5rem;
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.info-value {
+  color: var(--text-color);
+  font-weight: 500;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+
+
+.project-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.project-info-label {
+  font-weight: 600;
+  color: #a0a0a0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.project-info-value {
+  color: var(--text-color);
+  font-weight: 500;
+}
+
+/* Project Actions */
+.project-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.btn-small {
+  padding: 10px 16px;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  flex: 1;
+}
+
+/* Sorgt dafür, dass "View Shots" und Löschen exakt gleich hoch sind */
+.project-actions .btn-small {
+  height: 44px;
+  padding: 0 16px;
+  display: flex;
+  align-items: center;
+  line-height: normal;
+}
+
+.project-actions .btn-danger {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.project-selector {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.project-selector label {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.project-selector select {
+  padding: 8px 12px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  background: var(--card-bg);
+  color: var(--text-color);
+}
+
+.project-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+  margin-bottom: 30px;
+}
+
+/* Stats Container */
+.stats-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
+  /* background via global .card */
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  color: var(--text-color);
+}
+
+.stat-card h3 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--text-color);
+  margin: 0 0 0.5rem 0;
+}
+
+.stat-card p {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.stat-number {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-color);
+  margin-bottom: 5px;
+}
+
+.stat-label {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.project-card-info {
+  margin-bottom: 15px;
+}
+
+.project-card-info p {
+  margin: 5px 0;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
+.project-card-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .project-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .project-card {
+    padding: 1rem;
+  }
+  
+  .project-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .project-status {
+    align-items: flex-start;
+    width: 100%;
+  }
+  
+  .progress-bar {
+    width: 100%;
+  }
+}
+
+.delete-confirmation {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.delete-confirmation-content {
+  background: var(--card-bg);
+  padding: 30px;
+  border-radius: 8px;
+  max-width: 400px;
+  text-align: center;
+}
+
+.delete-confirmation-content h3 {
+  color: var(--danger-color);
+  margin-bottom: 15px;
+}
+
+.delete-confirmation-buttons {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.new-project-form {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.form-row {
+  display: flex;
+  gap: 20px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.selected-project {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 30px;
+}
+
+.selected-project h2 {
+  margin-bottom: 15px;
+  color: var(--text-color);
+}
+
+.project-details p {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+  border-left: 3px solid var(--project-accent-color, #4a90e2);
+}
+
+.project-details strong {
+  color: var(--project-accent-color, #4a90e2);
+  font-weight: 600;
+}
+
+.project-details span {
+  color: var(--text-secondary, #666);
+}
+
+.project-detail {
+  padding: 10px;
+  background: var(--bg-color);
+  border-radius: 4px;
+  border: 1px solid var(--border-color);
+}
+
+.project-detail strong {
+  color: var(--text-color);
+}
+
+.project-detail span {
+  color: var(--text-secondary);
+}
+
+.quick-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+}
+
+.quick-actions .btn-primary {
+  flex: 1;
+  min-width: 150px;
+  text-align: center;
+}
+
+/* Project Details Section */
+.project-details-section {
+  margin-top: 2rem;
+}
+
+.section-title {
+  color: var(--text-color);
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 2px solid var(--border-color);
+}
+
+/* Selected Project Details */
+.project-info.card {
+  border-left: 4px solid var(--project-accent-color, #4a90e2);
+  /* background via global .card */
+  border: 1px solid var(--border-color);
+  color: var(--text-color);
+}
+
+.project-info.card h3 {
+  color: var(--text-color);
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--project-accent-color, #4a90e2);
+  padding-bottom: 0.5rem;
+  font-size: 1.25rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 1rem;
+    max-width: 100%;
+  }
+  
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: stretch;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+  }
+  
+  .project-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .stats-container {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+  
+  .stat-card {
+    padding: 1rem;
+  }
+  
+  .stat-card h3 {
+    font-size: 1.5rem;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+  }
+  
+  .quick-actions .btn-primary {
+    min-width: auto;
+  }
+  
+  .project-info.card {
+    margin: 1rem 0;
+  }
+  
+  .project-details p {
+    padding: 0.375rem;
+    font-size: 0.875rem;
+  }
+  
+  .new-project-form {
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group input {
+    width: 100%;
+    box-sizing: border-box;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard {
+    padding: 0.5rem;
+    max-width: 100vw;
+  }
+  
+  .stats-container {
+    grid-template-columns: 1fr;
+  }
+  
+  .project-count {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+  }
+  
+  .project-info.card h3 {
+    font-size: 1.1rem;
+  }
+  
+  .new-project-form {
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  .form-group input {
+    padding: 8px;
+    font-size: 14px;
+  }
+}
+
+/* Dark mode styles */
+@media (prefers-color-scheme: dark) {
+  .project-card:hover {
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.1);
+  }
+}
+.detail-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.detail-value {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-secondary, #666);
+}

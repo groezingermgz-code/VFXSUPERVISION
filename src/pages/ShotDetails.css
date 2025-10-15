@@ -1,0 +1,397 @@
+.action-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.btn-secondary {
+  background-color: #4a6da7;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.btn-secondary:hover {
+  background-color: #3a5d97;
+}
+
+/* Filter Auswahl Styling */
+.selected-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px; /* Abstand zwischen den Filtern vergrößert */
+}
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 4px 8px;
+  background-color: rgba(0, 0, 0, 0.06); /* subtiler Hintergrund in Light Mode */
+}
+
+.filter-chip:hover {
+  border-color: var(--primary-color);
+}
+
+/* Dark Mode Variante für Chips */
+.dark-mode .filter-chip {
+  background-color: rgba(255, 255, 255, 0.08);
+  border-color: #555;
+}
+
+/* Vorschau-Bild stärker abdunkeln, aber über Hintergrund halten */
+.preview-image-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.preview-image-container .preview-image {
+  filter: brightness(0.75);
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+}
+
+.preview-image-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.chip-remove {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Kleinere Hinzufügen-Schaltfläche nur in Objektiv-Edit-Ansicht */
+.lens-settings .edit-form .btn-secondary {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+}
+
+/* Ausrichtung der ersten Formularzeile (Hersteller/Modell/Anamorphic) */
+.lens-settings .edit-form .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px; /* engerer Abstand zwischen den Gruppen */
+  align-items: flex-end; /* Checkbox unten an die Felder ausrichten */
+}
+
+.lens-settings .edit-form .checkbox-group {
+  display: inline-flex;
+  align-items: center; /* Checkbox und Text auf gleicher Linie */
+  gap: 6px; /* Checkbox und Text näher zusammen */
+  margin-top: 0; /* keine zusätzliche Verschiebung nach oben */
+}
+
+/* Readonly: Anamorphe Linse auf gleicher Höhe wie Checkbox */
+.lens-settings .info-grid .info-item.anamorphic-info {
+  display: flex;
+  align-items: center; /* vertikal zentriert */
+  gap: 8px; /* etwas Abstand zwischen Label und Checkbox */
+}
+
+.lens-settings .info-grid .info-item.anamorphic-info > label {
+  margin: 0; /* verhindert Sprung nach oben/unten */
+}
+
+.lens-settings .info-grid .info-item.anamorphic-info .checkbox-display {
+  display: inline-flex;
+  align-items: center; /* Checkbox und Text baseline */
+  gap: 6px;
+}
+/* Namen und Werte deutlicher absetzen (Readonly-Ansicht) */
+.info-grid .info-item label {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px; /* kleiner Abstand zwischen Name und Wert */
+  line-height: 1.4;
+}
+
+.info-grid .info-item label strong {
+  color: var(--info-name-color, var(--primary-color, #4a6da7));
+  font-weight: 700; /* Namen deutlich fett */
+}
+
+.info-grid .info-item .info-value {
+  color: var(--info-value-color, #1a1a1a);
+  font-weight: 500; /* Werte etwas hervorgehoben, aber ruhiger als Namen */
+}
+
+.dark-mode .info-grid .info-item label strong {
+  color: var(--info-name-color-dark, #9fb7e9);
+}
+
+.dark-mode .info-grid .info-item .info-value {
+  color: var(--info-value-color-dark, #eaeaea);
+}
+.reference-image-container {
+  position: relative;
+}
+
+.reference-image-container .reference-image {
+  filter: brightness(0.75);
+  position: relative;
+  z-index: 0;
+}
+
+.reference-image-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.reference-image-container .reference-info {
+  position: relative;
+  z-index: 2; /* über dem Overlay anzeigen */
+}
+.references .reference-categories {
+  display: flex;
+  gap: 12px; /* mehr Abstand zwischen Tabs */
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+}
+
+.references .category-tab {
+  background-color: rgba(0, 0, 0, 0.06); /* weniger hell im Light Mode */
+  color: var(--text-color);
+  border: 1px solid #ddd;
+  padding: 6px 12px;
+  border-radius: 6px;
+  font-weight: 500;
+}
+
+.references .category-tab:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  border-color: #ccc;
+}
+
+.references .category-tab.active {
+  background-color: rgba(0, 0, 0, 0.12);
+  border-color: #bbb;
+}
+
+.dark-mode .references .category-tab {
+  background-color: rgba(255, 255, 255, 0.08); /* weniger hell im Dark Mode */
+  color: #e0e0e0;
+  border-color: #555;
+}
+
+.dark-mode .references .category-tab:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  border-color: #666;
+}
+
+.dark-mode .references .category-tab.active {
+  background-color: rgba(255, 255, 255, 0.16);
+  border-color: #777;
+}
+
+.references .btn-outline {
+  border-color: #888; /* weniger knallig */
+  color: #444;
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+.references .btn-outline:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+  color: #222;
+  border-color: #777;
+}
+
+.dark-mode .references .btn-outline {
+  border-color: #777;
+  color: #ddd;
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.dark-mode .references .btn-outline:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+  color: #fff;
+  border-color: #888;
+}
+
+.reference-upload {
+  margin-top: 12px; /* Abstand zum Grid */
+}
+
+.reference-info {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Abstand zwischen Name, Kategorie und Button */
+}
+
+.reference-info .reference-name {
+  flex: 1; /* schiebt den Entfernen-Button nach rechts */
+}
+
+.remove-reference {
+  background: transparent;
+  color: #666; /* dezenter als Akzentfarbe */
+  border: 1px solid #999;
+  border-radius: 4px;
+  padding: 2px 8px;
+  line-height: 1;
+}
+
+.remove-reference:hover {
+  color: #444;
+  border-color: #777;
+}
+
+/* VFX Optionen: zweispaltiges Layout */
+.vfx-options-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+@media (max-width: 768px) {
+  .vfx-options-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.vfx-option-group {
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--card-bg);
+}
+
+.vfx-option-group h3 {
+  margin: 0 0 8px 0;
+  color: var(--text-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+.vfx-edit-form .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.vfx-edit-form .form-group label {
+  color: var(--text-secondary);
+}
+
+.dark-mode .remove-reference {
+  color: #cfcfcf;
+  border-color: #666;
+}
+
+.dark-mode .remove-reference:hover {
+  color: #fff;
+  border-color: #777;
+}
+.references-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+/* Abschnitte mit Titel für die Referenzen */
+.references-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 16px; /* Abstand zwischen den Abschnitten */
+}
+
+.references-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between; /* Titel links, Button rechts */
+  gap: 8px;
+  margin-bottom: 10px; /* mehr Abstand zu den Bildern */
+}
+
+.references-upload-btn {
+  padding: 4px 10px; /* etwas kompakter als Standard */
+  font-size: 0.95rem;
+}
+
+.references-section-title {
+  margin: 4px 0 6px;
+  font-weight: 700;
+  text-transform: uppercase; /* für HDRI/SETFOTOS, Setup bleibt gemischt */
+  letter-spacing: 0.02em;
+  color: var(--text-color);
+}
+
+.dark-mode .references-section-title {
+  color: #e0e0e0;
+}
+
+.references-subgrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  /* zusätzliche Luft nach oben, falls Header kompakter ist */
+  margin-top: 2px;
+}
+
+.reference-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 4px;
+  object-fit: cover;
+}
+
+.reference-item .reference-image-container {
+  aspect-ratio: 4 / 3; /* sorgt für einheitliche Kachelhöhen */
+  overflow: hidden;
+}
+
+/* Entfernt: Skalierungsregler UI */
+
+/* VFX Checkbox-Layout: zweispaltig, Aufgaben in einer Zeile, konsistenter Abstand */
+.vfx-checkboxes,
+.vfx-checklist {
+  display: grid;
+  /* Zwei Spalten mit sinnvoller Mindestbreite, damit Text nicht verschwindet */
+  grid-template-columns: repeat(2, minmax(260px, 1fr));
+  gap: 10px 12px;
+  margin-top: 8px;
+}
+@media (max-width: 768px) {
+  .vfx-checkboxes,
+  .vfx-checklist {
+    grid-template-columns: 1fr;
+  }
+}
+.vfx-checkbox-item,
+.vfx-checklist .vfx-item {
+  display: grid;
+  grid-template-columns: auto 1fr; /* Checkbox + Text */
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.vfx-checkbox-item label,
+.vfx-checklist .vfx-item label {
+  min-width: 0; /* erlaubt Ellipsis innerhalb Grid-Zelle */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vfx-checkbox-item input,
+.vfx-checklist .vfx-item input {
+  justify-self: start;
+}

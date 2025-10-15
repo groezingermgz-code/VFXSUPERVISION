@@ -1,0 +1,85 @@
+.camera-settings-page {
+  padding: 20px;
+}
+
+.settings-section {
+  margin-bottom: 30px;
+}
+
+.cameras-list, .presets-list {
+  margin-bottom: 30px;
+}
+
+.camera-item, .preset-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 8px;
+  margin-bottom: 15px;
+}
+
+.dark-mode .camera-item, .dark-mode .preset-item {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.camera-info h3, .preset-info h3 {
+  margin-bottom: 10px;
+}
+
+.lenses {
+  margin-top: 5px;
+}
+
+.preset-details {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.delete-btn {
+  padding: 5px 10px;
+  font-size: 0.9rem;
+}
+
+.add-camera, .add-preset {
+  background-color: #f9f9f9;
+  padding: 20px;
+  border-radius: 8px;
+}
+
+.dark-mode .add-camera, .dark-mode .add-preset {
+  background-color: #2a2a2a;
+  color: #e0e0e0;
+}
+
+.add-camera h3, .add-preset h3 {
+  margin-bottom: 15px;
+}
+
+.form-row {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+}
+
+.form-group {
+  flex: 1;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.dark-mode .form-group label {
+  color: #e0e0e0;
+}
+
+button {
+  margin-top: 10px;
+}

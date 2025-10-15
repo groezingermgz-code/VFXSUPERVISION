@@ -1,0 +1,48 @@
+.settings-page {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+.settings-card {
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.settings-card h2 {
+  margin-top: 0;
+}
+
+.setting-item {
+  margin-top: 8px;
+}
+
+.setting-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.form-row {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 240px;
+}
+
+.save-result {
+  margin-top: 10px;
+  color: var(--text-color, #333);
+}
+
+.error-text {
+  margin-top: 10px;
+  color: #b00020;
+}
