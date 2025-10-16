@@ -158,6 +158,48 @@ export const lensDatabase = {
       "14mm f/1.8 DG HSM Art",
       "20mm f/1.4 DG HSM Art"
     ]
+  },
+  "Tokina": {
+    lenses: [
+      "Vista Prime 18mm T1.5",
+      "Vista Prime 25mm T1.5",
+      "Vista Prime 35mm T1.5",
+      "Vista Prime 50mm T1.5",
+      "Vista Prime 85mm T1.5",
+      "Vista Prime 105mm T1.5",
+      "Vista Prime 135mm T1.5"
+    ]
+  },
+  "DZOFilm": {
+    lenses: [
+      "Vespid 25mm T2.1",
+      "Vespid 35mm T2.1",
+      "Vespid 50mm T2.1",
+      "Vespid 75mm T2.1",
+      "Vespid 100mm T2.1",
+      "Vespid 125mm T2.1"
+    ]
+  },
+  "Samyang": {
+    lenses: [
+      "XEEN CF 16mm T2.6",
+      "XEEN CF 24mm T1.5",
+      "XEEN CF 35mm T1.5",
+      "XEEN CF 50mm T1.5",
+      "XEEN CF 85mm T1.5"
+    ]
+  },
+  "Angenieux": {
+    lenses: [
+      "Optimo 24-290mm T2.8",
+      "Optimo 17-80mm T2.2",
+      "Optimo 28-76mm T2.6",
+      "Optimo 45-120mm T2.8",
+      "Optimo Style 16-40mm T2.8",
+      "Optimo Style 30-76mm T2.8",
+      "EZ-1 30-90mm T2",
+      "EZ-2 15-40mm T2"
+    ]
   }
 };
 
@@ -230,14 +272,23 @@ export const anamorphicLensDatabase = {
       "V-Lite 35mm T2.2 (2x)",
       "V-Lite 45mm T2.2 (2x)",
       "V-Lite 55mm T2.2 (2x)",
-      "V-Lite 80mm T2.2 (2x)"
+      "V-Lite 80mm T2.2 (2x)",
+      "V-Lite 100mm T2.2 (2x)",
+      "V-Plus 32mm T2.2 (2x)",
+      "V-Plus 40mm T2.2 (2x)",
+      "V-Plus 50mm T2.2 (2x)",
+      "V-Plus 60mm T2.2 (2x)",
+      "V-Plus 75mm T2.2 (2x)",
+      "V-Plus 100mm T2.2 (2x)"
     ]
   },
   "Angenieux": {
     lenses: [
       "Optimo Anamorphic 30-72mm T4",
       "Optimo Anamorphic 56-152mm T4",
-      "Optimo Anamorphic 44-440mm T4"
+      "Optimo Anamorphic 44-440mm T4",
+      "Optimo Ultra Compact 21-56mm A2S T4",
+      "Optimo Ultra Compact 37-102mm A2S T4"
     ]
   },
   "Atlas": {
@@ -247,7 +298,32 @@ export const anamorphicLensDatabase = {
       "Orion C 50mm T2",
       "Orion D 65mm T2",
       "Orion E 80mm T2",
-      "Orion F 100mm T2"
+      "Orion F 100mm T2",
+      "Mercury 36mm T2.2 (1.5x)",
+      "Mercury 42mm T2.2 (1.5x)",
+      "Mercury 54mm T2.2 (1.5x)",
+      "Mercury 72mm T2.2 (1.5x)",
+      "Mercury 95mm T2.5 (1.5x)"
+    ]
+  },
+  "DZOFilm": {
+    lenses: [
+      "Pavo 2x 28mm T2.8",
+      "Pavo 2x 32mm T2.1",
+      "Pavo 2x 40mm T2.1",
+      "Pavo 2x 55mm T2.1",
+      "Pavo 2x 75mm T2.1",
+      "Pavo 2x 100mm T2.1"
+    ]
+  },
+  "Sirui": {
+    lenses: [
+      "Anamorphic 1.33x 24mm f/2.8",
+      "Anamorphic 1.33x 35mm f/1.8",
+      "Anamorphic 1.33x 50mm f/1.8",
+      "Anamorphic 1.33x 75mm f/1.8",
+      "Anamorphic 1.6x 35mm T2.9",
+      "Anamorphic 1.6x 50mm T2.9"
     ]
   }
 };

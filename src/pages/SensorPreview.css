@@ -1,0 +1,70 @@
+/* Konsistentes Tool‑Layout */
+.sensor-preview-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 1.5rem;
+}
+
+.sensor-preview-header h2 {
+  margin: 0 0 0.25rem 0;
+}
+.sensor-preview-header p {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary, #666);
+}
+
+/* Controls als Grid wie bei FOV/LensMapper */
+.sensor-preview-controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+.sensor-preview-controls .control-group {
+  display: flex;
+  flex-direction: column;
+}
+.sensor-preview-controls label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+  color: var(--text-color, #333);
+}
+.sensor-preview-controls select {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text-color, #333);
+}
+
+/* Visual Card */
+.sensor-preview-visual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+/* Info Grid im Card */
+.sensor-preview-info {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  gap: 8px 12px;
+  align-items: center;
+}
+.sensor-preview-info .info-row { display: contents; }
+.sensor-preview-info .info-label {
+  color: var(--text-secondary, #666);
+  font-size: 0.85rem;
+}
+.sensor-preview-info .info-value {
+  color: var(--text-color, #333);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 900px) {
+  .sensor-preview-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .sensor-preview-controls { grid-template-columns: 1fr; }
+}

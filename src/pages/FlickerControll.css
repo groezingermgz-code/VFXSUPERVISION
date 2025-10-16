@@ -1,0 +1,26 @@
+.flicker-controll-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.flicker-controll-page .card {
+  padding: 12px;
+}
+.flicker-controll-page .form-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.flicker-controll-page .form-group label {
+  color: var(--text-secondary);
+}
+.flicker-controll-page .info-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 12px;
+  margin-top: 8px;
+}
+.flicker-controll-page .info-item {
+  display: flex;
+  gap: 8px;
+}

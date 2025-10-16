@@ -189,6 +189,95 @@ export const calculateDiagonalFOV = (focalLength, sensorWidth, sensorHeight, pro
 };
 
 /**
+ * Extrahiert den Anamorph‑Faktor (z. B. 2x, 1.8x, 1.5x, 1.33x) aus einem Objektivnamen
+ * Erkennt zusätzlich Kennung "A2S" (Angenieux Ultra Compact A2S → 2x)
+ * @param {string} lensName
+ * @returns {number} Faktor (>1) oder 1, wenn keiner gefunden wurde
+ */
+export const extractAnamorphicFactor = (lensName) => {
+  if (!lensName || typeof lensName !== 'string') return 1;
+  // Suche nach Mustern wie "2x", "1.5x", "1.33x" überall im Namen
+  const match = lensName.match(/(^|\s)(\d+(?:\.\d+)?)x(\b|\s)/i);
+  if (match && match[2]) {
+    const n = parseFloat(match[2]);
+    if (!isNaN(n) && n > 1) return n;
+  }
+  // Spezielle Kennung A2S → 2x
+  if (/\bA2S\b/i.test(lensName)) return 2;
+  return 1;
+};
+
+/**
+ * Schätzt den zulässigen Zerstreuungskreis (Circle of Confusion, CoC) in mm
+ * Skaliert von Vollformat (~43.3mm Diagonale) mit Basiswert 0.03mm
+ * @param {number} sensorWidth - Sensorbreite in mm
+ * @param {number} sensorHeight - Sensorhöhe in mm
+ * @returns {number|null} - CoC in mm
+ */
+export const calculateCircleOfConfusion = (sensorWidth, sensorHeight) => {
+  if (!sensorWidth || !sensorHeight || sensorWidth <= 0 || sensorHeight <= 0) return null;
+  const fullFrameDiagonal = Math.sqrt(36*36 + 24*24); // ~43.3mm
+  const sensorDiagonal = Math.sqrt(sensorWidth*sensorWidth + sensorHeight*sensorHeight);
+  const baseCoC = 0.03; // Vollformat-Norm
+  const coc = baseCoC * (sensorDiagonal / fullFrameDiagonal);
+  // optional klammern für vernünftige Grenzen
+  return Math.round(Math.max(0.01, Math.min(0.06, coc)) * 1000) / 1000; // auf 0.001mm runden
+};
+
+/**
+ * Berechnet die hyperfokale Distanz (Meter)
+ * H = f^2 / (N * c) + f, mit f und c in mm
+ * @param {number} focalLengthMm - Brennweite in mm
+ * @param {number} aperture - Blendenzahl (f/N)
+ * @param {number} cocMm - Zerstreuungskreis in mm
+ * @returns {number|null} - Hyperfokale Distanz in Metern
+ */
+export const calculateHyperfocal = (focalLengthMm, aperture, cocMm) => {
+  if (!focalLengthMm || !aperture || !cocMm || focalLengthMm <= 0 || aperture <= 0 || cocMm <= 0) return null;
+  const f = focalLengthMm;
+  const N = aperture;
+  const c = cocMm;
+  const H_mm = (f * f) / (N * c) + f; // in mm
+  return Math.round((H_mm / 1000) * 1000) / 1000; // Meter, auf 0.001 runden
+};
+
+/**
+ * Berechnet Nah-/Fernpunkt und Schärfentiefe (Meter) für gegebene Fokus-Distanz
+ * @param {number} focalLengthMm - Brennweite in mm
+ * @param {number} aperture - Blendenzahl (f/N)
+ * @param {number} cocMm - Zerstreuungskreis in mm
+ * @param {number} focusDistanceM - Fokus-Distanz in Metern
+ * @returns {{near:number, far:number|null, total:number}|null}
+ */
+export const calculateDOF = (focalLengthMm, aperture, cocMm, focusDistanceM) => {
+  if (!focalLengthMm || !aperture || !cocMm || !focusDistanceM || focalLengthMm <= 0 || aperture <= 0 || cocMm <= 0 || focusDistanceM <= 0) return null;
+  const f = focalLengthMm; // mm
+  const s = focusDistanceM * 1000; // mm
+  const N = aperture;
+  const c = cocMm;
+  const H = (f * f) / (N * c) + f; // mm
+  const denomNear = H + (s - f);
+  const denomFar = H - (s - f);
+  const sNear_mm = (H * s) / denomNear; // mm
+  let sFar_mm;
+  let farM = null;
+  if (denomFar > 0) {
+    sFar_mm = (H * s) / denomFar;
+    farM = sFar_mm / 1000;
+  } else {
+    // Fernpunkt liegt hinter Unendlich
+    farM = null; // null kennzeichnet "∞"
+  }
+  const nearM = sNear_mm / 1000;
+  const totalM = farM != null ? Math.max(0, farM - nearM) : Infinity;
+  return {
+    near: Math.round(nearM * 1000) / 1000,
+    far: farM != null ? Math.round(farM * 1000) / 1000 : null,
+    total: farM != null ? Math.round(totalM * 1000) / 1000 : Infinity,
+  };
+};
+
+/**
  * Berechnet alle FOV-Werte basierend auf den Kamera- und Objektiveinstellungen
  * @param {object} cameraSettings - Die Kameraeinstellungen
  * @param {object} lensSettings - Die Objektiveinstellungen

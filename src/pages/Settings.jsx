@@ -28,6 +28,7 @@ import {
 
 const Settings = ({ darkMode, toggleDarkMode }) => {
   const { language, setLanguage, t } = useLanguage();
+  const locale = language === 'de' ? 'de-DE' : language === 'en' ? 'en-US' : language === 'fr' ? 'fr-FR' : language === 'es' ? 'es-ES' : 'de-DE';
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -63,8 +64,8 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       const res = await saveAllDataToDevice();
       setResult(res);
     } catch (e) {
-      console.error('Offline-Speichern fehlgeschlagen:', e);
-      setError('Speichern fehlgeschlagen. Bitte erneut versuchen.');
+      console.error('Offline save failed:', e);
+      setError(t('common.saveFailedTryAgain'));
     } finally {
       setSaving(false);
     }
@@ -204,34 +205,31 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
 
       <div className="settings-card card">
         <h2>{t('settings.offline')}</h2>
-        <p>
-          Speichere alle Projektdaten, Shots und Bilder lokal auf dem Gerät,
-          damit die App auch ohne Internet funktioniert.
-        </p>
+        <p>{t('settings.offlineDescription')}</p>
         <button
           className="btn-primary"
           onClick={handleSaveOffline}
           disabled={saving}
         >
-          {saving ? 'Speichere…' : 'Alle Daten auf Gerät speichern'}
+          {saving ? t('settings.offlineSaving') : t('settings.offlineSaveNow')}
         </button>
         {error && <p className="error-text">{error}</p>}
         {result && (
           <div className="save-result">
             <p>
-              Gespeichert: {result.projectsCount} Projekte, {result.shotsCount} Shots.
+              {t('settings.offlineSavedPrefix')} {result.projectsCount} {t('settings.versioning.projectsLabel')}, {result.shotsCount} {t('settings.versioning.shotsLabel')}.
             </p>
-            <small>Stand: {new Date(result.timestamp).toLocaleString('de-DE')}</small>
+            <small>{t('settings.timestampPrefix')} {new Date(result.timestamp).toLocaleString(locale)}</small>
           </div>
         )}
       </div>
 
       <div className="settings-card card">
-        <h2>Cloud-Synchronisierung</h2>
-        <p>Synchronisiere einen Daten-Snapshot zu deinem Cloudspeicher.</p>
+        <h2>{t('settings.cloudSync.title')}</h2>
+        <p>{t('settings.cloudSync.description')}</p>
         <div className="form-row">
           <div className="form-group">
-            <label>Provider:</label>
+            <label>{t('settings.cloudSync.providerLabel')}</label>
             <select value={provider} onChange={(e) => setProvider(e.target.value)}>
               <option value="dropbox">Dropbox</option>
               <option value="s3">AWS S3 (Presigned URL)</option>
@@ -240,7 +238,7 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
               <option value="webdav">WebDAV</option>
               <option value="google-drive">Google Drive (OAuth Token)</option>
               <option value="onedrive">OneDrive (OAuth Token)</option>
-              <option value="generic-http">Generischer HTTP Upload</option>
+              <option value="generic-http">{t('settings.cloudSync.options.genericHttp')}</option>
             </select>
           </div>
         </div>
@@ -248,11 +246,11 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         {provider === 'dropbox' && (
           <div className="form-row">
             <div className="form-group">
-              <label>Access Token:</label>
+              <label>{t('settings.cloudSync.labels.accessToken')}</label>
               <input type="password" value={dbxToken} onChange={(e) => setDbxToken(e.target.value)} placeholder="Dropbox Access Token" />
             </div>
             <div className="form-group">
-              <label>Dateipfad:</label>
+              <label>{t('settings.cloudSync.labels.filePath')}</label>
               <input type="text" value={dbxPath} onChange={(e) => setDbxPath(e.target.value)} placeholder="/vfx-supervision/snapshot.json" />
             </div>
           </div>
@@ -261,7 +259,7 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         {provider === 's3' && (
           <div className="form-row">
             <div className="form-group" style={{ width: '100%' }}>
-              <label>Presigned URL (PUT):</label>
+              <label>{t('settings.cloudSync.labels.presignedUrl')}</label>
               <input type="text" value={s3Url} onChange={(e) => setS3Url(e.target.value)} placeholder="https://bucket.s3... (Presigned URL)" />
             </div>
           </div>
@@ -270,7 +268,7 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         {provider === 'gcs' && (
           <div className="form-row">
             <div className="form-group" style={{ width: '100%' }}>
-              <label>Signed URL (PUT):</label>
+              <label>{t('settings.cloudSync.labels.signedUrl')}</label>
               <input type="text" value={s3Url} onChange={(e) => setS3Url(e.target.value)} placeholder="https://storage.googleapis.com/... (Signed URL)" />
             </div>
           </div>
@@ -279,7 +277,7 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         {provider === 'azure-blob' && (
           <div className="form-row">
             <div className="form-group" style={{ width: '100%' }}>
-              <label>SAS URL (PUT):</label>
+              <label>{t('settings.cloudSync.labels.sasUrl')}</label>
               <input type="text" value={s3Url} onChange={(e) => setS3Url(e.target.value)} placeholder="https://account.blob.core.windows.net/container/blob?sv=... (SAS URL)" />
             </div>
           </div>
@@ -289,21 +287,21 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
           <>
             <div className="form-row">
               <div className="form-group">
-                <label>Base URL:</label>
+                <label>{t('settings.cloudSync.labels.baseUrl')}</label>
                 <input type="text" value={wdBaseUrl} onChange={(e) => setWdBaseUrl(e.target.value)} placeholder="https://webdav.server/remote.php/dav/files/user" />
               </div>
               <div className="form-group">
-                <label>Benutzername:</label>
+                <label>{t('settings.cloudSync.labels.username')}</label>
                 <input type="text" value={wdUser} onChange={(e) => setWdUser(e.target.value)} />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Passwort / App Token:</label>
+                <label>{t('settings.cloudSync.labels.passwordToken')}</label>
                 <input type="password" value={wdPass} onChange={(e) => setWdPass(e.target.value)} />
               </div>
               <div className="form-group">
-                <label>Dateipfad:</label>
+                <label>{t('settings.cloudSync.labels.filePath')}</label>
                 <input type="text" value={wdPath} onChange={(e) => setWdPath(e.target.value)} placeholder="/vfx-supervision/snapshot.json" />
               </div>
             </div>
@@ -314,13 +312,13 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
           <>
             <div className="form-row">
               <div className="form-group" style={{ width: '100%' }}>
-                <label>OAuth Access Token:</label>
+                <label>{t('settings.cloudSync.labels.oauthAccessToken')}</label>
                 <input type="password" value={gdToken} onChange={(e) => setGdToken(e.target.value)} placeholder="Google OAuth Access Token" />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group" style={{ width: '100%' }}>
-                <label>Ordner-ID (optional):</label>
+                <label>{t('settings.cloudSync.labels.folderIdOptional')}</label>
                 <input type="text" value={gdFolderId} onChange={(e) => setGdFolderId(e.target.value)} placeholder="Google Drive Folder ID" />
               </div>
             </div>
@@ -331,13 +329,13 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
           <>
             <div className="form-row">
               <div className="form-group" style={{ width: '100%' }}>
-                <label>OAuth Access Token:</label>
+                <label>{t('settings.cloudSync.labels.oauthAccessToken')}</label>
                 <input type="password" value={odToken} onChange={(e) => setOdToken(e.target.value)} placeholder="Microsoft Graph OAuth Token" />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group" style={{ width: '100%' }}>
-                <label>Zielpfad:</label>
+                <label>{t('settings.cloudSync.labels.targetPath')}</label>
                 <input type="text" value={odPath} onChange={(e) => setOdPath(e.target.value)} placeholder="/vfx-supervision/snapshot.json" />
               </div>
             </div>
@@ -348,20 +346,20 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
           <>
             <div className="form-row">
               <div className="form-group" style={{ width: '100%' }}>
-                <label>Upload URL:</label>
+                <label>{t('settings.cloudSync.labels.uploadUrl')}</label>
                 <input type="text" value={s3Url} onChange={(e) => setS3Url(e.target.value)} placeholder="https://example.com/upload" />
               </div>
             </div>
             <div className="form-row">
               <div className="form-group">
-                <label>Methode:</label>
+                <label>{t('settings.cloudSync.labels.method')}</label>
                 <select value={genericMethod} onChange={(e) => setGenericMethod(e.target.value)}>
                   <option value="PUT">PUT</option>
                   <option value="POST">POST</option>
                 </select>
               </div>
               <div className="form-group" style={{ width: '100%' }}>
-                <label>Zusätzliche Header (JSON):</label>
+                <label>{t('settings.cloudSync.labels.headersJson')}</label>
                 <input type="text" value={genericHeaders} onChange={(e) => setGenericHeaders(e.target.value)} placeholder='{"Authorization":"Bearer ..."}' />
               </div>
             </div>
@@ -369,43 +367,43 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         )}
 
         <button className="btn-secondary" onClick={handleCloudSync} disabled={saving}>
-          {saving ? 'Synchronisiere…' : 'Jetzt synchronisieren'}
+          {saving ? t('settings.cloudSync.syncing') : t('settings.cloudSync.syncNow')}
         </button>
         {error && <p className="error-text">{error}</p>}
         {result?.cloudSync && (
           <div className="save-result">
-            <p>Cloud Sync abgeschlossen: {result.cloudSync.provider}</p>
+            <p>{t('settings.cloudSync.completedPrefix')} {result.cloudSync.provider}</p>
           </div>
         )}
       </div>
 
       <div className="settings-card card">
-        <h2>Versionierung & Backup</h2>
-        <p>Erstelle, lade herunter, importiere und stelle Daten-Snapshots wieder her.</p>
+        <h2>{t('settings.versioning.title')}</h2>
+        <p>{t('settings.versioning.description')}</p>
         <div className="setting-item">
           <label>
             <input type="checkbox" checked={autoBackupEnabled} onChange={handleToggleAutoBackup} />
-            Automatisches Backup bei Änderungen
+            {t('settings.versioning.autoBackup')}
           </label>
         </div>
         <div className="setting-item">
           <label>
             <input type="checkbox" checked={dailyBackupEnabled} onChange={handleToggleDailyBackup} />
-            Täglicher Snapshot
+            {t('settings.versioning.dailySnapshot')}
           </label>
         </div>
         <p style={{ fontSize: '12px', opacity: 0.8, marginTop: '4px' }}>
-          Letztes tägliches Backup: {lastDailyBackupAt ? new Date(lastDailyBackupAt).toLocaleString('de-DE') : 'Noch keines'}
+          {t('settings.versioning.lastDailyBackupPrefix')} {lastDailyBackupAt ? new Date(lastDailyBackupAt).toLocaleString(locale) : t('settings.versioning.noneYet')}
         </p>
         <div className="form-row" style={{ gap: '8px' }}>
           <button className="btn-secondary" onClick={handleCreateBackup} disabled={saving}>
-            {saving ? 'Erstelle…' : 'Backup jetzt erstellen'}
+            {saving ? t('settings.versioning.creating') : t('settings.versioning.createBackupNow')}
           </button>
           <button className="btn-secondary" onClick={handleDownloadBackup}>
-            Backup herunterladen (JSON)
+            {t('settings.versioning.downloadBackupJson')}
           </button>
           <label className="btn-secondary" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-            Backup importieren
+            {t('settings.versioning.importBackup')}
             <input type="file" accept="application/json" onChange={handleImportFile} style={{ display: 'none' }} />
           </label>
         </div>
@@ -413,26 +411,26 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         {restoreInfo && (
           <div className="save-result">
             <p>
-              Wiederhergestellt: {restoreInfo.projectsCount} Projekte, {restoreInfo.shotsCount} Shots.
+              {t('settings.versioning.restoredPrefix')} {restoreInfo.projectsCount} {t('settings.versioning.projectsLabel')}, {restoreInfo.shotsCount} {t('settings.versioning.shotsLabel')}.
             </p>
           </div>
         )}
         <div className="version-list" style={{ marginTop: '12px' }}>
-          <h3>Gespeicherte Versionen</h3>
+          <h3>{t('settings.versioning.savedVersionsTitle')}</h3>
           {versions.length === 0 ? (
-            <p>Keine Versionen vorhanden.</p>
+            <p>{t('settings.versioning.noVersions')}</p>
           ) : (
             versions.map(v => (
               <div key={v.id} className="version-row" style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', padding: '8px 0' }}>
                 <div style={{ flex: 1 }}>
-                  <strong>{new Date(v.timestamp).toLocaleString('de-DE')}</strong>
+                  <strong>{new Date(v.timestamp).toLocaleString(locale)}</strong>
                   <div style={{ fontSize: '12px', opacity: 0.8 }}>
                     {v.note || 'Snapshot'} · Projekte {v.projectsCount}, Shots {v.shotsCount}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button className="btn-secondary" onClick={() => handleRestoreVersion(v.id)}>Wiederherstellen</button>
-                  <button className="btn-danger" onClick={() => handleDeleteVersion(v.id)}>Löschen</button>
+                  <button className="btn-secondary" onClick={() => handleRestoreVersion(v.id)}>{t('action.restore')}</button>
+                  <button className="btn-danger" onClick={() => handleDeleteVersion(v.id)}>{t('action.delete')}</button>
                 </div>
               </div>
             ))

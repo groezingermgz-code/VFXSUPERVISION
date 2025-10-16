@@ -1,0 +1,25 @@
+.lensmapper-page {
+  padding: 1.5rem;
+}
+.lensmapper-header h2 { margin: 0 0 0.25rem 0; }
+.lensmapper-header p { margin: 0 0 1rem 0; color: var(--text-secondary, #666); }
+
+/* Info Card */
+.info-card { border: 1px solid var(--border-color, #eee); }
+.info-card h3 { margin-top: 0; }
+.info-section-title { font-weight: 600; color: var(--text-color, #333); margin: 0.25rem 0 0.5rem 0; }
+.info-list { margin: 0 0 0.75rem 1.25rem; color: var(--text-secondary, #666); }
+.info-list li { margin-bottom: 0.25rem; }
+
+.lm-controls .control-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.lm-controls .form-group { display: flex; flex-direction: column; }
+.lm-controls label { font-weight: 600; margin-bottom: 0.25rem; }
+.lm-controls select, .lm-controls input { padding: 0.5rem 0.6rem; border: 1px solid var(--border-color, #ddd); border-radius: 6px; background: var(--card-bg, #fff); color: var(--text-color, #333); }
+
+.lm-results h3 { margin-top: 0; }
+.lm-table { width: 100%; border-collapse: collapse; }
+.lm-table th, .lm-table td { text-align: left; padding: 0.6rem 0.4rem; border-bottom: 1px solid var(--border-color, #eee); }
+.lm-table th { font-weight: 700; }
+
+@media (max-width: 900px) { .lm-controls .control-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .lm-controls .control-row { grid-template-columns: 1fr; } }

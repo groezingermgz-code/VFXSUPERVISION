@@ -8,6 +8,11 @@ import ShotDetails from './pages/ShotDetails'
 import CameraSettings from './pages/CameraSettings'
 import Notes from './pages/Notes'
 import Settings from './pages/Settings'
+import SensorPreview from './pages/SensorPreview'
+import FovCalculator from './pages/FovCalculator'
+import LensMapper from './pages/LensMapper'
+import LightingTools from './pages/LightingTools'
+import FlickerControll from './pages/FlickerControll'
 import './App.css'
 import './styles/global.css'
 import { runDailySnapshotIfDue } from './utils/versioningManager'
@@ -49,6 +54,11 @@ function App() {
               <Route path="/camera" element={<CameraSettings />} />
               <Route path="/notes" element={<Notes />} />
               <Route path="/settings" element={<Settings darkMode={darkMode} toggleDarkMode={toggleDarkMode} />} />
+              <Route path="/sensor-preview" element={<SensorPreview />} />
+              <Route path="/fov-calculator" element={<FovCalculator />} />
+              <Route path="/lens-mapper" element={<LensMapper />} />
+              <Route path="/lighting-tools" element={<LightingTools />} />
+              <Route path="/flicker-controll" element={<FlickerControll />} />
             </Routes>
           </main>
         </div>

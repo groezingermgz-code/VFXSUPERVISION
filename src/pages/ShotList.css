@@ -167,6 +167,9 @@
   border-radius: 12px;
   padding: clamp(16px, 2vw, 24px);
   transition: all 0.3s ease;
+  display: flex;            /* macht die Karte zur Flex-Column */
+  flex-direction: column;   
+  height: 100%;             /* ermöglicht, dass Inhalte unten andocken können */
 }
 
 .shot-card:hover {
@@ -251,10 +254,15 @@
 }
 
 .detail-label {
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 700;            /* fette Schrift für Shot-Infos */
+  color: #4a90e2;              /* helles Blau, konsistent mit App-Akzenten */
   min-width: 80px;
   font-size: 0.9rem;
+}
+
+/* Dark Mode: leicht helleres Blau für bessere Lesbarkeit auf dunklem Hintergrund */
+.dark-mode .detail-label {
+  color: #73b4f0;
 }
 
 .detail-value {
@@ -397,4 +405,9 @@
   .detail-label {
     min-width: auto;
   }
+}
+.shot-card-actions {
+  margin-top: auto;           /* schiebt den Bereich an das Kartenende */
+  display: flex;
+  justify-content: flex-end;  /* optional: Button rechts ausrichten */
 }

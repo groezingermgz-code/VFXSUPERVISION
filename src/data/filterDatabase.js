@@ -30,6 +30,28 @@ export const filterDatabase = {
     'Daylight to Tungsten (85B)',
     'Tungsten to Daylight (80A)'
   ],
+  cto: [
+    'Full CTO (≈ +131 mired)',
+    '1/2 CTO (≈ +65 mired)',
+    '1/4 CTO (≈ +32 mired)',
+    '1/8 CTO (≈ +16 mired)'
+  ],
+  ctb: [
+    'Full CTB (≈ −131 mired)',
+    '1/2 CTB (≈ −65 mired)',
+    '1/4 CTB (≈ −32 mired)',
+    '1/8 CTB (≈ −16 mired)'
+  ],
+  greenMagenta: [
+    'Plus Green Full',
+    'Plus Green 1/2',
+    'Plus Green 1/4',
+    'Plus Green 1/8',
+    'Minus Green Full',
+    'Minus Green 1/2',
+    'Minus Green 1/4',
+    'Minus Green 1/8'
+  ],
   diffusion: [
     'Pro-Mist 1/8',
     'Pro-Mist 1/4',

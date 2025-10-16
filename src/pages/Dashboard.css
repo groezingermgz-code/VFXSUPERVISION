@@ -221,11 +221,11 @@
 
 .info-row {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   padding: 0.5rem 0;
   border-bottom: 1px solid var(--border-color);
-  gap: 0.5rem;
+  gap: 0.25rem;
 }
 
 .info-row:last-child {
@@ -679,12 +679,13 @@
 }
 .detail-row {
   display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: 0.5rem;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: 0.25rem;
 }
 
 .detail-value {
+  display: block;
   min-width: 0;
   white-space: nowrap;
   overflow: hidden;

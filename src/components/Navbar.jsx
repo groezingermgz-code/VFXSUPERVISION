@@ -56,6 +56,46 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             <span className="nav-label">{t('nav.settings')}</span>
           </Link>
         </li>
+
+        {/* Tools-Menü mit Einträgen */}
+        <li className="nav-tools">
+          <div className="nav-tools-title" aria-label={t('nav.tools', 'Tools')} title={t('nav.tools', 'Tools')}>
+            <span className="nav-icon" aria-hidden><Icon name="folder" /></span>
+            <span className="nav-label">{t('nav.tools', 'Tools')}</span>
+          </div>
+          <ul className="submenu">
+            <li>
+              <Link to="/sensor-preview" onClick={() => setIsOpen(false)} aria-label={t('nav.sensorPreview', 'Sensor Vorschau')} title={t('nav.sensorPreview', 'Sensor Vorschau')}>
+                <span className="nav-icon" aria-hidden><Icon name="camera" /></span>
+                <span className="nav-label">{t('nav.sensorPreview', 'Sensor Vorschau')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/fov-calculator" onClick={() => setIsOpen(false)} aria-label={t('nav.fovCalculator', 'FOV‑Rechner')} title={t('nav.fovCalculator', 'FOV‑Rechner')}>
+                <span className="nav-icon" aria-hidden><Icon name="film" /></span>
+                <span className="nav-label">{t('nav.fovCalculator', 'FOV‑Rechner')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/lens-mapper" onClick={() => setIsOpen(false)} aria-label={t('nav.lensMapper', 'Lens‑Mapper')} title={t('nav.lensMapper', 'Lens‑Mapper')}>
+                <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
+                <span className="nav-label">{t('nav.lensMapper', 'Lens‑Mapper')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/flicker-controll" onClick={() => setIsOpen(false)} aria-label={t('nav.flickerControll', 'Flicker Controll')} title={t('nav.flickerControll', 'Flicker Controll')}>
+                <span className="nav-icon" aria-hidden><Icon name="camera" /></span>
+                <span className="nav-label">{t('nav.flickerControll', 'Flicker Controll')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/lighting-tools" onClick={() => setIsOpen(false)} aria-label={t('nav.lightingTools', 'Lighting‑Tools')} title={t('nav.lightingTools', 'Lighting‑Tools')}>
+                <span className="nav-icon" aria-hidden><Icon name="settings" /></span>
+                <span className="nav-label">{t('nav.lightingTools', 'Lighting‑Tools')}</span>
+              </Link>
+            </li>
+          </ul>
+        </li>
       </ul>
 
       {/* Einstellungen wurden in die Settings-Seite verlagert */}

@@ -1,0 +1,207 @@
+.fov-page {
+  padding: 1.5rem;
+}
+
+.fov-header h2 {
+  margin: 0 0 0.25rem 0;
+}
+.fov-header p {
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary, #666);
+}
+
+/* Info Card */
+.info-card {
+  border: 1px solid var(--border-color, #eee);
+}
+.info-card h3 {
+  margin-top: 0;
+}
+.info-section-title {
+  font-weight: 600;
+  color: var(--text-color, #333);
+  margin: 0.25rem 0 0.5rem 0;
+}
+.info-list {
+  margin: 0 0 0.75rem 1.25rem;
+  color: var(--text-secondary, #666);
+}
+.info-list li { margin-bottom: 0.25rem; }
+
+.fov-controls .control-row,
+.fov-results .result-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.fov-controls .form-group {
+  display: flex;
+  flex-direction: column;
+}
+.fov-controls label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.fov-controls select,
+.fov-controls input {
+  padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text-color, #333);
+}
+
+.fov-results h3 {
+  margin-top: 0;
+}
+.fov-results .result-item {
+  display: flex;
+  flex-direction: column;
+  /* Leicht abgesetzter Hintergrund für bessere Lesbarkeit */
+  background: #f7f7f8;
+  border: 1px solid var(--border-color, #eee);
+  border-radius: 8px;
+  padding: 0.75rem;
+}
+.dark-mode .fov-results .result-item {
+  background: #242424;
+}
+.fov-results .label {
+  color: var(--text-secondary, #666);
+  font-size: 0.9rem;
+}
+.fov-results .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-color, #333);
+}
+
+/* SVG Diagramm */
+.fov-diagram-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.fov-diagram-container svg {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  border-radius: 8px;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color, #eee);
+}
+
+/* 3D Canvas Darstellung */
+.fov-3d-container canvas {
+  width: 100%;
+  max-width: 720px;
+  height: auto;
+  border-radius: 8px;
+  background: var(--background-color, #0e1216);
+  border: 1px solid var(--border-color, #eee);
+}
+.fov-3d-container .hint {
+  color: var(--text-secondary, #666);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+}
+
+/* Aktionen unter dem 3D‑Canvas */
+.fov-3d-actions {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.fov-3d-actions .btn-reset {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text-color, #333);
+  cursor: pointer;
+}
+.fov-3d-actions .btn-reset:hover {
+  border-color: var(--accent-color);
+}
+
+/* Slider‑Steuerung für 3D */
+.fov-3d-controls {
+  margin-top: 0.5rem;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  align-items: center;
+}
+.fov-3d-controls .control {
+  display: flex;
+  flex-direction: column;
+}
+.fov-3d-controls .control label {
+  font-weight: 600;
+  margin-bottom: 0.25rem;
+}
+.fov-3d-controls .control input[type="range"] {
+  width: 100%;
+}
+.fov-3d-controls .control .value {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+  margin-top: 0.25rem;
+}
+
+@media (max-width: 900px) {
+  .fov-3d-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 600px) {
+  .fov-3d-controls { grid-template-columns: 1fr; }
+}
+
+.view-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+.view-toggle button {
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border-color, #ddd);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text-color, #333);
+  cursor: pointer;
+}
+.view-toggle button.active {
+  background: var(--accent-color);
+  color: #fff;
+  border-color: var(--accent-color);
+}
+
+/* Nebeneinander-Darstellung */
+.fov-diagram-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+.fov-diagram-grid .panel-title {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-secondary, #666);
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .fov-diagram-grid { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 900px) {
+  .fov-controls .control-row,
+  .fov-results .result-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .fov-controls .control-row,
+  .fov-results .result-grid {
+    grid-template-columns: 1fr;
+  }
+}

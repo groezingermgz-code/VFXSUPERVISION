@@ -59,6 +59,25 @@
   object-fit: contain;
 }
 
+/* Zweispaltiges Layout: Vorschaubild links, Informationen rechts */
+.shot-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .shot-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.shot-layout .preview-image-container,
+.shot-layout .shot-info {
+  width: 100%;
+}
+
 .preview-image-container::after {
   content: "";
   position: absolute;
@@ -98,7 +117,8 @@
 
 /* Readonly: Anamorphe Linse auf gleicher Höhe wie Checkbox */
 .lens-settings .info-grid .info-item.anamorphic-info {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr;
   align-items: center; /* vertikal zentriert */
   gap: 8px; /* etwas Abstand zwischen Label und Checkbox */
 }
@@ -111,31 +131,109 @@
   display: inline-flex;
   align-items: center; /* Checkbox und Text baseline */
   gap: 6px;
+  justify-content: flex-start; /* Checkbox nicht nach rechts schieben */
 }
-/* Namen und Werte deutlicher absetzen (Readonly-Ansicht) */
-.info-grid .info-item label {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px; /* kleiner Abstand zwischen Name und Wert */
+/* Readonly-Infos zweispaltig (Label links, Wert rechts) */
+.info-grid .info-item,
+.info-item {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 6px;
+  align-items: start;
+}
+
+.info-grid .info-item label,
+.info-item label {
+  margin: 0;
   line-height: 1.4;
 }
 
-.info-grid .info-item label strong {
+.info-grid .info-item label strong,
+.info-item label strong {
   color: var(--info-name-color, var(--primary-color, #4a6da7));
   font-weight: 700; /* Namen deutlich fett */
 }
 
-.info-grid .info-item .info-value {
+.info-grid .info-item .info-value,
+.info-item .info-value {
   color: var(--info-value-color, #1a1a1a);
   font-weight: 500; /* Werte etwas hervorgehoben, aber ruhiger als Namen */
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.dark-mode .info-grid .info-item label strong {
+.dark-mode .info-grid .info-item label strong,
+.dark-mode .info-item label strong {
   color: var(--info-name-color-dark, #9fb7e9);
 }
 
-.dark-mode .info-grid .info-item .info-value {
+.dark-mode .info-grid .info-item .info-value,
+.dark-mode .info-item .info-value {
   color: var(--info-value-color-dark, #eaeaea);
+}
+.info-grid .info-item,
+.info-item {
+  display: grid !important;
+  grid-template-columns: var(--label-col-width, 240px) 1fr;
+  column-gap: 8px;
+  align-items: baseline;
+}
+
+.info-grid .info-item label,
+.info-item label {
+  margin: 0;
+}
+
+.lens-settings .info-grid .info-item.anamorphic-info {
+  display: grid !important;
+  grid-template-columns: var(--label-col-width, 240px) 1fr;
+  column-gap: 8px;
+  align-items: center;
+}
+.info-grid .info-item,
+.info-item {
+  display: grid !important;
+  grid-template-columns: var(--label-col-width, 240px) 1fr;
+  column-gap: 8px;
+  align-items: center;
+}
+
+.lens-settings .info-grid .info-item.anamorphic-info {
+  display: grid !important;
+  grid-template-columns: var(--label-col-width, 240px) 1fr;
+  column-gap: 8px;
+  align-items: center;
+}
+
+.info-grid .info-item .info-value,
+.info-item .info-value {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  justify-self: start; /* in Grid-Zelle links ausrichten */
+  display: inline-flex; /* konsistente Darstellung für Text/Checkbox */
+  align-items: center;
+  gap: 6px;
+}
+
+/* Erzwinge die Platzierung: Label in Spalte 1, Wert in Spalte 2 */
+.info-grid .info-item > label,
+.info-item > label {
+  grid-column: 1;
+}
+
+.info-grid .info-item > .info-value,
+.info-item > .info-value {
+  grid-column: 2;
+}
+
+.lens-settings .info-grid .info-item.anamorphic-info > label {
+  grid-column: 1;
+}
+.lens-settings .info-grid .info-item.anamorphic-info > .info-value {
+  grid-column: 2;
 }
 .reference-image-container {
   position: relative;
@@ -154,6 +252,32 @@
   background: rgba(0, 0, 0, 0.25);
   pointer-events: none;
   z-index: 1;
+}
+
+/* Mehrspaltige Anzeige für Mehr-Kamera-Setups (Readonly) */
+.multi-setup-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 900px) {
+  .multi-setup-grid {
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    align-items: start;
+  }
+}
+
+.setup-column {
+  border: 1px solid var(--border-color, rgba(0,0,0,0.1));
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.setup-title {
+  margin: 0 0 8px 0;
+  font-size: 1rem;
+  opacity: 0.85;
 }
 
 .reference-image-container .reference-info {
@@ -395,3 +519,110 @@
 .vfx-checklist .vfx-item input {
   justify-self: start;
 }
+
+/* Collapse toggle icon button in card headers */
+.card-header-row .collapse-toggle {
+  color: var(--icon-muted-color, #9aa0a6);
+}
+
+.dark-mode .card-header-row .collapse-toggle {
+  color: var(--icon-muted-color-dark, #e0e0e0);
+}
+
+/* TAKES section */
+.takes.card {
+  margin-top: 16px;
+}
+
+.take-item {
+  border: 1px solid var(--border-color, rgba(0,0,0,0.1));
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+  background: var(--card-bg, #fff);
+}
+
+.dark-mode .take-item {
+  background: var(--card-bg-dark, rgba(255,255,255,0.06));
+}
+
+.take-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.take-name {
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.dark-mode .take-name {
+  color: #e0e0e0;
+}
+
+.take-remove {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.take-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+@media (max-width: 700px) {
+  .take-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+.take-ratings {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rating-item {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rating-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary, #666);
+}
+
+.dark-mode .rating-label {
+  color: #cfcfcf;
+}
+
+.rating-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  border: 1px solid var(--border-color, rgba(0,0,0,0.2));
+  background: rgba(0,0,0,0.08);
+  cursor: pointer;
+}
+
+.dark-mode .rating-dot {
+  border-color: rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.12);
+}
+
+.rating-dot.none { opacity: 0.6; }
+.rating-dot.green { background: #2ecc71; }
+.rating-dot.yellow { background: #f1c40f; }
+.rating-dot.red { background: #e74c3c; }
+
+.takes-readonly-list .rating-dot { cursor: default; }

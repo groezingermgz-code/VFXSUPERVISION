@@ -11,7 +11,8 @@ import {
   getSensorSizeByFormat,
   getCameraInfoByFormat,
   getColorSpacesByModel,
-  formatFormatDisplay
+  formatFormatDisplay,
+  getFrameratesByCodec
 } from '../data/cameraDatabase';
 import { 
   lensDatabase, 
@@ -22,8 +23,10 @@ import {
   getAnamorphicLensesByManufacturer 
 } from '../data/lensDatabase';
 import { 
-  getAllFilters 
+  getAllFilters,
+  getFiltersByCategory
 } from '../data/filterDatabase';
+import { commonLuts, getViewerLutsForManufacturer } from '../data/lutDatabase';
 import { 
   calculateAllFOV, 
   formatFOVDisplay 
@@ -40,6 +43,7 @@ import { exportShotToPDF, savePDF } from '../utils/pdfExporter';
 import dummyPreview from '../assets/dummy-preview.svg';
 import dummyReference from '../assets/dummy-reference.svg';
 import { useLanguage } from '../contexts/LanguageContext';
+import { FiChevronDown, FiChevronUp, FiPlus, FiTrash } from 'react-icons/fi';
 
 const ShotDetails = () => {
   const { id } = useParams();
@@ -78,8 +82,7 @@ const ShotDetails = () => {
       'Sideways': 'sideways',
       'Circle': 'circle',
       'Up': 'up',
-      'Down': 'down',
-      'Diagonal': 'diagonal'
+      'Down': 'down'
     };
     return d && map[d] ? t(`movement.directionOptions.${map[d]}`) : (d || '');
   };
@@ -98,6 +101,8 @@ const ShotDetails = () => {
   const [availableFormats, setAvailableFormats] = useState([]);
   const [availableCodecs, setAvailableCodecs] = useState([]);
   const [availableColorSpaces, setAvailableColorSpaces] = useState([]);
+  const [availableFramerates, setAvailableFramerates] = useState([]);
+  const [availableLuts, setAvailableLuts] = useState(getViewerLutsForManufacturer(''));
   
   // Lens state
   const [selectedLensManufacturer, setSelectedLensManufacturer] = useState('');
@@ -106,7 +111,82 @@ const ShotDetails = () => {
   const [isAnamorphicEnabled, setIsAnamorphicEnabled] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [filterToAdd, setFilterToAdd] = useState('');
+  const [ctoToAdd, setCtoToAdd] = useState('');
+  const [ctbToAdd, setCtbToAdd] = useState('');
+  const [greenToAdd, setGreenToAdd] = useState('');
   const [selectedSetupIndex, setSelectedSetupIndex] = useState(0);
+
+  // Einklapp-/Ausklapp-Status für Bearbeitungsansicht
+  const [isCameraSettingsCollapsed, setCameraSettingsCollapsed] = useState(false);
+  const [isLensSettingsCollapsed, setLensSettingsCollapsed] = useState(false);
+  const [isCameraMovementCollapsed, setCameraMovementCollapsed] = useState(false);
+  const [isVfxTasksCollapsed, setVfxTasksCollapsed] = useState(false);
+  const [isReferencesCollapsed, setReferencesCollapsed] = useState(false);
+
+  // TAKES helpers
+  const getShotBaseName = () => {
+    const base = (editedShot?.name || shot?.name || `SH_${String(id).slice(-3)}`).trim();
+    return base;
+  };
+  const getNextTakeVersion = () => {
+    const existing = Array.isArray(editedShot?.takes) ? editedShot.takes : [];
+    const maxVer = existing.reduce((m, t) => (typeof t.version === 'number' && t.version > m ? t.version : m), 0);
+    return maxVer + 1;
+  };
+  const addTake = () => {
+    const base = getShotBaseName();
+    const nextVersion = getNextTakeVersion();
+    const label = `${base}_TAKE ${String(nextVersion).padStart(3, '0')}`;
+    const newTake = {
+      id: Date.now(),
+      name: label,
+      version: nextVersion,
+      note: '',
+      changes: '',
+      ratings: ['none', 'none', 'none']
+    };
+    const updatedShot = {
+      ...editedShot,
+      takes: [...(editedShot?.takes || []), newTake]
+    };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+  };
+  const updateTakeNote = (takeId, value) => {
+    const updatedTakes = (editedShot?.takes || []).map(t => t.id === takeId ? { ...t, note: value } : t);
+    const updatedShot = { ...editedShot, takes: updatedTakes };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+  };
+  const updateTakeChanges = (takeId, value) => {
+    const updatedTakes = (editedShot?.takes || []).map(t => t.id === takeId ? { ...t, changes: value } : t);
+    const updatedShot = { ...editedShot, takes: updatedTakes };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+  };
+  const cycleColor = (c) => {
+    if (c === 'none') return 'green';
+    if (c === 'green') return 'yellow';
+    if (c === 'yellow') return 'red';
+    return 'none';
+  };
+  const toggleTakeRating = (takeId, index) => {
+    const updatedTakes = (editedShot?.takes || []).map(t => {
+      if (t.id !== takeId) return t;
+      const next = [...(t.ratings || ['none', 'none', 'none'])];
+      next[index] = cycleColor(next[index]);
+      return { ...t, ratings: next };
+    });
+    const updatedShot = { ...editedShot, takes: updatedTakes };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+  };
+  const removeTake = (takeId) => {
+    const updatedTakes = (editedShot?.takes || []).filter(t => t.id !== takeId);
+    const updatedShot = { ...editedShot, takes: updatedTakes };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+  };
 
   // Aktuelle Setup-Referenzen (A = Top-Level, B/C = additionalCameraSetups)
   const currentEditedCameraSettings = selectedSetupIndex === 0
@@ -124,6 +204,20 @@ const ShotDetails = () => {
     ? (shot?.cameraMovement || {})
     : ((shot?.additionalCameraSetups?.[selectedSetupIndex - 1]?.cameraMovement) || {});
 
+  // Alle Setups (Readonly) für mehrspaltige Anzeige
+  const allShotCameraSettings = [
+    shot?.cameraSettings || {},
+    ...(Array.isArray(shot?.additionalCameraSetups)
+      ? shot.additionalCameraSetups.map(s => s?.cameraSettings || {})
+      : [])
+  ];
+  const allShotCameraMovements = [
+    shot?.cameraMovement || {},
+    ...(Array.isArray(shot?.additionalCameraSetups)
+      ? shot.additionalCameraSetups.map(s => s?.cameraMovement || {})
+      : [])
+  ];
+
   // Setup-Label (A/B/C ...)
   const getSetupLabel = (index) => String.fromCharCode(65 + index);
 
@@ -135,15 +229,17 @@ const ShotDetails = () => {
       : ((editedShot.additionalCameraSetups?.[selectedSetupIndex - 1]?.cameraSettings) || {});
 
     // Kamera-Auswahl
-    const manufacturer = s.manufacturer || '';
+    const manufacturer = s.manufacturer === 'Manuell' ? 'Manuell' : (s.manufacturer || '');
     setSelectedManufacturer(manufacturer);
-    const models = manufacturer ? getModelsByManufacturer(manufacturer) : [];
+    const models = (manufacturer && manufacturer !== 'Manuell') ? getModelsByManufacturer(manufacturer) : [];
     setAvailableModels(models);
-    const modelName = s.model
-      ? (s.model.includes(' ') ? s.model.split(' ').slice(1).join(' ') : s.model)
-      : '';
+    const modelName = s.model === 'Manuell'
+      ? 'Manuell'
+      : (s.model
+        ? (manufacturer ? s.model.replace(new RegExp(`^${manufacturer}\\s+`), '') : s.model)
+        : '');
     setSelectedModel(modelName);
-    if (manufacturer && modelName) {
+    if (manufacturer && modelName && manufacturer !== 'Manuell' && modelName !== 'Manuell') {
       setAvailableFormats(getFormatsByModel(manufacturer, modelName));
       setAvailableCodecs(getCodecsByModel(manufacturer, modelName));
       setAvailableColorSpaces(getColorSpacesByModel(manufacturer, modelName));
@@ -154,15 +250,15 @@ const ShotDetails = () => {
     }
 
     // Objektiv-Auswahl
-    const lm = s.lensManufacturer || '';
+    const lm = s.lensManufacturer === 'Manuell' ? 'Manuell' : (s.lensManufacturer || '');
     setSelectedLensManufacturer(lm);
     setIsAnamorphicEnabled(!!s.isAnamorphic);
-    const lensList = lm
+    const lensList = (lm && lm !== 'Manuell')
       ? (s.isAnamorphic ? getAnamorphicLensesByManufacturer(lm) : getLensesByManufacturer(lm))
       : [];
     setAvailableLenses(lensList);
     const fullLensName = s.lens || '';
-    const lensModelName = (lm && fullLensName) ? fullLensName.replace(new RegExp(`^${lm}\\s+`), '') : '';
+    const lensModelName = (s.lens === 'Manuell') ? 'Manuell' : ((lm && fullLensName) ? fullLensName.replace(new RegExp(`^${lm}\\s+`), '') : '');
     setSelectedLens(lensModelName);
 
     // Filter-Auswahl
@@ -271,6 +367,10 @@ const ShotDetails = () => {
                 distortionGridsDetails: {
                   patternType: '',
                   distances: '',
+                  focalLengths: '',
+                  coverage: '',
+                  anamorphicSqueeze: '',
+                  date: '',
                   notes: ''
                 },
                 measurementsDetails: {
@@ -312,6 +412,7 @@ const ShotDetails = () => {
         const normalizedShotData = {
           ...shotData,
           references: Array.isArray(shotData.references) ? shotData.references : [],
+          takes: Array.isArray(shotData.takes) ? shotData.takes : [],
           cameraMovement: {
             ...cameraMovementDefaults,
             ...(shotData.cameraMovement || {})
@@ -332,26 +433,33 @@ const ShotDetails = () => {
     };
 
     const setupUIStatesFromShotData = (shotData) => {
-      if (shotData.cameraSettings?.manufacturer) {
-        setSelectedManufacturer(shotData.cameraSettings.manufacturer);
-        const models = getModelsByManufacturer(shotData.cameraSettings.manufacturer);
-        setAvailableModels(models);
+    if (shotData.cameraSettings?.manufacturer) {
+      setSelectedManufacturer(shotData.cameraSettings.manufacturer);
+      const models = getModelsByManufacturer(shotData.cameraSettings.manufacturer);
+      setAvailableModels(models);
+      setAvailableLuts(getViewerLutsForManufacturer(shotData.cameraSettings.manufacturer));
         
-        if (shotData.cameraSettings.model) {
-          const modelName = shotData.cameraSettings.model.includes(' ') 
-            ? shotData.cameraSettings.model.split(' ').slice(1).join(' ')
-            : shotData.cameraSettings.model;
-          setSelectedModel(modelName);
-          
-          // Load formats, codecs, and color spaces for the selected model
-          const formats = getFormatsByModel(shotData.cameraSettings.manufacturer, modelName);
-          const codecs = getCodecsByModel(shotData.cameraSettings.manufacturer, modelName);
-          const colorSpaces = getColorSpacesByModel(shotData.cameraSettings.manufacturer, modelName);
-          setAvailableFormats(formats);
-          setAvailableCodecs(codecs);
-          setAvailableColorSpaces(colorSpaces);
-        }
+      if (shotData.cameraSettings.model) {
+        const manu = shotData.cameraSettings.manufacturer;
+        const modelName = shotData.cameraSettings.model
+          ? (manu ? shotData.cameraSettings.model.replace(new RegExp(`^${manu}\\s+`), '') : shotData.cameraSettings.model)
+          : '';
+        setSelectedModel(modelName);
+        
+        // Load formats, codecs, and color spaces for the selected model
+        const formats = getFormatsByModel(shotData.cameraSettings.manufacturer, modelName);
+        const codecs = getCodecsByModel(shotData.cameraSettings.manufacturer, modelName);
+        const colorSpaces = getColorSpacesByModel(shotData.cameraSettings.manufacturer, modelName);
+        setAvailableFormats(formats);
+        setAvailableCodecs(codecs);
+        setAvailableColorSpaces(colorSpaces);
+        const initialCodec = shotData.cameraSettings.codec || '';
+        const fps = initialCodec
+          ? getFrameratesByCodec(shotData.cameraSettings.manufacturer, modelName, initialCodec)
+          : [];
+        setAvailableFramerates(fps);
       }
+    }
 
       if (shotData.cameraSettings?.isAnamorphic !== undefined) {
         setIsAnamorphicEnabled(shotData.cameraSettings.isAnamorphic);
@@ -365,9 +473,10 @@ const ShotDetails = () => {
         setAvailableLenses(lenses);
         
         if (shotData.cameraSettings.lens) {
-          const lensModel = shotData.cameraSettings.lens.includes(' ')
-            ? shotData.cameraSettings.lens.split(' ').slice(1).join(' ')
-            : shotData.cameraSettings.lens;
+          const lm = shotData.cameraSettings.lensManufacturer;
+          const lensModel = (lm && shotData.cameraSettings.lens)
+            ? shotData.cameraSettings.lens.replace(new RegExp(`^${lm}\\s+`), '')
+            : (shotData.cameraSettings.lens || '');
           setSelectedLens(lensModel);
         }
       }
@@ -477,20 +586,42 @@ const ShotDetails = () => {
 
   const handleCameraChange = (e) => {
     const { name, value } = e.target;
+    // Dynamische Ableitung der Framerates bei Codec-Änderung
+    let derivedFramerates = null;
+    if (name === 'codec') {
+      derivedFramerates = (selectedManufacturer && selectedModel)
+        ? getFrameratesByCodec(selectedManufacturer, selectedModel, value)
+        : [];
+      setAvailableFramerates(derivedFramerates);
+    }
     setEditedShot(prev => {
       if (selectedSetupIndex === 0) {
-        return {
-          ...prev,
-          cameraSettings: {
-            ...prev.cameraSettings,
-            [name]: value
-          }
-        };
+        const currentFr = prev.cameraSettings?.framerate || '';
+        const reconciledFr = (name === 'codec' && Array.isArray(derivedFramerates))
+          ? (derivedFramerates.includes(currentFr) ? currentFr : '')
+          : currentFr;
+        const updatedSettings = { ...prev.cameraSettings, [name]: value };
+        if (name === 'codec') {
+          updatedSettings.framerate = reconciledFr;
+        } else if (name === 'framerate') {
+          updatedSettings.framerate = value;
+        }
+        return { ...prev, cameraSettings: updatedSettings };
       }
       const additional = Array.isArray(prev.additionalCameraSetups) ? [...prev.additionalCameraSetups] : [];
       const idx = selectedSetupIndex - 1;
       const setup = { ...(additional[idx] || { cameraSettings: {}, cameraMovement: {} }) };
-      setup.cameraSettings = { ...(setup.cameraSettings || {}), [name]: value };
+      const setupFr = (setup.cameraSettings || {}).framerate || '';
+      const reconciledSetupFr = (name === 'codec' && Array.isArray(derivedFramerates))
+        ? (derivedFramerates.includes(setupFr) ? setupFr : '')
+        : setupFr;
+      const updatedSetupSettings = { ...(setup.cameraSettings || {}), [name]: value };
+      if (name === 'codec') {
+        updatedSetupSettings.framerate = reconciledSetupFr;
+      } else if (name === 'framerate') {
+        updatedSetupSettings.framerate = value;
+      }
+      setup.cameraSettings = updatedSetupSettings;
       additional[idx] = setup;
       return { ...prev, additionalCameraSetups: additional };
     });
@@ -655,8 +786,17 @@ const ShotDetails = () => {
     const manufacturer = e.target.value;
     setSelectedManufacturer(manufacturer);
     setSelectedModel('');
+    const newLuts = getViewerLutsForManufacturer(manufacturer);
+    setAvailableLuts(newLuts);
+    setAvailableFramerates([]);
     
-    if (manufacturer) {
+    if (manufacturer === 'Manuell') {
+      setAvailableModels([]);
+      setAvailableFormats([]);
+      setAvailableCodecs([]);
+      setAvailableColorSpaces([]);
+      setAvailableFramerates([]);
+    } else if (manufacturer) {
       const models = getModelsByManufacturer(manufacturer);
       setAvailableModels(models);
     } else {
@@ -665,19 +805,24 @@ const ShotDetails = () => {
 
     setEditedShot(prev => {
       if (selectedSetupIndex === 0) {
+        const currentLut = prev.cameraSettings?.lut || '';
+        const reconciledLut = newLuts.includes(currentLut) ? currentLut : '';
         return {
           ...prev,
           cameraSettings: {
             ...prev.cameraSettings,
             manufacturer: manufacturer,
-            model: ''
+            model: '',
+            lut: reconciledLut
           }
         };
       }
       const additional = Array.isArray(prev.additionalCameraSetups) ? [...prev.additionalCameraSetups] : [];
       const idx = selectedSetupIndex - 1;
       const setup = { ...(additional[idx] || { cameraSettings: {}, cameraMovement: {} }) };
-      setup.cameraSettings = { ...(setup.cameraSettings || {}), manufacturer: manufacturer, model: '' };
+      const currentSetupLut = (setup.cameraSettings || {}).lut || '';
+      const reconciledSetupLut = newLuts.includes(currentSetupLut) ? currentSetupLut : '';
+      setup.cameraSettings = { ...(setup.cameraSettings || {}), manufacturer: manufacturer, model: '', lut: reconciledSetupLut };
       additional[idx] = setup;
       return { ...prev, additionalCameraSetups: additional };
     });
@@ -687,13 +832,45 @@ const ShotDetails = () => {
     const model = e.target.value;
     setSelectedModel(model);
     
-    if (model && selectedManufacturer) {
+    if (model === 'Manuell') {
+      setAvailableFormats([]);
+      setAvailableCodecs([]);
+      setAvailableColorSpaces([]);
+      setAvailableFramerates([]);
+      setEditedShot(prev => {
+        if (selectedSetupIndex === 0) {
+          return {
+            ...prev,
+            cameraSettings: {
+              ...prev.cameraSettings,
+              model: 'Manuell',
+              format: '',
+              codec: '',
+              colorSpace: ''
+            }
+          };
+        }
+        const additional = Array.isArray(prev.additionalCameraSetups) ? [...prev.additionalCameraSetups] : [];
+        const idx = selectedSetupIndex - 1;
+        const setup = { ...(additional[idx] || { cameraSettings: {}, cameraMovement: {} }) };
+        setup.cameraSettings = {
+          ...(setup.cameraSettings || {}),
+          model: 'Manuell',
+          format: '',
+          codec: '',
+          colorSpace: ''
+        };
+        additional[idx] = setup;
+        return { ...prev, additionalCameraSetups: additional };
+      });
+    } else if (model && selectedManufacturer) {
       const formats = getFormatsByModel(selectedManufacturer, model);
       const codecs = getCodecsByModel(selectedManufacturer, model);
       const colorSpaces = getColorSpacesByModel(selectedManufacturer, model);
       setAvailableFormats(formats);
       setAvailableCodecs(codecs);
       setAvailableColorSpaces(colorSpaces);
+      setAvailableFramerates([]);
       
       const fullCameraName = getCameraFullName(selectedManufacturer, model);
       setEditedShot(prev => {
@@ -726,6 +903,7 @@ const ShotDetails = () => {
       setAvailableFormats([]);
       setAvailableCodecs([]);
       setAvailableColorSpaces([]);
+      setAvailableFramerates([]);
       setEditedShot(prev => {
         if (selectedSetupIndex === 0) {
           return {
@@ -760,7 +938,9 @@ const ShotDetails = () => {
     setSelectedLensManufacturer(manufacturer);
     setSelectedLens('');
     
-    if (manufacturer) {
+    if (manufacturer === 'Manuell') {
+      setAvailableLenses([]);
+    } else if (manufacturer) {
       const lenses = isAnamorphicEnabled 
         ? getAnamorphicLensesByManufacturer(manufacturer)
         : getLensesByManufacturer(manufacturer);
@@ -832,7 +1012,29 @@ const ShotDetails = () => {
     const lens = e.target.value;
     setSelectedLens(lens);
     
-    if (lens && selectedLensManufacturer) {
+    if (lens === 'Manuell') {
+      const updatedShot = (selectedSetupIndex === 0)
+        ? {
+            ...editedShot,
+            cameraSettings: {
+              ...editedShot.cameraSettings,
+              lens: 'Manuell'
+            }
+          }
+        : {
+            ...editedShot,
+            additionalCameraSetups: (() => {
+              const arr = Array.isArray(editedShot.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
+              const idx = selectedSetupIndex - 1;
+              const setup = { ...(arr[idx] || { cameraSettings: {}, cameraMovement: {} }) };
+              setup.cameraSettings = { ...(setup.cameraSettings || {}), lens: 'Manuell' };
+              arr[idx] = setup;
+              return arr;
+            })()
+          };
+      setEditedShot(updatedShot);
+      autoSaveShotToFile(id, updatedShot);
+    } else if (lens && selectedLensManufacturer) {
       const fullLensName = getLensFullName(selectedLensManufacturer, lens);
       
       // Extrahiere automatisch die Brennweite aus dem Objektiv-Namen
@@ -930,10 +1132,11 @@ const ShotDetails = () => {
     setFilterToAdd(e.target.value);
   };
 
-  const handleAddFilter = () => {
-    if (!filterToAdd) return;
-    if (selectedFilters.includes(filterToAdd)) return;
-    const newFilters = [ ...selectedFilters, filterToAdd ];
+  const addFilter = (value) => {
+    const v = (value || '').trim();
+    if (!v) return;
+    if (selectedFilters.includes(v)) return;
+    const newFilters = [ ...selectedFilters, v ];
     setSelectedFilters(newFilters);
     const updatedShot = (selectedSetupIndex === 0)
       ? {
@@ -961,6 +1164,10 @@ const ShotDetails = () => {
         };
     setEditedShot(updatedShot);
     autoSaveShotToFile(id, updatedShot);
+  };
+
+  const handleAddFilter = () => {
+    addFilter(filterToAdd);
     setFilterToAdd('');
   };
 
@@ -1180,8 +1387,10 @@ const ShotDetails = () => {
         )}
       </div>
       
-      {/* Preview Image */}
-      <div className="preview-image-container">
+      {/* Zweispaltiges Layout: Vorschaubild links, Informationen rechts */}
+      <div className="shot-layout">
+        {/* Preview Image */}
+        <div className="preview-image-container">
         {shot.previewImage || previewImage ? (
           <img 
             src={previewImage || shot.previewImage} 
@@ -1215,198 +1424,25 @@ const ShotDetails = () => {
       </div>
 
       {/* Shot Information */}
-      <div className="shot-info card">
+        <div className="shot-info card">
         <h2>{t('shot.detailsTitle')}</h2>
         {!isEditing ? (
           <div className="info-grid">
             <div className="info-item">
               <label><strong>{t('common.description')}</strong>: <span className="info-value">{shot.description}</span></label>
             </div>
-
-            {/* Zweispaltige Options-UI */}
-            <div className="vfx-options-grid">
-              {editedShot.vfxPreparations?.distortionGrids && (
-                <div className="vfx-option-group card">
-            <h3>{t('vfx.checklist.distortionGrids')}</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Rastertyp:</label>
-                      <select
-                        value={editedShot.vfxPreparations?.distortionGridsDetails?.patternType || ''}
-                        onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'patternType', e.target.value)}
-                      >
-                        <option value="">Auswählen...</option>
-                        <option value="Schachbrett">Schachbrett</option>
-                        <option value="Punkte">Punkte</option>
-                        <option value="Benutzerdefiniert">Benutzerdefiniert</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Abstände/Varianten:</label>
-                      <input
-                        type="text"
-                        placeholder="z.B. 1m, 2m, 3m"
-                        value={editedShot.vfxPreparations?.distortionGridsDetails?.distances || ''}
-                        onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'distances', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group" style={{ width: '100%' }}>
-                      <label>{t('common.notes')}:</label>
-                      <textarea
-                        placeholder="Zusätzliche Hinweise"
-                        value={editedShot.vfxPreparations?.distortionGridsDetails?.notes || ''}
-                        onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'notes', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {editedShot.vfxPreparations?.measurementsTaken && (
-                <div className="vfx-option-group card">
-            <h3>{t('vfx.checklist.measurementsTaken')}</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Methode:</label>
-                      <select
-                        value={editedShot.vfxPreparations?.measurementsDetails?.method || ''}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'method', e.target.value)}
-                      >
-                        <option value="">Auswählen...</option>
-                        <option value="Tape">Tape</option>
-                        <option value="Laser">Laser</option>
-                        <option value="Photogrammetrie">Photogrammetrie</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Einheit:</label>
-                      <select
-                        value={editedShot.vfxPreparations?.measurementsDetails?.unit || 'cm'}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'unit', e.target.value)}
-                      >
-                        <option value="cm">cm</option>
-                        <option value="inch">inch</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Breite:</label>
-                      <input
-                        type="text"
-                        placeholder="z.B. 120"
-                        value={editedShot.vfxPreparations?.measurementsDetails?.width || ''}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'width', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Höhe:</label>
-                      <input
-                        type="text"
-                        placeholder="z.B. 200"
-                        value={editedShot.vfxPreparations?.measurementsDetails?.height || ''}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'height', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group">
-                      <label>Tiefe:</label>
-                      <input
-                        type="text"
-                        placeholder="z.B. 50"
-                        value={editedShot.vfxPreparations?.measurementsDetails?.depth || ''}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'depth', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Kamera-Objekt Distanz:</label>
-                      <input
-                        type="text"
-                        placeholder="z.B. 3m"
-                        value={editedShot.vfxPreparations?.measurementsDetails?.cameraDistance || ''}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'cameraDistance', e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group" style={{ width: '100%' }}>
-                      <label>{t('common.notes')}:</label>
-                      <textarea
-                        placeholder="Zusätzliche Messhinweise"
-                        value={editedShot.vfxPreparations?.measurementsDetails?.notes || ''}
-                        onChange={(e) => handleVFXDetailChange('measurementsDetails', 'notes', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {editedShot.vfxPreparations?.threeDScans && (
-                <div className="vfx-option-group card">
-                  <h3>3D Scans</h3>
-                  <div className="form-row">
-                    <div className="form-group">
-                      <label>Methode:</label>
-                      <select
-                        value={editedShot.vfxPreparations?.threeDScansDetails?.method || ''}
-                        onChange={(e) => handleVFXDetailChange('threeDScansDetails', 'method', e.target.value)}
-                      >
-                        <option value="">Auswählen...</option>
-                        <option value="LiDAR">LiDAR</option>
-                        <option value="Photogrammetrie">Photogrammetrie</option>
-                        <option value="Structured Light">Structured Light</option>
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label>Qualität:</label>
-                      <select
-                        value={editedShot.vfxPreparations?.threeDScansDetails?.quality || ''}
-                        onChange={(e) => handleVFXDetailChange('threeDScansDetails', 'quality', e.target.value)}
-                      >
-                        <option value="">Auswählen...</option>
-                        <option value="Niedrig">Niedrig</option>
-                        <option value="Mittel">Mittel</option>
-                        <option value="Hoch">Hoch</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                      <label>Dateiformate:</label>
-                      {['OBJ', 'FBX', 'PLY', 'GLTF'].map(fmt => (
-                        <label key={fmt} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                          <input
-                            type="checkbox"
-                            checked={(editedShot.vfxPreparations?.threeDScansDetails?.formats || []).includes(fmt)}
-                            onChange={() => handleVFXFormatToggle(fmt)}
-                          />
-                          <span>{fmt}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="form-row">
-                    <div className="form-group" style={{ width: '100%' }}>
-                      <label>{t('common.notes')}:</label>
-                      <textarea
-                        placeholder="Scandetails, Kalibrierung, etc."
-                        value={editedShot.vfxPreparations?.threeDScansDetails?.notes || ''}
-                        onChange={(e) => handleVFXDetailChange('threeDScansDetails', 'notes', e.target.value)}
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
+            
+            <div className="info-item">
+              <label><strong>{t('common.notes')}</strong>:</label>
+              <span className="info-value">{shot.notes}</span>
             </div>
             <div className="info-item">
-              <label><strong>{t('common.notes')}</strong>: <span className="info-value">{shot.notes}</span></label>
+              <label><strong>Erstellt am</strong>:</label>
+              <span className="info-value">{shot.dateCreated}</span>
             </div>
             <div className="info-item">
-              <label><strong>Erstellt am</strong>: <span className="info-value">{shot.dateCreated}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>Zuletzt aktualisiert</strong>: <span className="info-value">{shot.lastUpdated}</span></label>
+              <label><strong>Zuletzt aktualisiert</strong>:</label>
+              <span className="info-value">{shot.lastUpdated}</span>
             </div>
           </div>
         ) : (
@@ -1429,6 +1465,7 @@ const ShotDetails = () => {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Kamera Setup Header */}
@@ -1455,64 +1492,278 @@ const ShotDetails = () => {
 
       {/* Camera Settings */}
       <div className="camera-settings card">
-        <h2>{t('section.cameraSettings')}</h2>
+        <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>{t('section.cameraSettings')}</h2>
+          {isEditing && (
+            <button
+              type="button"
+              className="collapse-toggle"
+              onClick={() => setCameraSettingsCollapsed(prev => !prev)}
+              aria-label={isCameraSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+              title={isCameraSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+            >
+              {isCameraSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+            </button>
+          )}
+        </div>
         {!isEditing ? (
-          <div className="info-grid">
-            <div className="info-item">
-              <label><strong>{t('camera.manufacturer')}</strong>: <span className="info-value">{currentShotCameraSettings.manufacturer || t('common.notAvailable')}</span></label>
+          (Array.isArray(shot?.additionalCameraSetups) && (shot.additionalCameraSetups.length > 0)) ? (
+            <div className="multi-setup-grid">
+              {allShotCameraSettings.map((setup, i) => (
+                <div className="setup-column" key={`camera-settings-${i}`}>
+                  <h3 className="setup-title">{`Kamera ${getSetupLabel(i)}`}</h3>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <label><strong>{t('camera.manufacturer')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.manufacturer === 'Manuell'
+                          ? (setup.manualManufacturer ? `${t('common.manual')} (${setup.manualManufacturer})` : t('common.manual'))
+                          : (setup.manufacturer || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.model')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.model === 'Manuell'
+                          ? (setup.manualModel ? `${t('common.manual')} (${setup.manualModel})` : t('common.manual'))
+                          : (setup.model || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.iso')}</strong>:</label>
+                      <span className="info-value">{setup.iso}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.format')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.format === 'Manuell'
+                          ? (setup.manualFormat ? `${t('common.manual')} (${setup.manualFormat})` : t('common.manual'))
+                          : (setup.format
+                              ? formatFormatDisplay(
+                                  setup.format,
+                                  setup.manufacturer,
+                                  getModelKey(
+                                    setup.manufacturer,
+                                    setup.model
+                                  )
+                                )
+                              : t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.codec')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.codec === 'Manuell'
+                          ? (setup.manualCodec ? `${t('common.manual')} (${setup.manualCodec})` : t('common.manual'))
+                          : (setup.codec || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.colorSpace')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.colorSpace === 'Manuell'
+                          ? (setup.manualColorSpace ? `${t('common.manual')} (${setup.manualColorSpace})` : t('common.manual'))
+                          : (setup.colorSpace || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.lut')}</strong>:</label>
+                      <span className="info-value">{setup.lut || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.wb')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.whiteBalance === 'Manuell'
+                          ? (
+                              setup.manualWhiteBalance
+                                ? `${t('common.manual')} (${setup.manualWhiteBalance})`
+                                : t('common.manual')
+                            )
+                          : (setup.whiteBalance || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.framerate')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.framerate === 'Manuell'
+                          ? (setup.manualFramerate ? `${t('common.manual')} (${setup.manualFramerate})` : t('common.manual'))
+                          : (setup.framerate || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.shutterAngle')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.shutterAngle === 'Manuell'
+                          ? (setup.manualShutterAngle ? `${t('common.manual')} (${setup.manualShutterAngle})` : t('common.manual'))
+                          : (setup.shutterAngle || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.imageStabilization')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.imageStabilization === 'Manuell'
+                          ? (setup.manualImageStabilization ? `${t('common.manual')} (${setup.manualImageStabilization})` : t('common.manual'))
+                          : (setup.imageStabilization || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('camera.ndFilter')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.ndFilter === 'Manuell'
+                          ? (setup.manualNDFilter ? `${t('common.manual')} (${setup.manualNDFilter})` : t('common.manual'))
+                          : (setup.ndFilter || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="info-item">
-              <label><strong>{t('camera.model')}</strong>: <span className="info-value">{currentShotCameraSettings.model}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.iso')}</strong>: <span className="info-value">{currentShotCameraSettings.iso}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.format')}</strong>: <span className="info-value">{
-                currentShotCameraSettings.format
-                  ? formatFormatDisplay(
-                      currentShotCameraSettings.format,
-                      currentShotCameraSettings.manufacturer,
-                      getModelKey(
-                        currentShotCameraSettings.manufacturer,
-                        currentShotCameraSettings.model
+          ) : (
+            <div className="info-grid">
+              <div className="info-item">
+                <label><strong>{t('camera.manufacturer')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.manufacturer === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualManufacturer
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualManufacturer})`
+                          : t('common.manual')
                       )
-                    )
-                  : t('common.notAvailable')
-              }</span></label>
+                    : (currentShotCameraSettings.manufacturer || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.model')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.model === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualModel
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualModel})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.model || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.iso')}</strong>:</label>
+                <span className="info-value">{currentShotCameraSettings.iso}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.format')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.format === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualFormat
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualFormat})`
+                          : t('common.manual')
+                      )
+                    : (
+                        currentShotCameraSettings.format
+                          ? formatFormatDisplay(
+                              currentShotCameraSettings.format,
+                              currentShotCameraSettings.manufacturer,
+                              getModelKey(
+                                currentShotCameraSettings.manufacturer,
+                                currentShotCameraSettings.model
+                              )
+                            )
+                          : t('common.notAvailable')
+                      )
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.codec')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.codec === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualCodec
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualCodec})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.codec || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.colorSpace')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.colorSpace === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualColorSpace
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualColorSpace})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.colorSpace || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.lut')}</strong>:</label>
+                <span className="info-value">{currentShotCameraSettings.lut || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.wb')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.whiteBalance === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualWhiteBalance
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualWhiteBalance})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.whiteBalance || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.framerate')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.framerate === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualFramerate
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualFramerate})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.framerate || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.shutterAngle')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.shutterAngle === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualShutterAngle
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualShutterAngle})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.shutterAngle || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.imageStabilization')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.imageStabilization === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualImageStabilization
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualImageStabilization})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.imageStabilization || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('camera.ndFilter')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.ndFilter === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualNDFilter
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualNDFilter})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.ndFilter || t('common.notAvailable'))
+                }</span>
+              </div>
             </div>
-            <div className="info-item">
-              <label><strong>{t('camera.codec')}</strong>: <span className="info-value">{currentShotCameraSettings.codec || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.colorSpace')}</strong>: <span className="info-value">{currentShotCameraSettings.colorSpace || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.wb')}</strong>: <span className="info-value">{
-                currentShotCameraSettings.whiteBalance === 'Manuell'
-                  ? (
-                      currentShotCameraSettings.manualWhiteBalance
-                        ? `${t('common.manual')} (${currentShotCameraSettings.manualWhiteBalance})`
-                        : t('common.manual')
-                    )
-                  : (currentShotCameraSettings.whiteBalance || t('common.notAvailable'))
-              }</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.framerate')}</strong>: <span className="info-value">{currentShotCameraSettings.framerate || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.shutterAngle')}</strong>: <span className="info-value">{currentShotCameraSettings.shutterAngle || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.imageStabilization')}</strong>: <span className="info-value">{currentShotCameraSettings.imageStabilization || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('camera.ndFilter')}</strong>: <span className="info-value">{currentShotCameraSettings.ndFilter || t('common.notAvailable')}</span></label>
-            </div>
-          </div>
+          )
         ) : (
-          <div className="edit-form">
+          <div className="edit-form" style={{ display: isCameraSettingsCollapsed ? 'none' : 'block' }}>
             <div className="form-row">
               <div className="form-group">
                 <label>{t('camera.manufacturer')}:</label>
@@ -1522,12 +1773,23 @@ const ShotDetails = () => {
                   onChange={handleManufacturerChange}
                 >
                   <option value="">{t('camera.selectManufacturer')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {getManufacturers().map(manufacturer => (
                     <option key={manufacturer} value={manufacturer}>
                       {manufacturer}
                     </option>
                   ))}
                 </select>
+                {selectedManufacturer === 'Manuell' && (
+                  <input
+                    type="text"
+                    name="manualManufacturer"
+                    placeholder={t('camera.selectManufacturer')}
+                    value={currentEditedCameraSettings.manualManufacturer || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>{t('camera.model')}:</label>
@@ -1535,15 +1797,25 @@ const ShotDetails = () => {
                   name="model" 
                   value={selectedModel} 
                   onChange={handleModelChange}
-                  disabled={!selectedManufacturer}
                 >
                   <option value="">{t('camera.selectModel')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {availableModels.map(model => (
                     <option key={model} value={model}>
                       {model}
                     </option>
                   ))}
                 </select>
+                {selectedModel === 'Manuell' && (
+                  <input
+                    type="text"
+                    name="manualModel"
+                    placeholder={t('camera.selectModel')}
+                    value={currentEditedCameraSettings.manualModel || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
             </div>
             
@@ -1557,12 +1829,23 @@ const ShotDetails = () => {
                   disabled={!selectedModel}
                 >
                   <option value="">{t('camera.selectFormat')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {availableFormats.map(format => (
                     <option key={format} value={format}>
                       {formatFormatDisplay(format, selectedManufacturer, selectedModel)}
                     </option>
                   ))}
                 </select>
+                {currentEditedCameraSettings.format === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualFormat"
+                    placeholder={t('camera.selectFormat')}
+                    value={currentEditedCameraSettings.manualFormat || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>{t('camera.codec')}:</label>
@@ -1573,12 +1856,23 @@ const ShotDetails = () => {
                   disabled={!selectedModel}
                 >
                   <option value="">{t('camera.selectCodec')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {availableCodecs.map(codec => (
                     <option key={codec} value={codec}>
                       {codec}
                     </option>
                   ))}
                 </select>
+                {currentEditedCameraSettings.codec === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualCodec"
+                    placeholder={t('camera.selectCodec')}
+                    value={currentEditedCameraSettings.manualCodec || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
             </div>
             
@@ -1592,12 +1886,23 @@ const ShotDetails = () => {
                   disabled={!selectedModel}
                 >
                   <option value="">{t('camera.selectColorSpace')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {availableColorSpaces.map(colorSpace => (
                     <option key={colorSpace} value={colorSpace}>
                       {colorSpace}
                     </option>
                   ))}
                 </select>
+                {currentEditedCameraSettings.colorSpace === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualColorSpace"
+                    placeholder={t('camera.selectColorSpace')}
+                    value={currentEditedCameraSettings.manualColorSpace || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>{t('camera.wb')}:</label>
@@ -1625,6 +1930,22 @@ const ShotDetails = () => {
                     style={{ marginTop: '8px' }}
                   />
                 )}
+              </div>
+            </div>
+
+            <div className="form-row">
+              <div className="form-group" style={{ width: '100%' }}>
+                <label>{t('camera.lut')}:</label>
+                <select
+                  name="lut"
+                  value={currentEditedCameraSettings.lut || ''}
+                  onChange={handleCameraChange}
+                >
+                  <option value="">{t('camera.selectLut')}</option>
+                  {availableLuts.map(lut => (
+                    <option key={lut} value={lut}>{lut}</option>
+                  ))}
+                </select>
               </div>
             </div>
             
@@ -1675,17 +1996,24 @@ const ShotDetails = () => {
                   name="framerate" 
                   value={currentEditedCameraSettings.framerate || ''} 
                   onChange={handleCameraChange}
+                  disabled={!selectedModel || !currentEditedCameraSettings.codec}
                 >
                   <option value="">{t('common.select')}</option>
-                  <option value="23.98 fps">23.98 fps</option>
-                  <option value="24 fps">24 fps</option>
-                  <option value="25 fps">25 fps</option>
-                  <option value="29.97 fps">29.97 fps</option>
-                  <option value="30 fps">30 fps</option>
-                  <option value="50 fps">50 fps</option>
-                  <option value="59.94 fps">59.94 fps</option>
-                  <option value="60 fps">60 fps</option>
+                  <option value="Manuell">{t('common.manual')}</option>
+                  {availableFramerates.map(fps => (
+                    <option key={fps} value={fps}>{fps}</option>
+                  ))}
                 </select>
+                {currentEditedCameraSettings.framerate === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualFramerate"
+                    placeholder={t('camera.framerate')}
+                    value={currentEditedCameraSettings.manualFramerate || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
             </div>
             
@@ -1698,12 +2026,23 @@ const ShotDetails = () => {
                   onChange={handleCameraChange}
                 >
                   <option value="">{t('common.select')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   <option value="45°">45°</option>
                   <option value="90°">90°</option>
                   <option value="180°">180°</option>
                   <option value="270°">270°</option>
                   <option value="360°">360°</option>
                 </select>
+                {currentEditedCameraSettings.shutterAngle === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualShutterAngle"
+                    placeholder={t('camera.shutterAngle')}
+                    value={currentEditedCameraSettings.manualShutterAngle || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>{t('camera.imageStabilization')}:</label>
@@ -1717,7 +2056,18 @@ const ShotDetails = () => {
                   <option value="Standard">{t('camera.imageStabilizationOptions.standard')}</option>
                   <option value="Aktiv">{t('camera.imageStabilizationOptions.active')}</option>
                   <option value="Boost">{t('camera.imageStabilizationOptions.boost')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                 </select>
+                {currentEditedCameraSettings.imageStabilization === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualImageStabilization"
+                    placeholder={t('camera.imageStabilization')}
+                    value={currentEditedCameraSettings.manualImageStabilization || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
             </div>
             
@@ -1737,7 +2087,18 @@ const ShotDetails = () => {
                   <option value="ND 1.2 (4 Stops)">{t('camera.ndFilterOptions.nd12_4Stops')}</option>
                   <option value="ND 1.5 (5 Stops)">{t('camera.ndFilterOptions.nd15_5Stops')}</option>
                   <option value="ND 1.8 (6 Stops)">{t('camera.ndFilterOptions.nd18_6Stops')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                 </select>
+                {currentEditedCameraSettings.ndFilter === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualNDFilter"
+                    placeholder={t('camera.ndFilter')}
+                    value={currentEditedCameraSettings.manualNDFilter || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -1746,53 +2107,172 @@ const ShotDetails = () => {
 
       {/* Lens Settings */}
       <div className="lens-settings card">
-        <h2>{t('section.lensSettings')}</h2>
+        <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>{t('section.lensSettings')}</h2>
+          {isEditing && (
+            <button
+              type="button"
+              className="collapse-toggle"
+              onClick={() => setLensSettingsCollapsed(prev => !prev)}
+              aria-label={isLensSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+              title={isLensSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+            >
+              {isLensSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+            </button>
+          )}
+        </div>
         {!isEditing ? (
-          <div className="info-grid">
-            <div className="info-item">
-              <label><strong>{t('lens.manufacturer')}</strong>: <span className="info-value">{currentShotCameraSettings.lensManufacturer || t('common.notAvailable')}</span></label>
+          (Array.isArray(shot?.additionalCameraSetups) && (shot.additionalCameraSetups.length > 0)) ? (
+            <div className="multi-setup-grid">
+              {allShotCameraSettings.map((setup, i) => (
+                <div className="setup-column" key={`lens-settings-${i}`}>
+                  <h3 className="setup-title">{`Kamera ${getSetupLabel(i)}`}</h3>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <label><strong>{t('lens.manufacturer')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.lensManufacturer === 'Manuell'
+                          ? (setup.manualLensManufacturer ? `${t('common.manual')} (${setup.manualLensManufacturer})` : t('common.manual'))
+                          : (setup.lensManufacturer || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.lens')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.lens === 'Manuell'
+                          ? (setup.manualLens ? `${t('common.manual')} (${setup.manualLens})` : t('common.manual'))
+                          : (setup.lens || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.focalLengthZoom')}</strong>:</label>
+                      <span className="info-value">{setup.focalLength || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.aperture')}</strong>:</label>
+                      <span className="info-value">{setup.aperture || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.focusDistance')}</strong>:</label>
+                      <span className="info-value">{setup.focusDistance || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.hyperfocalDistance')}</strong>:</label>
+                      <span className="info-value">{setup.hyperfocalDistance || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.lensStabilization')}</strong>:</label>
+                      <span className="info-value">{
+                        setup.lensStabilization === 'Manuell'
+                          ? (setup.manualLensStabilization ? `${t('common.manual')} (${setup.manualLensStabilization})` : t('common.manual'))
+                          : (setup.lensStabilization || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                    <div className="info-item anamorphic-info">
+                      <label id={`anamorphic-readonly-label-${i}`}><strong>{t('lens.anamorphic')}</strong>:</label>
+                      <span className="info-value checkbox-display">
+                        <input
+                          type="checkbox"
+                          id={`anamorphic-readonly-${i}`}
+                          aria-labelledby={`anamorphic-readonly-label-${i}`}
+                          checked={!!setup.isAnamorphic}
+                          readOnly
+                          disabled
+                        />
+                      </span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.filter')}</strong>:</label>
+                      <span className="info-value">{
+                        (setup?.filters && setup.filters.length > 0)
+                          ? setup.filters.join(', ')
+                          : (setup?.filter || t('common.notAvailable'))
+                      }</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="info-item">
-              <label><strong>{t('lens.lens')}</strong>: <span className="info-value">{currentShotCameraSettings.lens || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('lens.focalLengthZoom')}</strong>: <span className="info-value">{currentShotCameraSettings.focalLength || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('lens.aperture')}</strong>: <span className="info-value">{currentShotCameraSettings.aperture || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('lens.focusDistance')}</strong>: <span className="info-value">{currentShotCameraSettings.focusDistance || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('lens.hyperfocalDistance')}</strong>: <span className="info-value">{currentShotCameraSettings.hyperfocalDistance || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('lens.lensStabilization')}</strong>: <span className="info-value">{currentShotCameraSettings.lensStabilization || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item anamorphic-info">
-              <label id="anamorphic-readonly-label"><strong>{t('lens.anamorphic')}</strong>:</label>
-              <div className="checkbox-display">
-                <input
-                  type="checkbox"
-                  id="anamorphic-readonly"
-                  aria-labelledby="anamorphic-readonly-label"
-                  checked={!!currentShotCameraSettings.isAnamorphic}
-                  readOnly
-                  disabled
-                />
+          ) : (
+            <div className="info-grid">
+              <div className="info-item">
+                <label><strong>{t('lens.manufacturer')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.lensManufacturer === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualLensManufacturer
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualLensManufacturer})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.lensManufacturer || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.lens')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.lens === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualLens
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualLens})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.lens || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.focalLengthZoom')}</strong>:</label>
+                <span className="info-value">{currentShotCameraSettings.focalLength || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.aperture')}</strong>:</label>
+                <span className="info-value">{currentShotCameraSettings.aperture || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.focusDistance')}</strong>:</label>
+                <span className="info-value">{currentShotCameraSettings.focusDistance || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.hyperfocalDistance')}</strong>:</label>
+                <span className="info-value">{currentShotCameraSettings.hyperfocalDistance || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.lensStabilization')}</strong>:</label>
+                <span className="info-value">{
+                  currentShotCameraSettings.lensStabilization === 'Manuell'
+                    ? (
+                        currentShotCameraSettings.manualLensStabilization
+                          ? `${t('common.manual')} (${currentShotCameraSettings.manualLensStabilization})`
+                          : t('common.manual')
+                      )
+                    : (currentShotCameraSettings.lensStabilization || t('common.notAvailable'))
+                }</span>
+              </div>
+              <div className="info-item anamorphic-info">
+                <label id="anamorphic-readonly-label"><strong>{t('lens.anamorphic')}</strong>:</label>
+                <span className="info-value checkbox-display">
+                  <input
+                    type="checkbox"
+                    id="anamorphic-readonly"
+                    aria-labelledby="anamorphic-readonly-label"
+                    checked={!!currentShotCameraSettings.isAnamorphic}
+                    readOnly
+                    disabled
+                  />
+                </span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.filter')}</strong>:</label>
+                <span className="info-value">{
+                  (currentShotCameraSettings?.filters && currentShotCameraSettings.filters.length > 0)
+                    ? currentShotCameraSettings.filters.join(', ')
+                    : (currentShotCameraSettings?.filter || t('common.notAvailable'))
+                }</span>
               </div>
             </div>
-            <div className="info-item">
-              <label><strong>{t('lens.filter')}</strong>: <span className="info-value">{
-                (currentShotCameraSettings?.filters && currentShotCameraSettings.filters.length > 0)
-                  ? currentShotCameraSettings.filters.join(', ')
-                  : (currentShotCameraSettings?.filter || t('common.notAvailable'))
-              }</span></label>
-            </div>
-          </div>
+          )
         ) : (
-          <div className="edit-form">
+          <div className="edit-form" style={{ display: isLensSettingsCollapsed ? 'none' : 'block' }}>
             <div className="form-row">
               <div className="form-group">
                 <label>{t('lens.manufacturer')}:</label>
@@ -1802,12 +2282,23 @@ const ShotDetails = () => {
                   onChange={handleLensManufacturerChange}
                 >
                   <option value="">{t('lens.selectManufacturer')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {(isAnamorphicEnabled ? getAnamorphicLensManufacturers() : getLensManufacturers()).map(manufacturer => (
                     <option key={manufacturer} value={manufacturer}>
                       {manufacturer}
                     </option>
                   ))}
                 </select>
+                {selectedLensManufacturer === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualLensManufacturer"
+                    placeholder={t('lens.selectManufacturer')}
+                    value={currentEditedCameraSettings.manualLensManufacturer || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
               <div className="form-group">
                 <label>{t('lens.lens')}:</label>
@@ -1818,12 +2309,23 @@ const ShotDetails = () => {
                   disabled={!selectedLensManufacturer}
                 >
                   <option value="">{t('common.select')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                   {availableLenses.map(lens => (
                     <option key={lens} value={lens}>
                       {lens}
                     </option>
                   ))}
                 </select>
+                {selectedLens === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualLens"
+                    placeholder={t('lens.lens')}
+                    value={currentEditedCameraSettings.manualLens || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
               <div className="form-group">
                 <div className="checkbox-group">
@@ -1895,7 +2397,18 @@ const ShotDetails = () => {
                   <option value="">{t('common.select')}</option>
                   <option value="Aus">{t('common.off')}</option>
                   <option value="An">{t('common.on')}</option>
+                  <option value="Manuell">{t('common.manual')}</option>
                 </select>
+                {currentEditedCameraSettings.lensStabilization === 'Manuell' && (
+                  <input 
+                    type="text"
+                    name="manualLensStabilization"
+                    placeholder={t('lens.lensStabilization')}
+                    value={currentEditedCameraSettings.manualLensStabilization || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                )}
               </div>
             </div>
 
@@ -1920,6 +2433,60 @@ const ShotDetails = () => {
                 </button>
               </div>
             </div>
+            {/* Farbfilter-Shortcuts: CTO/CTB/Grün-Magenta */}
+            <div className="form-row">
+              <div className="form-group">
+                <label>CTO:</label>
+                <select 
+                  name="cto"
+                  value={ctoToAdd}
+                  onChange={(e) => {
+                    setCtoToAdd(e.target.value);
+                    addFilter(e.target.value);
+                    setCtoToAdd('');
+                  }}
+                >
+                  <option value="">{t('common.select')}</option>
+                  {getFiltersByCategory('cto').map(f => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>CTB:</label>
+                <select 
+                  name="ctb"
+                  value={ctbToAdd}
+                  onChange={(e) => {
+                    setCtbToAdd(e.target.value);
+                    addFilter(e.target.value);
+                    setCtbToAdd('');
+                  }}
+                >
+                  <option value="">{t('common.select')}</option>
+                  {getFiltersByCategory('ctb').map(f => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Grün/Magenta:</label>
+                <select 
+                  name="greenMagenta"
+                  value={greenToAdd}
+                  onChange={(e) => {
+                    setGreenToAdd(e.target.value);
+                    addFilter(e.target.value);
+                    setGreenToAdd('');
+                  }}
+                >
+                  <option value="">{t('common.select')}</option>
+                  {getFiltersByCategory('greenMagenta').map(f => (
+                    <option key={f} value={f}>{f}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
             {selectedFilters.length > 0 && (
               <div className="form-group">
                 <div className="selected-filters">
@@ -1938,36 +2505,96 @@ const ShotDetails = () => {
 
       {/* Camera Movement */}
       <div className="camera-movement card">
-        <h2>{t('section.cameraMovement')}</h2>
+        <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>{t('section.cameraMovement')}</h2>
+          {isEditing && (
+            <button
+              type="button"
+              className="collapse-toggle"
+              onClick={() => setCameraMovementCollapsed(prev => !prev)}
+              aria-label={isCameraMovementCollapsed ? 'Erweitern' : 'Minimieren'}
+              title={isCameraMovementCollapsed ? 'Erweitern' : 'Minimieren'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+            >
+              {isCameraMovementCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+            </button>
+          )}
+        </div>
         {!isEditing ? (
-          <div className="info-grid">
-            <div className="info-item">
-              <label><strong>{t('movement.movement')}</strong>: <span className="info-value">{currentShotCameraMovement?.movementType
-                ? movementTypeLabel(currentShotCameraMovement.movementType) + (currentShotCameraMovement?.direction ? ` (${directionLabel(currentShotCameraMovement.direction)})` : '')
-                : t('common.notAvailable')}</span></label>
+          (Array.isArray(shot?.additionalCameraSetups) && (shot.additionalCameraSetups.length > 0)) ? (
+            <div className="multi-setup-grid">
+              {allShotCameraMovements.map((mv, i) => (
+                <div className="setup-column" key={`movement-settings-${i}`}>
+                  <h3 className="setup-title">{`Kamera ${getSetupLabel(i)}`}</h3>
+                  <div className="info-grid">
+                    <div className="info-item">
+                      <label><strong>{t('movement.movement')}</strong>:</label>
+                      <span className="info-value">{mv?.movementType
+                        ? movementTypeLabel(mv.movementType) + (mv?.direction ? ` (${directionLabel(mv.direction)})` : '')
+                        : t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('movement.speed')}</strong>:</label>
+                      <span className="info-value">{mv?.speed || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('movement.cameraHeight')}</strong>:</label>
+                      <span className="info-value">{mv?.cameraHeight || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item" style={{ width: '100%' }}>
+                      <label><strong>{t('movement.dollySetup')}</strong>:</label>
+                      <span className="info-value">{[
+                        mv?.dollySetup?.trackType,
+                        mv?.dollySetup?.trackLength,
+                        mv?.dollySetup?.headType,
+                        mv?.dollySetup?.mount
+                      ].filter(Boolean).join(' • ') || t('common.notAvailable')}</span>
+                    </div>
+                    {mv?.notes && (
+                      <div className="info-item" style={{ width: '100%' }}>
+                        <label><strong>{t('common.notes')}</strong>:</label>
+                        <span className="info-value">{mv.notes}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="info-item">
-              <label><strong>{t('movement.speed')}</strong>: <span className="info-value">{currentShotCameraMovement?.speed || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item">
-              <label><strong>{t('movement.cameraHeight')}</strong>: <span className="info-value">{currentShotCameraMovement?.cameraHeight || t('common.notAvailable')}</span></label>
-            </div>
-            <div className="info-item" style={{ width: '100%' }}>
-              <label><strong>{t('movement.dollySetup')}</strong>: <span className="info-value">{[
-                currentShotCameraMovement?.dollySetup?.trackType,
-                currentShotCameraMovement?.dollySetup?.trackLength,
-                currentShotCameraMovement?.dollySetup?.headType,
-                currentShotCameraMovement?.dollySetup?.mount
-              ].filter(Boolean).join(' • ') || t('common.notAvailable')}</span></label>
-            </div>
-            {currentShotCameraMovement?.notes && (
-              <div className="info-item" style={{ width: '100%' }}>
-                <label><strong>{t('common.notes')}</strong>: <span className="info-value">{currentShotCameraMovement.notes}</span></label>
+          ) : (
+            <div className="info-grid">
+              <div className="info-item">
+                <label><strong>{t('movement.movement')}</strong>:</label>
+                <span className="info-value">{currentShotCameraMovement?.movementType
+                  ? movementTypeLabel(currentShotCameraMovement.movementType) + (currentShotCameraMovement?.direction ? ` (${directionLabel(currentShotCameraMovement.direction)})` : '')
+                  : t('common.notAvailable')}</span>
               </div>
-            )}
-          </div>
+              <div className="info-item">
+                <label><strong>{t('movement.speed')}</strong>:</label>
+                <span className="info-value">{currentShotCameraMovement?.speed || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('movement.cameraHeight')}</strong>:</label>
+                <span className="info-value">{currentShotCameraMovement?.cameraHeight || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item" style={{ width: '100%' }}>
+                <label><strong>{t('movement.dollySetup')}</strong>:</label>
+                <span className="info-value">{[
+                  currentShotCameraMovement?.dollySetup?.trackType,
+                  currentShotCameraMovement?.dollySetup?.trackLength,
+                  currentShotCameraMovement?.dollySetup?.headType,
+                  currentShotCameraMovement?.dollySetup?.mount
+                ].filter(Boolean).join(' • ') || t('common.notAvailable')}</span>
+              </div>
+              {currentShotCameraMovement?.notes && (
+                <div className="info-item" style={{ width: '100%' }}>
+                  <label><strong>{t('common.notes')}</strong>:</label>
+                  <span className="info-value">{currentShotCameraMovement.notes}</span>
+                </div>
+              )}
+            </div>
+          )
         ) : (
-          <div className="edit-form">
+          <div className="edit-form" style={{ display: isCameraMovementCollapsed ? 'none' : 'block' }}>
             <div className="form-row">
               <div className="form-group">
                 <label>{t('movement.type')}:</label>
@@ -2151,104 +2778,87 @@ const ShotDetails = () => {
 
       {/* VFX Aufgaben */}
       <div className="vfx-preparations card">
-        <h2>{t('section.vfxTasks')}</h2>
+        <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>{t('section.vfxTasks')}</h2>
+          {isEditing && (
+            <button
+              type="button"
+              className="collapse-toggle"
+              onClick={() => setVfxTasksCollapsed(prev => !prev)}
+              aria-label={isVfxTasksCollapsed ? 'Erweitern' : 'Minimieren'}
+              title={isVfxTasksCollapsed ? 'Erweitern' : 'Minimieren'}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+            >
+              {isVfxTasksCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+            </button>
+          )}
+        </div>
         {!isEditing ? (
           <div className="vfx-checklist">
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="cleanplates-readonly"
-                checked={!!shot.vfxPreparations?.cleanplates}
-                readOnly
-                disabled
-              />
-              <label htmlFor="cleanplates-readonly">{t('vfx.checklist.cleanplates')}</label>
-              {/* localized text only; value remains boolean */}
-              
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="hdris-readonly"
-                checked={!!shot.vfxPreparations?.hdris}
-                readOnly
-                disabled
-              />
-              <label htmlFor="hdris-readonly">{t('vfx.checklist.hdris')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="setReferences-readonly"
-                checked={!!shot.vfxPreparations?.setReferences}
-                readOnly
-                disabled
-              />
-              <label htmlFor="setReferences-readonly">{t('vfx.checklist.setReferences')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="chromeBall-readonly"
-                checked={!!shot.vfxPreparations?.chromeBall}
-                readOnly
-                disabled
-              />
-              <label htmlFor="chromeBall-readonly">{t('vfx.checklist.chromeBall')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="grayBall-readonly"
-                checked={!!shot.vfxPreparations?.grayBall}
-                readOnly
-                disabled
-              />
-              <label htmlFor="grayBall-readonly">{t('vfx.checklist.grayBall')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="colorChecker-readonly"
-                checked={!!shot.vfxPreparations?.colorChecker}
-                readOnly
-                disabled
-              />
-              <label htmlFor="colorChecker-readonly">{t('vfx.checklist.colorChecker')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="distortionGrids-readonly"
-                checked={!!shot.vfxPreparations?.distortionGrids}
-                readOnly
-                disabled
-              />
-              <label htmlFor="distortionGrids-readonly">{t('vfx.checklist.distortionGrids')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="measurementsTaken-readonly"
-                checked={!!shot.vfxPreparations?.measurementsTaken}
-                readOnly
-                disabled
-              />
-              <label htmlFor="measurementsTaken-readonly">{t('vfx.checklist.measurementsTaken')}</label>
-            </div>
-            <div className="vfx-item">
-              <input
-                type="checkbox"
-                id="threeDScans-readonly"
-                checked={!!shot.vfxPreparations?.threeDScans}
-                readOnly
-                disabled
-              />
-              <label htmlFor="threeDScans-readonly">{t('vfx.checklist.threeDScans')}</label>
-            </div>
+            {(() => {
+              const flags = shot.vfxPreparations || {};
+              const items = [
+                { key: 'cleanplates', label: t('vfx.checklist.cleanplates') },
+                { key: 'hdris', label: t('vfx.checklist.hdris') },
+                { key: 'setReferences', label: t('vfx.checklist.setReferences') },
+                { key: 'chromeBall', label: t('vfx.checklist.chromeBall') },
+                { key: 'grayBall', label: t('vfx.checklist.grayBall') },
+                { key: 'colorChecker', label: t('vfx.checklist.colorChecker') },
+                { key: 'distortionGrids', label: t('vfx.checklist.distortionGrids') },
+                { key: 'measurementsTaken', label: t('vfx.checklist.measurementsTaken') },
+                { key: 'threeDScans', label: t('vfx.checklist.threeDScans') }
+              ];
+              const visible = items.filter(it => !!flags[it.key]);
+              return visible.map(it => (
+                <div className="vfx-item" key={`ro-${it.key}`}>
+                  <input
+                    type="checkbox"
+                    id={`${it.key}-readonly`}
+                    checked={!!flags[it.key]}
+                    readOnly
+                    disabled
+                  />
+                  <label htmlFor={`${it.key}-readonly`}>{it.label}</label>
+                  {it.key === 'distortionGrids' && flags.distortionGrids && (
+                    <div className="info-grid" style={{ marginTop: '6px' }}>
+                      <div className="info-item" style={{ width: '100%' }}>
+                        <label><strong>Rastertyp</strong>:</label>
+                        <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.patternType || t('common.notAvailable')}</span>
+                      </div>
+                      <div className="info-item" style={{ width: '100%' }}>
+                        <label><strong>Distanzen</strong>:</label>
+                        <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.distances || t('common.notAvailable')}</span>
+                      </div>
+                      <div className="info-item" style={{ width: '100%' }}>
+                        <label><strong>Brennweite(n)</strong>:</label>
+                        <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.focalLengths || t('common.notAvailable')}</span>
+                      </div>
+                      <div className="info-item">
+                        <label><strong>Bereich</strong>:</label>
+                        <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.coverage || t('common.notAvailable')}</span>
+                      </div>
+                      <div className="info-item">
+                        <label><strong>Anamorph Squeeze</strong>:</label>
+                        <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.anamorphicSqueeze || t('common.notAvailable')}</span>
+                      </div>
+                      <div className="info-item">
+                        <label><strong>Datum</strong>:</label>
+                        <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.date || t('common.notAvailable')}</span>
+                      </div>
+                      {shot.vfxPreparations?.distortionGridsDetails?.notes && (
+                        <div className="info-item" style={{ width: '100%' }}>
+                          <label><strong>{t('common.notes')}</strong>:</label>
+                          <span className="info-value">{shot.vfxPreparations?.distortionGridsDetails?.notes}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ));
+            })()}
           </div>
         ) : (
-          <div className="vfx-edit-form">
+          <div className="vfx-edit-form" style={{ display: isVfxTasksCollapsed ? 'none' : 'block' }}>
             <div className="vfx-checkboxes">
               <div className="vfx-checkbox-item">
                 <input 
@@ -2341,62 +2951,117 @@ const ShotDetails = () => {
                 <label htmlFor="threeDScans">{t('vfx.checklist.threeDScans')}</label>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* References */}
-      <div className="references card">
-        <h2>Referenzen</h2>
-        {/* Skalierungs-Slider entfernt, Bilder passen sich automatisch an */}
-        {/* Drei Abschnitte mit Überschriften und Upload-Button je Abschnitt */}
-        <div className="references-sections">
-          {(() => {
-            const sections = [
-              { key: 'set-fotos', title: 'SETFOTOS' },
-              { key: 'hdri', title: 'HDRI' },
-              { key: 'setup-fotos', title: 'Setup Fotos' }
-            ];
-            return sections.map(section => {
-              const refsForCat = references.filter(ref => ref.category === section.key);
-              const tiles = [];
-              for (let i = 0; i < 3; i++) {
-                const ref = refsForCat[i];
-                if (ref) {
-                  if (typeof ref === 'string') {
-                    tiles.push({ key: `grid-${section.key}-${i}-${ref}`, url: dummyReference, name: ref });
-                  } else {
-                    tiles.push({ key: `grid-${section.key}-${i}-${ref.id}`, url: ref.url, name: ref.name });
-                  }
-                } else {
-                  tiles.push({ key: `grid-${section.key}-dummy-${i}`, url: dummyReference, name: `${section.title} ${i+1}` });
-                }
-              }
-              return (
-                <div className="references-section" key={`section-${section.key}`}>
-                  <div className="references-section-header">
-                    <h3 className="references-section-title">{section.title}</h3>
-                    {isEditing && (
-                      <>
-                        <label 
-                          htmlFor={`reference-upload-${section.key}`} 
-                          className="btn-outline references-upload-btn"
-                        >
-                          Fotos hinzufügen
-                        </label>
-                        <input
-                          id={`reference-upload-${section.key}`}
-                          type="file"
-                          accept="image/*"
-                          multiple
-                          onChange={handleReferenceUploadFor(section.key)}
-                          style={{ display: 'none' }}
-                        />
-                      </>
-                    )}
+            {/* Detailkarten für aktivierte VFX Aufgaben: zweispaltiges Grid */}
+            <div className="vfx-options-grid">
+            {/* Detailfelder für Distortion Grids (gefilmt Bereich) */}
+            {editedShot.vfxPreparations?.distortionGrids && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.distortionGrids')} – Gefilmt Bereich</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Rastertyp:</label>
+                    <select
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.patternType || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'patternType', e.target.value)}
+                    >
+                      <option value="">Auswählen...</option>
+                      <option value="Schachbrett">Schachbrett</option>
+                      <option value="Punkte">Punkte</option>
+                      <option value="Benutzerdefiniert">Benutzerdefiniert</option>
+                    </select>
                   </div>
-                  <div className="references-subgrid">
-                    {tiles.map(tile => (
+                  <div className="form-group">
+                    <label>Distanzen:</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 1m, 2m, 3m"
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.distances || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'distances', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Brennweite(n):</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 18, 25, 35, 50"
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.focalLengths || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'focalLengths', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Bereich:</label>
+                    <select
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.coverage || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'coverage', e.target.value)}
+                    >
+                      <option value="">Auswählen...</option>
+                      <option value="Nah">Nah</option>
+                      <option value="Mittel">Mittel</option>
+                      <option value="Fern">Fern</option>
+                    </select>
+                  </div>
+                  <div className="form-group">
+                    <label>Anamorph Squeeze:</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 2.0x, 1.5x"
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.anamorphicSqueeze || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'anamorphicSqueeze', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Datum:</label>
+                    <input
+                      type="date"
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.date || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'date', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Zusätzliche Hinweise zu den Distortion-Grids"
+                      value={editedShot.vfxPreparations?.distortionGridsDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Referenzbilder (Distortion‑Grids):</label>
+                    <label htmlFor="vfx-upload-distortion" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-distortion"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-distortion-grids')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: Distortion Grids */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-distortion-grids');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-distortion-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-distortion-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-distortion-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
                           <img src={tile.url} alt={tile.name} className="reference-image" />
@@ -2405,13 +3070,714 @@ const ShotDetails = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Aufklappbare Bereiche und Uploads für weitere VFX Tasks */}
+            {editedShot.vfxPreparations?.hdris && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.hdris')}</h3>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Belichtungsreihen, Stativ, Sonnenstand …"
+                      value={editedShot.vfxPreparations?.hdrisDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('hdrisDetails', 'notes', e.target.value)}
+                    />
                   </div>
                 </div>
-              );
-            });
-          })()}
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>HDRI Referenzen:</label>
+                    <label htmlFor="vfx-upload-hdris" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-hdris"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('hdri')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: HDRIs */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'hdri');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-hdri-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-hdri-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-hdri-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.setReferences && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.setReferences')}</h3>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Welche Set‑Details wurden festgehalten?"
+                      value={editedShot.vfxPreparations?.setReferencesDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('setReferencesDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Set‑Referenzen:</label>
+                    <label htmlFor="vfx-upload-setrefs" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-setrefs"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-set-references')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: Set‑Referenzen */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-set-references');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-setrefs-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-setrefs-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-setrefs-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.cleanplates && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.cleanplates')}</h3>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Kameraeinstellungen, Zeitpunkt, Bewegung …"
+                      value={editedShot.vfxPreparations?.cleanplatesDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('cleanplatesDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Clean Plates:</label>
+                    <label htmlFor="vfx-upload-cleanplates" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-cleanplates"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-cleanplates')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: Cleanplates */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-cleanplates');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-clean-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-clean-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-clean-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.chromeBall && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.chromeBall')}</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Größe:</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 7cm"
+                      value={editedShot.vfxPreparations?.chromeBallDetails?.size || ''}
+                      onChange={(e) => handleVFXDetailChange('chromeBallDetails', 'size', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Aufhängung, Position, Reflektionen …"
+                      value={editedShot.vfxPreparations?.chromeBallDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('chromeBallDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Chrome Ball Fotos:</label>
+                    <label htmlFor="vfx-upload-chrome" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-chrome"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-chrome-ball')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: Chrome Ball */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-chrome-ball');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-chrome-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-chrome-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-chrome-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.grayBall && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.grayBall')}</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>Größe:</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 18% Grey, 7cm"
+                      value={editedShot.vfxPreparations?.grayBallDetails?.size || ''}
+                      onChange={(e) => handleVFXDetailChange('grayBallDetails', 'size', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Position, Beleuchtung …"
+                      value={editedShot.vfxPreparations?.grayBallDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('grayBallDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Grey Ball Fotos:</label>
+                    <label htmlFor="vfx-upload-gray" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-gray"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-gray-ball')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: Gray Ball */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-gray-ball');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-gray-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-gray-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-gray-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.colorChecker && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.colorChecker')}</h3>
+                <div className="form-row">
+                  <div className="form-group">
+                    <label>WB Ziel:</label>
+                    <input
+                      type="text"
+                      placeholder="z.B. 5600K"
+                      value={editedShot.vfxPreparations?.colorCheckerDetails?.wb || ''}
+                      onChange={(e) => handleVFXDetailChange('colorCheckerDetails', 'wb', e.target.value)}
+                    />
+                  </div>
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Licht, Winkel, Abstand …"
+                      value={editedShot.vfxPreparations?.colorCheckerDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('colorCheckerDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>ColorChecker Fotos:</label>
+                    <label htmlFor="vfx-upload-colorchecker" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-colorchecker"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-color-checker')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: ColorChecker */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-color-checker');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-cc-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-cc-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-cc-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.measurementsTaken && (
+              <div className="vfx-option-group card">
+                <h3>{t('vfx.checklist.measurementsTaken')}</h3>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Zusätzliche Messhinweise"
+                      value={editedShot.vfxPreparations?.measurementsDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('measurementsDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Mess‑Fotos:</label>
+                    <label htmlFor="vfx-upload-measurements" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-measurements"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-measurements')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: Measurements */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-measurements');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-meas-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-meas-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-meas-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {editedShot.vfxPreparations?.threeDScans && (
+              <div className="vfx-option-group card">
+                <h3>3D Scans</h3>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>{t('common.notes')}:</label>
+                    <textarea
+                      placeholder="Methode, Formate, Abdeckung …"
+                      value={editedShot.vfxPreparations?.threeDScansDetails?.notes || ''}
+                      onChange={(e) => handleVFXDetailChange('threeDScansDetails', 'notes', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="form-row">
+                  <div className="form-group" style={{ width: '100%' }}>
+                    <label>Scan‑Referenzen:</label>
+                    <label htmlFor="vfx-upload-3dscans" className="btn-outline">Fotos hinzufügen</label>
+                    <input
+                      id="vfx-upload-3dscans"
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleReferenceUploadFor('vfx-3d-scans')}
+                      style={{ display: 'none' }}
+                    />
+                  </div>
+                </div>
+                {/* Mini-Preview: 3D Scans */}
+                <div className="references-subgrid" style={{ marginTop: '6px' }}>
+                  {(() => {
+                    const refsForCat = references.filter(ref => ref.category === 'vfx-3d-scans');
+                    const tiles = [];
+                    for (let i = 0; i < 3; i++) {
+                      const ref = refsForCat[i];
+                      if (ref) {
+                        if (typeof ref === 'string') {
+                          tiles.push({ key: `mini-3d-${i}-${ref}`, url: dummyReference, name: ref });
+                        } else {
+                          tiles.push({ key: `mini-3d-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        }
+                      } else {
+                        tiles.push({ key: `mini-3d-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                      }
+                    }
+                    return tiles.map(tile => (
+                      <div className="reference-item" key={tile.key}>
+                        <div className="reference-image-container">
+                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <div className="reference-info">
+                            <span className="reference-name">{tile.name}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ));
+                  })()}
+                </div>
+              </div>
+            )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* References */}
+      {(() => {
+        const vfxSelections = isEditing ? (editedShot?.vfxPreparations || {}) : (shot?.vfxPreparations || {});
+        const hasAnyVFXSelected = Object.entries(vfxSelections).some(([key, val]) => !key.endsWith('Details') && !!val);
+        if (!hasAnyVFXSelected) return null;
+        return (
+          <div className="references card">
+            <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h2>Referenzen</h2>
+              {isEditing && (
+                <button
+                  type="button"
+                  className="collapse-toggle"
+                  onClick={() => setReferencesCollapsed(prev => !prev)}
+                  aria-label={isReferencesCollapsed ? 'Erweitern' : 'Minimieren'}
+                  title={isReferencesCollapsed ? 'Erweitern' : 'Minimieren'}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+                >
+                  {isReferencesCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+                </button>
+              )}
+            </div>
+            {/* Skalierungs-Slider entfernt, Bilder passen sich automatisch an */}
+            {/* Drei Abschnitte mit Überschriften und Upload-Button je Abschnitt */}
+            <div className="references-sections" style={{ display: isEditing && isReferencesCollapsed ? 'none' : 'block' }}>
+              {(() => {
+                const sections = [
+                  { key: 'set-fotos', title: 'SETFOTOS' },
+                  { key: 'hdri', title: 'HDRI' },
+                  { key: 'setup-fotos', title: 'Setup Fotos' },
+                  { key: 'vfx-distortion-grids', title: 'Distortion Grids' },
+                  { key: 'vfx-set-references', title: 'Set‑Referenzen' },
+                  { key: 'vfx-cleanplates', title: 'Clean Plates' },
+                  { key: 'vfx-chrome-ball', title: 'Chrome Ball' },
+                  { key: 'vfx-gray-ball', title: 'Grey Ball' },
+                  { key: 'vfx-color-checker', title: 'ColorChecker' },
+                  { key: 'vfx-measurements', title: 'Mess‑Fotos' },
+                  { key: 'vfx-3d-scans', title: '3D Scans' }
+                ];
+                const controlMap = {
+                  'hdri': 'hdris',
+                  'vfx-distortion-grids': 'distortionGrids',
+                  'vfx-set-references': 'setReferences',
+                  'vfx-cleanplates': 'cleanplates',
+                  'vfx-chrome-ball': 'chromeBall',
+                  'vfx-gray-ball': 'grayBall',
+                  'vfx-color-checker': 'colorChecker',
+                  'vfx-measurements': 'measurementsTaken',
+                  'vfx-3d-scans': 'threeDScans'
+                };
+                const vfxSelections = isEditing ? (editedShot?.vfxPreparations || {}) : (shot?.vfxPreparations || {});
+                const shouldInclude = (section) => {
+                  const controlling = controlMap[section.key];
+                  if (!controlling) return false; // allgemeine Kategorien ausblenden
+                  return !!vfxSelections[controlling];
+                };
+                const effectiveSections = sections.filter(shouldInclude);
+                return effectiveSections.map(section => {
+                  const refsForCat = references.filter(ref => ref.category === section.key);
+                  const tiles = [];
+                  for (let i = 0; i < 3; i++) {
+                    const ref = refsForCat[i];
+                    if (ref) {
+                      if (typeof ref === 'string') {
+                        tiles.push({ key: `grid-${section.key}-${i}-${ref}`, url: dummyReference, name: ref });
+                      } else {
+                        tiles.push({ key: `grid-${section.key}-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                      }
+                    } else {
+                      tiles.push({ key: `grid-${section.key}-dummy-${i}`, url: dummyReference, name: `${section.title} ${i+1}` });
+                    }
+                  }
+                  return (
+                      <div className="references-section" key={`section-${section.key}`}>
+                        <div className="references-section-header">
+                          <h3 className="references-section-title">{section.title}</h3>
+                        </div>
+                        <div className="references-subgrid">
+                          {tiles.map(tile => (
+                            <div className="reference-item" key={tile.key}>
+                              <div className="reference-image-container">
+                                <img src={tile.url} alt={tile.name} className="reference-image" />
+                                <div className="reference-info">
+                                  <span className="reference-name">{tile.name}</span>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                  );
+                });
+              })()}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* TAKES */}
+      <div className="takes card">
+        <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2>TAKES</h2>
+          {isEditing && (
+            <button type="button" className="btn btn-secondary" onClick={addTake} title="Take hinzufügen">
+              <FiPlus style={{ marginRight: 6 }} /> Take hinzufügen
+            </button>
+          )}
         </div>
+        {isEditing ? (
+          <div className="takes-edit-list">
+            {(editedShot?.takes || []).length === 0 ? (
+              <div className="info-item"><label><strong>Hinweis</strong>:</label><span className="info-value">Noch keine Takes hinzugefügt.</span></div>
+            ) : (
+              (editedShot.takes || []).map(take => (
+                <div key={take.id} className="take-item">
+                  <div className="take-header">
+                    <span className="take-name">{take.name}</span>
+                    <button type="button" className="btn-outline take-remove" onClick={() => removeTake(take.id)} title="Take entfernen">
+                      <FiTrash />
+                    </button>
+                  </div>
+                  <div className="take-content">
+                    <div className="form-group" style={{ width: '100%' }}>
+                      <label>Notiz:</label>
+                      <textarea
+                        value={take.note || ''}
+                        placeholder="Kurze Notiz zum Take"
+                        onChange={(e) => updateTakeNote(take.id, e.target.value)}
+                      />
+                    </div>
+                    <div className="form-group" style={{ width: '100%' }}>
+                      <label>Änderungen:</label>
+                      <textarea
+                        value={take.changes || ''}
+                        placeholder="Geänderte Punkte, Abweichungen, Hinweise …"
+                        onChange={(e) => updateTakeChanges(take.id, e.target.value)}
+                      />
+                    </div>
+                    <div className="take-ratings" aria-label="Schnellbewertung">
+                      {["DIR","DOP","VFX"].map((label, idx) => (
+                        <div key={`rating-${take.id}-${idx}`} className="rating-item">
+                          <span className="rating-label">{label}</span>
+                          <button
+                            type="button"
+                            className={`rating-dot ${take.ratings?.[idx] || 'none'}`}
+                            onClick={() => toggleTakeRating(take.id, idx)}
+                            title={`${label} Bewertung`}
+                            aria-label={`${label} Bewertung: ${take.ratings?.[idx] || 'none'}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        ) : (
+          <div className="takes-readonly-list">
+            {(shot?.takes || []).length === 0 ? (
+              <div className="info-item"><label><strong>Hinweis</strong>:</label><span className="info-value">Keine Takes vorhanden.</span></div>
+            ) : (
+              (shot.takes || []).map(take => (
+                <div key={take.id} className="take-item">
+                  <div className="take-header">
+                    <span className="take-name">{take.name}</span>
+                  </div>
+                  <div className="take-content">
+                    {take.note && (
+                      <div className="info-item" style={{ width: '100%' }}>
+                        <label><strong>Notiz</strong>:</label>
+                        <span className="info-value">{take.note}</span>
+                      </div>
+                    )}
+                    {take.changes && (
+                      <div className="info-item" style={{ width: '100%' }}>
+                        <label><strong>Änderungen</strong>:</label>
+                        <span className="info-value">{take.changes}</span>
+                      </div>
+                    )}
+                    <div className="take-ratings readonly" aria-label="Schnellbewertung">
+                      {["DIR","DOP","VFX"].map((label, idx) => (
+                        <div key={`rating-ro-${take.id}-${idx}`} className="rating-item">
+                          <span className="rating-label">{label}</span>
+                          <span
+                            className={`rating-dot ${take.ratings?.[idx] || 'none'}`}
+                            title={`${label} Bewertung`}
+                            aria-label={`${label} Bewertung: ${take.ratings?.[idx] || 'none'}`}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
