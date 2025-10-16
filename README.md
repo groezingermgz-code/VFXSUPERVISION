@@ -1,5 +1,7 @@
 # VFX Supervision App
 
+[![Netlify Status](https://api.netlify.com/api/v1/badges/b6e5b13e-1f71-4775-9778-011bdeb657d1/deploy-status)](https://app.netlify.com/projects/vfx-supervision/deploys)
+
 Eine moderne Webanwendung für VFX-Supervisoren am Set, die bei der Verwaltung von Shots, Kameraeinstellungen und Notizen hilft.
 
 ## Funktionen
