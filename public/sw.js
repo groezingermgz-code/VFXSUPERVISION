@@ -1,4 +1,4 @@
-const CACHE_NAME = 'vfx-supervision-cache-v1';
+const CACHE_NAME = 'vfx-supervision-cache-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -14,7 +14,19 @@ self.addEventListener('install', (event) => {
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(self.clients.claim());
+  event.waitUntil(
+    (async () => {
+      // Alte Caches bereinigen
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => {
+        if (key !== CACHE_NAME) {
+          return caches.delete(key);
+        }
+        return Promise.resolve();
+      }));
+      await self.clients.claim();
+    })()
+  );
 });
 
 self.addEventListener('fetch', (event) => {
