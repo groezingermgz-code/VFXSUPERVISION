@@ -4,9 +4,12 @@ import { Link } from 'react-router-dom';
 import { maybeAutoBackup } from '../utils/versioningManager';
 import './Dashboard.css';
 import Icon from '../components/Icon';
+import { useTeam } from '../contexts/TeamContext';
 
 const Dashboard = () => {
   const { t, language } = useLanguage();
+  const { teams } = useTeam();
+  const teamById = Object.fromEntries(teams.map(team => [team.id, team]));
   const localeMap = { de: 'de-DE', en: 'en-US', fr: 'fr-FR', es: 'es-ES' };
   const getCreatedTs = (p) => (p && p.createdAt ? Date.parse(p.createdAt) || 0 : 0);
   const sortByNewest = (arr) => arr.slice().sort((a, b) => getCreatedTs(b) - getCreatedTs(a));
@@ -41,10 +44,32 @@ const Dashboard = () => {
     production: '',
     cinematographer: '',
     shotCount: 0,
-    completedShots: 0
+    completedShots: 0,
+    teamId: null,
   });
   const [isEditing, setIsEditing] = useState(false);
   const [editDraft, setEditDraft] = useState(null);
+  
+  // Autosave Projekt-Änderungen: speichere sofort bei jeder Eingabe
+  useEffect(() => {
+    if (!isEditing || !editDraft || !editDraft.id) return;
+    setProjects(prev => sortByNewest(prev.map(p => {
+      if (p.id === editDraft.id) {
+        return {
+          ...p,
+          name: editDraft.name,
+          production: editDraft.production,
+          director: editDraft.director,
+          cinematographer: editDraft.cinematographer,
+          vfxSupervisor: editDraft.vfxSupervisor,
+          shotCount: editDraft.shotCount,
+          completedShots: editDraft.completedShots,
+          teamId: editDraft.teamId ?? null,
+        };
+      }
+      return p;
+    })));
+  }, [isEditing, editDraft]);
   
   // Ausgewähltes Projekt finden
   // Funktion um die Akzentfarbe für ein Projekt zu erhalten
@@ -85,11 +110,42 @@ const Dashboard = () => {
     localStorage.setItem('selectedProjectId', selectedProjectId);
   }, [selectedProjectId]);
 
+  // New-Project Draft laden, wenn Formular geöffnet wird
+  useEffect(() => {
+    if (showNewProjectForm) {
+      try {
+        const draft = localStorage.getItem('newProjectDraft');
+        if (draft) {
+          const parsed = JSON.parse(draft);
+          setNewProject(prev => ({
+            name: parsed.name ?? prev.name ?? '',
+            director: parsed.director ?? prev.director ?? '',
+            vfxSupervisor: parsed.vfxSupervisor ?? prev.vfxSupervisor ?? '',
+            production: parsed.production ?? prev.production ?? '',
+            cinematographer: parsed.cinematographer ?? prev.cinematographer ?? '',
+            shotCount: typeof parsed.shotCount === 'number' ? parsed.shotCount : (parseInt(parsed.shotCount) || prev.shotCount || 0),
+            completedShots: typeof parsed.completedShots === 'number' ? parsed.completedShots : (parseInt(parsed.completedShots) || prev.completedShots || 0),
+            teamId: typeof parsed.teamId === 'number' ? parsed.teamId : (parseInt(parsed.teamId) || prev.teamId || null),
+          }));
+        }
+      } catch (e) {}
+    }
+  }, [showNewProjectForm]);
+
+  // Draft bei Änderungen persistieren (nur wenn Formular offen)
+  useEffect(() => {
+    if (showNewProjectForm) {
+      try {
+        localStorage.setItem('newProjectDraft', JSON.stringify(newProject));
+      } catch (e) {}
+    }
+  }, [newProject, showNewProjectForm]);
+
   // Neues Projekt hinzufügen
   const handleAddProject = () => {
     if (newProject.name.trim() === '') return;
     
-    // Erstelle Dummy-Shots basierend auf der angegebenen Anzahl
+
     const dummyShots = [];
     const shotCount = parseInt(newProject.shotCount) || 0;
     
@@ -120,9 +176,13 @@ const Dashboard = () => {
       name: '',
       director: '',
       vfxSupervisor: '',
+      production: '',
+      cinematographer: '',
       shotCount: 0,
-      completedShots: 0
+      completedShots: 0,
+      teamId: null,
     });
+    try { localStorage.removeItem('newProjectDraft'); } catch {}
     // Auto-Backup nach Erstellung eines Projekts
     try { maybeAutoBackup({ note: 'Projekt erstellt', source: 'dashboard' }); } catch {}
   };
@@ -130,10 +190,13 @@ const Dashboard = () => {
   // Eingabefeld-Änderungen verarbeiten
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setNewProject({
-      ...newProject,
-      [name]: name === 'shotCount' ? parseInt(value) || 0 : value
-    });
+    setNewProject(prev => ({
+      ...prev,
+      [name]:
+        name === 'shotCount' ? (parseInt(value) || 0)
+        : name === 'teamId' ? (parseInt(value) || null)
+        : value
+    }));
   };
 
   // Projekt löschen mit Bestätigung
@@ -157,6 +220,7 @@ const Dashboard = () => {
       vfxSupervisor: selectedProject.vfxSupervisor || '',
       shotCount: parseInt(selectedProject.shotCount) || 0,
       completedShots: parseInt(selectedProject.completedShots) || 0,
+      teamId: selectedProject.teamId || null,
     });
     setIsEditing(true);
   };
@@ -166,7 +230,9 @@ const Dashboard = () => {
     const { name, value } = e.target;
     setEditDraft(prev => ({
       ...prev,
-      [name]: (name === 'shotCount' || name === 'completedShots') ? (parseInt(value) || 0) : value
+      [name]: (name === 'shotCount' || name === 'completedShots') ? (parseInt(value) || 0)
+        : name === 'teamId' ? (parseInt(value) || null)
+        : value
     }));
   };
 
@@ -184,6 +250,7 @@ const Dashboard = () => {
           vfxSupervisor: editDraft.vfxSupervisor,
           shotCount: editDraft.shotCount,
           completedShots: editDraft.completedShots,
+          teamId: editDraft.teamId || null,
         };
       }
       return p;
@@ -227,7 +294,7 @@ const Dashboard = () => {
 
   return (
     <div className="dashboard">
-      <div className="dashboard-header">
+      <div className="dashboard-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
         <h1>{t('nav.dashboard')}</h1>
         <button 
           className="btn-primary" 
@@ -298,6 +365,10 @@ const Dashboard = () => {
                   <div className="info-row">
                     <span className="info-label">{t('dashboard.cinematographer')}:</span>
                     <span className="info-value">{project.cinematographer}</span>
+                  </div>
+                  <div className="info-row">
+                    <span className="info-label">{t('dashboard.teamLabel')}:</span>
+                    <span className="info-value">{teamById[project.teamId]?.name || t('dashboard.noTeam')}</span>
                   </div>
                   <div className="info-row">
                     <span className="info-label">{t('dashboard.created')}:</span>
@@ -385,6 +456,15 @@ const Dashboard = () => {
             />
           </div>
           <div className="form-group">
+            <label>{t('dashboard.teamLabel')}:</label>
+            <select name="teamId" value={newProject.teamId ?? ''} onChange={handleInputChange}>
+              <option value="">{t('dashboard.selectTeam')}</option>
+              {teams.map(team => (
+                <option key={team.id} value={team.id}>{team.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="form-group">
             <label>{t('dashboard.plannedShotsCount')}:</label>
             <input 
               type="number" 
@@ -415,6 +495,7 @@ const Dashboard = () => {
                     <p className="detail-row"><strong>{t('dashboard.director')}:</strong><span className="detail-value">{selectedProject.director}</span></p>
                     <p className="detail-row"><strong>{t('dashboard.cinematographer')}:</strong><span className="detail-value">{selectedProject.cinematographer}</span></p>
                     <p className="detail-row"><strong>{t('vfx.supervisor')}:</strong><span className="detail-value">{selectedProject.vfxSupervisor}</span></p>
+                    <p className="detail-row"><strong>{t('dashboard.teamLabel')}:</strong><span className="detail-value">{teamById[selectedProject.teamId]?.name || t('dashboard.noTeam')}</span></p>
                   </div>
                   <div className="project-edit-actions">
                     <button className="btn-secondary" onClick={startEdit}>
@@ -473,6 +554,15 @@ const Dashboard = () => {
                       onChange={handleEditInputChange}
                       placeholder={t('dashboard.vfxSupervisorPlaceholder')}
                     />
+                  </div>
+                  <div className="form-group">
+                    <label>{t('dashboard.teamLabel')}:</label>
+                    <select name="teamId" value={editDraft?.teamId ?? ''} onChange={handleEditInputChange}>
+                      <option value="">{t('dashboard.selectTeam')}</option>
+                      {teams.map(team => (
+                        <option key={team.id} value={team.id}>{team.name}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="form-group">
                     <label>{t('dashboard.plannedShotsCount')}:</label>

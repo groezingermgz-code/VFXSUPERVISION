@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="640" height="360" viewBox="0 0 640 360" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Storyboard Scribble">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f7f7f7"/>
+      <stop offset="1" stop-color="#ececec"/>
+    </linearGradient>
+  </defs>
+  <rect x="0" y="0" width="640" height="360" fill="url(#bg)"/>
+  
+  <!-- Title -->
+  <text x="20" y="36" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="18" fill="#444" font-weight="600">Storyboard</text>
+  <text x="140" y="36" font-family="Segoe UI, Roboto, Arial, sans-serif" font-size="18" fill="#888">Scribble</text>
+
+  <!-- Frames grid -->
+  <g stroke="#777" fill="none" stroke-width="2">
+    <rect x="20" y="60" width="180" height="100" rx="6"/>
+    <rect x="230" y="60" width="180" height="100" rx="6"/>
+    <rect x="440" y="60" width="180" height="100" rx="6"/>
+
+    <rect x="20" y="180" width="180" height="100" rx="6"/>
+    <rect x="230" y="180" width="180" height="100" rx="6"/>
+    <rect x="440" y="180" width="180" height="100" rx="6"/>
+  </g>
+
+  <!-- Scribbles inside frames -->
+  <g stroke="#999" stroke-width="2" fill="none" stroke-linecap="round">
+    <!-- Top row scribbles -->
+    <path d="M35 85 Q60 70 85 85 T135 85"/>
+    <path d="M35 115 Q60 130 85 115 T135 115"/>
+
+    <path d="M245 85 Q270 70 295 85 T345 85"/>
+    <path d="M245 115 Q270 130 295 115 T345 115"/>
+
+    <path d="M455 85 Q480 70 505 85 T555 85"/>
+    <path d="M455 115 Q480 130 505 115 T555 115"/>
+
+    <!-- Bottom row scribbles -->
+    <path d="M35 205 Q60 190 85 205 T135 205"/>
+    <path d="M35 235 Q60 250 85 235 T135 235"/>
+
+    <path d="M245 205 Q270 190 295 205 T345 205"/>
+    <path d="M245 235 Q270 250 295 235 T345 235"/>
+
+    <path d="M455 205 Q480 190 505 205 T555 205"/>
+    <path d="M455 235 Q480 250 505 235 T555 235"/>
+  </g>
+
+  <!-- Notes lines -->
+  <g stroke="#bbb" stroke-width="1.5" stroke-linecap="round">
+    <line x1="20" y1="300" x2="620" y2="300"/>
+    <line x1="20" y1="318" x2="620" y2="318"/>
+    <line x1="20" y1="336" x2="620" y2="336"/>
+  </g>
+</svg>

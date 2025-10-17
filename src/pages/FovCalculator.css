@@ -54,22 +54,26 @@
 
 .fov-results h3 {
   margin-top: 0;
+  color: var(--text-color);
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 .fov-results .result-item {
   display: flex;
   flex-direction: column;
   /* Leicht abgesetzter Hintergrund für bessere Lesbarkeit */
-  background: #f7f7f8;
+  background: var(--card-bg);
   border: 1px solid var(--border-color, #eee);
   border-radius: 8px;
   padding: 0.75rem;
 }
-.dark-mode .fov-results .result-item {
-  background: #242424;
-}
-.fov-results .label {
-  color: var(--text-secondary, #666);
+.fov-results .result-item .label {
+  color: var(--secondary-color);
+  font-weight: 700;
   font-size: 0.9rem;
+}
+.fov-results .result-item .value {
+  font-size: 0.95rem;
 }
 .fov-results .value {
   font-size: 1.1rem;
@@ -99,7 +103,7 @@
   max-width: 720px;
   height: auto;
   border-radius: 8px;
-  background: var(--background-color, #0e1216);
+  background: var(--card-bg);
   border: 1px solid var(--border-color, #eee);
 }
 .fov-3d-container .hint {

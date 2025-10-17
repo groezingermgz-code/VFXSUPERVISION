@@ -33,6 +33,19 @@ self.addEventListener('fetch', (event) => {
   const req = event.request;
   if (req.method !== 'GET') return; // nur GET cachen
 
+  const url = new URL(req.url);
+  const accept = req.headers.get('accept') || '';
+
+  // Avoid interfering with Vite dev/HMR endpoints
+  // These should always bypass the service worker in development.
+  if (
+    url.pathname.startsWith('/@react-refresh') ||
+    url.pathname.startsWith('/@vite') ||
+    accept.includes('text/event-stream') // HMR/SSE
+  ) {
+    return; // let the network handle it
+  }
+
   event.respondWith(
     caches.open(CACHE_NAME).then(async (cache) => {
       try {

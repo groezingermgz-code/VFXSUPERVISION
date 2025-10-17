@@ -35,21 +35,21 @@ const FlickerControll = () => {
 
   return (
     <div className="flicker-controll-page">
-      <h1>Flicker Controll</h1>
+      <h1>{t('tools.flicker.title', 'Flicker Control')}</h1>
 
       {/* Kamera‑Infos: Flicker‑Safe & LogC/EI */}
       <div className="card">
-        <h2>Kamera‑Infos</h2>
+        <h2>{t('tools.flicker.cameraInfo', 'Kamera‑Infos')}</h2>
         <div className="form-row">
           <div className="form-group">
-            <label>Netzfrequenz:</label>
+            <label>{t('tools.flicker.mainsFrequency', 'Netzfrequenz')}:</label>
             <select value={mainsFrequency} onChange={(e) => setMainsFrequency(e.target.value)}>
               <option value="50Hz">50Hz (EU)</option>
               <option value="60Hz">60Hz (US)</option>
             </select>
           </div>
           <div className="form-group">
-            <label>Framerate:</label>
+            <label>{t('tools.flicker.framerate', 'Framerate')}:</label>
             <select value={infoFramerate} onChange={(e) => setInfoFramerate(e.target.value)}>
               <option value="24fps">24 fps</option>
               <option value="25fps">25 fps</option>
@@ -59,13 +59,13 @@ const FlickerControll = () => {
             </select>
           </div>
           <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-            <label>Flicker‑safe:</label>
+            <label>{t('tools.flicker.flickerSafe', 'Flicker‑safe')}:</label>
             <div>
               {(() => {
                 const info = (flickerSafeGuidelines[mainsFrequency] || {})[infoFramerate];
                 return info
-                  ? (<span>{`Shutter: ${info.shutterAngle}° • Belichtungszeit: ${info.exposureTime}`}</span>)
-                  : (<span>N/A</span>);
+                  ? (<span>{`${t('tools.flicker.shutterAngle', 'Shutter')}: ${info.shutterAngle}° • ${t('tools.flicker.exposureTime', 'Belichtungszeit')}: ${info.exposureTime}`}</span>)
+                  : (<span>{t('tools.flicker.na', 'N/A')}</span>);
               })()}
             </div>
           </div>
@@ -83,15 +83,15 @@ const FlickerControll = () => {
         {selectedManufacturer === 'ARRI' && (
           <div className="info-grid">
             <div className="info-item" style={{ width: '100%' }}>
-              <label><strong>ARRI LogC3</strong>:</label>
+              <label><strong>{t('tools.flicker.arriLogC3', 'ARRI LogC3')}</strong>:</label>
               <span className="info-value">{logCExposureInfo['ARRI'].LogC3.middleGraySignal}</span>
             </div>
             <div className="info-item" style={{ width: '100%' }}>
-              <label><strong>ARRI LogC4</strong>:</label>
+              <label><strong>{t('tools.flicker.arriLogC4', 'ARRI LogC4')}</strong>:</label>
               <span className="info-value">{logCExposureInfo['ARRI'].LogC4.note}</span>
             </div>
             <div className="info-item" style={{ width: '100%' }}>
-              <label><strong>EI Verhalten</strong>:</label>
+              <label><strong>{t('tools.flicker.eiBehavior', 'EI Verhalten')}</strong>:</label>
               <span className="info-value">{eiBehaviorNotes['ARRI']}</span>
             </div>
           </div>
@@ -100,10 +100,10 @@ const FlickerControll = () => {
 
       {/* Shutter‑Angle Rechner */}
       <div className="card" style={{ marginTop: '16px' }}>
-        <h2>Shutter‑Angle Rechner</h2>
+        <h2>{t('tools.flicker.shutterCalcTitle', 'Shutter‑Angle Rechner')}</h2>
         <div className="form-row">
           <div className="form-group">
-            <label>Framerate (fps):</label>
+            <label>{t('tools.flicker.framerateFpsLabel', 'Framerate (fps)')}:</label>
             <input
               type="number"
               min="1"
@@ -116,7 +116,7 @@ const FlickerControll = () => {
             />
           </div>
           <div className="form-group">
-            <label>Shutter Angle (°):</label>
+            <label>{t('tools.flicker.shutterAngleLabel', 'Shutter Angle (°)')}:</label>
             <input
               type="number"
               min="1"
@@ -130,7 +130,7 @@ const FlickerControll = () => {
             />
           </div>
           <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-            <label>Belichtungszeit:</label>
+            <label>{t('tools.flicker.exposureTimeLabel', 'Belichtungszeit')}:</label>
             <input
               type="text"
               value={calcExposureStr}
@@ -146,10 +146,10 @@ const FlickerControll = () => {
           <button className="btn-outline" onClick={() => {
             setCalcAngle(180);
             setCalcExposureStr(exposureTimeFromAngle(180, calcFramerate));
-          }}>180°‑Regel anwenden</button>
+          }}>{t('tools.flicker.apply180Rule', '180°‑Regel anwenden')}</button>
         </div>
         <small style={{ color: 'var(--text-secondary)' }}>
-          Formel: t = (Angle/360) · (1/FPS)
+          {t('tools.flicker.formulaLabel', 'Formel: t = (Angle/360) · (1/FPS)')}
         </small>
       </div>
     </div>

@@ -74,14 +74,33 @@ export const listShotFiles = () => {
   }
 };
 
-// Auto-save functionality - debounced saving
-let saveTimeout = null;
-export const autoSaveShotToFile = (shotId, shotData, delay = 1000) => {
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
-  }
-  
-  saveTimeout = setTimeout(() => {
+// Auto-save functionality - immediate saving with full sync
+export const autoSaveShotToFile = (shotId, shotData, delay = 0) => {
+  try {
+    // Save to individual shot file
     saveShotToFile(shotId, shotData);
-  }, delay);
+
+    // Also mirror to legacy key for compatibility
+    localStorage.setItem(`shot_${shotId}`, JSON.stringify(shotData));
+
+    // Update shot in selected project's shots array
+    const savedProjects = localStorage.getItem('projects');
+    if (savedProjects) {
+      const projects = JSON.parse(savedProjects);
+      const currentProjectId = parseInt(localStorage.getItem('selectedProjectId')) || 1;
+      const updatedProjects = projects.map(project => {
+        if (project.id === currentProjectId && Array.isArray(project.shots)) {
+          const updatedShots = project.shots.map(shot => {
+            const match = String(shot.id) === String(shotId);
+            return match ? { ...shot, ...shotData } : shot;
+          });
+          return { ...project, shots: updatedShots };
+        }
+        return project;
+      });
+      localStorage.setItem('projects', JSON.stringify(updatedProjects));
+    }
+  } catch (error) {
+    try { console.error('AutoSave sync error:', error); } catch {}
+  }
 };

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import './ShotDetails.css';
 import { 
@@ -20,7 +20,9 @@ import {
   getLensesByManufacturer,
   getLensFullName,
   getAnamorphicLensManufacturers,
-  getAnamorphicLensesByManufacturer 
+  getAnamorphicLensesByManufacturer,
+  getLensMeta,
+  isZoomLens
 } from '../data/lensDatabase';
 import { 
   getAllFilters,
@@ -29,7 +31,13 @@ import {
 import { commonLuts, getViewerLutsForManufacturer } from '../data/lutDatabase';
 import { 
   calculateAllFOV, 
-  formatFOVDisplay 
+  formatFOVDisplay,
+  parseSensorSize,
+  calculateHorizontalFOV,
+  calculateVerticalFOV,
+  calculateDiagonalFOV,
+  extractAnamorphicFactor,
+  extractFocalLength
 } from '../utils/fovCalculator';
 import { getPresets } from './CameraSettings';
 import { 
@@ -40,12 +48,56 @@ import {
 } from '../utils/shotFileManager';
 import { maybeAutoBackup } from '../utils/versioningManager';
 import { exportShotToPDF, savePDF } from '../utils/pdfExporter';
-import dummyPreview from '../assets/dummy-preview.svg';
+import storyboard1 from '../assets/storyboard-scribble-1.svg';
+import storyboard2 from '../assets/storyboard-scribble-2.svg';
+import storyboard3 from '../assets/storyboard-scribble-3.svg';
+import storyboard4 from '../assets/storyboard-scribble-4.svg';
 import dummyReference from '../assets/dummy-reference.svg';
 import { useLanguage } from '../contexts/LanguageContext';
 import { FiChevronDown, FiChevronUp, FiPlus, FiTrash } from 'react-icons/fi';
+import InlineSensorPreview from '../components/InlineSensorPreview';
+// Vollständiger FOV‑Rechner als eingebettete Komponente für Objektiv‑Einstellungen
+import EmbeddedFovCalculator from '../components/EmbeddedFovCalculator';
 
 const ShotDetails = () => {
+  // Helper: deterministische Platzhalter‑Thumbnails für Referenzen
+  const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+  const makeLocalPlaceholderDataUrl = (seed, width = 640, height = 360) => {
+    const label = (() => {
+      if (/vfx-cleanplates/.test(seed)) return 'Cleanplate';
+      if (/vfx-set-references/.test(seed)) return 'Set Reference';
+      if (/vfx-chrome-ball/.test(seed)) return 'Chrome Ball';
+      if (/vfx-gray-ball/.test(seed)) return 'Grey Ball';
+      if (/vfx-color-checker/.test(seed)) return 'Color Checker';
+      if (/vfx-distortion-grids/.test(seed)) return 'Distortion Grid';
+      if (/vfx-measurements/.test(seed)) return 'Measurements';
+      if (/vfx-3d-scans/.test(seed)) return '3D Scan';
+      if (/hdri/.test(seed)) return 'HDRI';
+      return 'Reference';
+    })();
+    const bg = '#1f2937';
+    const fg = '#9ca3af';
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${width}' height='${height}' viewBox='0 0 ${width} ${height}'><rect width='100%' height='100%' fill='${bg}' /><text x='50%' y='50%' fill='${fg}' font-family='system-ui, sans-serif' font-size='${Math.round(height*0.1)}' text-anchor='middle' dominant-baseline='middle'>${label}</text></svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+  };
+
+  const makeRealImageUrl = (seed, width = 640, height = 360) => {
+    const lock = Math.abs(hashSeed(seed)) % 1000;
+    const scenarioTags = (localStorage.getItem('filmScenarioTags') || 'city,night,rain,street').trim();
+    let tags = scenarioTags || 'film,set';
+    const withScenario = (extra) => scenarioTags ? `${scenarioTags},${extra}` : extra;
+    if (/vfx-cleanplates/.test(seed)) tags = withScenario('street,night,cleanplate');
+    else if (/vfx-set-references/.test(seed)) tags = withScenario('behind-the-scenes,lighting,set');
+    else if (/vfx-chrome-ball/.test(seed)) tags = withScenario('reflection,sphere,studio');
+    else if (/vfx-gray-ball/.test(seed)) tags = withScenario('gray,ball,lighting');
+    else if (/vfx-color-checker/.test(seed)) tags = withScenario('color,chart,reference');
+    else if (/vfx-distortion-grids/.test(seed)) tags = withScenario('grid,checkerboard,lens');
+    else if (/vfx-measurements/.test(seed)) tags = withScenario('ruler,measure,tape');
+    else if (/vfx-3d-scans/.test(seed)) tags = withScenario('3d,scan,mesh');
+    else if (/hdri/.test(seed)) tags = withScenario('skyline,panorama,city');
+    // Use local placeholder to avoid external image errors
+    return makeLocalPlaceholderDataUrl(seed, width, height);
+  };
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
@@ -204,6 +256,47 @@ const ShotDetails = () => {
     ? (shot?.cameraMovement || {})
     : ((shot?.additionalCameraSetups?.[selectedSetupIndex - 1]?.cameraMovement) || {});
 
+  // FOV-Anzeige (Readonly) für aktuelles Setup
+  const readonlyFovDisplay = useMemo(() => {
+    try {
+      const manufacturer = currentShotCameraSettings?.manufacturer;
+      const fullModel = currentShotCameraSettings?.model;
+      const format = currentShotCameraSettings?.format;
+      const lensName = currentShotCameraSettings?.lens;
+      const focalInput = currentShotCameraSettings?.focalLength;
+      if (!manufacturer || !fullModel || !format || format === 'Manuell') return t('common.notAvailable');
+      const shortModel = String(fullModel).replace(new RegExp(`^${manufacturer}\\s+`), '').trim();
+      const sensorStr = getSensorSizeByFormat(manufacturer, shortModel, format);
+      if (!sensorStr || sensorStr === 'Nicht verfügbar') return t('common.notAvailable');
+      const sensor = parseSensorSize(sensorStr);
+      if (!sensor) return t('common.notAvailable');
+      let focal = 0;
+      const parsed = parseFloat(String(focalInput || '').replace(',', '.'));
+      if (!isNaN(parsed) && parsed > 0) focal = parsed;
+      if (!focal) {
+        const extracted = extractFocalLength(lensName || '');
+        if (extracted && extracted > 0) focal = extracted;
+      }
+      if (!focal || focal <= 0) return t('common.notAvailable');
+      let af = extractAnamorphicFactor(lensName || '');
+      if ((currentShotCameraSettings?.isAnamorphic) && (!af || af <= 1)) af = 2;
+      const h = calculateHorizontalFOV(focal, sensor.width * (af || 1));
+      const v = calculateVerticalFOV(focal, sensor.height);
+      const d = calculateDiagonalFOV(focal, sensor.width * (af || 1), sensor.height);
+      return formatFOVDisplay({ horizontal: h, vertical: v, diagonal: d });
+    } catch {
+      return t('common.notAvailable');
+    }
+  }, [
+    currentShotCameraSettings?.manufacturer,
+    currentShotCameraSettings?.model,
+    currentShotCameraSettings?.format,
+    currentShotCameraSettings?.lens,
+    currentShotCameraSettings?.focalLength,
+    currentShotCameraSettings?.isAnamorphic,
+    t
+  ]);
+
   // Alle Setups (Readonly) für mehrspaltige Anzeige
   const allShotCameraSettings = [
     shot?.cameraSettings || {},
@@ -217,6 +310,41 @@ const ShotDetails = () => {
       ? shot.additionalCameraSetups.map(s => s?.cameraMovement || {})
       : [])
   ];
+
+  // FOV-Anzeige (Readonly) je Setup für Mehrspaltenansicht
+  const allReadonlyFovDisplays = useMemo(() => {
+    try {
+      return allShotCameraSettings.map(setup => {
+        const manufacturer = setup?.manufacturer;
+        const fullModel = setup?.model;
+        const format = setup?.format;
+        const lensName = setup?.lens;
+        const focalInput = setup?.focalLength;
+        if (!manufacturer || !fullModel || !format || format === 'Manuell') return t('common.notAvailable');
+        const shortModel = String(fullModel).replace(new RegExp(`^${manufacturer}\\s+`), '').trim();
+        const sensorStr = getSensorSizeByFormat(manufacturer, shortModel, format);
+        if (!sensorStr || sensorStr === 'Nicht verfügbar') return t('common.notAvailable');
+        const sensor = parseSensorSize(sensorStr);
+        if (!sensor) return t('common.notAvailable');
+        let focal = 0;
+        const parsed = parseFloat(String(focalInput || '').replace(',', '.'));
+        if (!isNaN(parsed) && parsed > 0) focal = parsed;
+        if (!focal) {
+          const extracted = extractFocalLength(lensName || '');
+          if (extracted && extracted > 0) focal = extracted;
+        }
+        if (!focal || focal <= 0) return t('common.notAvailable');
+        let af = extractAnamorphicFactor(lensName || '');
+        if ((setup?.isAnamorphic) && (!af || af <= 1)) af = 2;
+        const h = calculateHorizontalFOV(focal, sensor.width * (af || 1));
+        const v = calculateVerticalFOV(focal, sensor.height);
+        const d = calculateDiagonalFOV(focal, sensor.width * (af || 1), sensor.height);
+        return formatFOVDisplay({ horizontal: h, vertical: v, diagonal: d });
+      });
+    } catch {
+      return allShotCameraSettings.map(() => t('common.notAvailable'));
+    }
+  }, [allShotCameraSettings, t]);
 
   // Setup-Label (A/B/C ...)
   const getSetupLabel = (index) => String.fromCharCode(65 + index);
@@ -1037,8 +1165,8 @@ const ShotDetails = () => {
     } else if (lens && selectedLensManufacturer) {
       const fullLensName = getLensFullName(selectedLensManufacturer, lens);
       
-      // Extrahiere automatisch die Brennweite aus dem Objektiv-Namen
-      const autoFocalLength = extractFocalLengthFromLens(fullLensName);
+      // Extrahiere automatisch die Brennweite aus dem Objektiv-Namen über Datenbank-Metadaten
+      const autoFocalLength = (getLensMeta(selectedLensManufacturer, lens)?.focal) || '';
       
       const updatedShot = (selectedSetupIndex === 0)
         ? {
@@ -1208,10 +1336,11 @@ const ShotDetails = () => {
       const reader = new FileReader();
       reader.onload = (event) => {
         setPreviewImage(event.target.result);
-        setEditedShot(prev => ({
-          ...prev,
-          previewImage: event.target.result
-        }));
+        setEditedShot(prev => {
+          const next = { ...prev, previewImage: event.target.result };
+          try { autoSaveShotToFile(id, next); } catch (err) {}
+          return next;
+        });
       };
       reader.readAsDataURL(file);
     }
@@ -1396,12 +1525,39 @@ const ShotDetails = () => {
             src={previewImage || shot.previewImage} 
             alt={`Vorschau für ${shot.name}`} 
             className="preview-image"
+            onError={(e) => {
+              try {
+                const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                const selectedId = localStorage.getItem('selectedProjectId');
+                const filmName = projects.find(p => String(p.id) === String(selectedId))?.name || 'Film';
+                const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+                const variants = [storyboard1, storyboard2, storyboard3, storyboard4];
+                const idx = Math.abs(hashSeed(`${filmName}-${shot.name}`)) % variants.length;
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = variants[idx];
+              } catch {
+                e.currentTarget.onerror = null;
+                e.currentTarget.src = storyboard1;
+              }
+            }}
           />
         ) : (
           <div className="preview-placeholder">
             <img 
-              src={dummyPreview}
-              alt="Dummy Vorschau Bild"
+              src={(() => {
+                try {
+                  const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                  const selectedId = localStorage.getItem('selectedProjectId');
+                  const filmName = projects.find(p => String(p.id) === String(selectedId))?.name || 'Film';
+                  const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+                  const variants = [storyboard1, storyboard2, storyboard3, storyboard4];
+                  const idx = Math.abs(hashSeed(`${filmName}-${shot.name}`)) % variants.length;
+                  return variants[idx];
+                } catch {
+                  return storyboard1;
+                }
+              })()}
+              alt={`Vorschau für ${shot.name}`}
               className="preview-image"
             />
           </div>
@@ -1616,10 +1772,12 @@ const ShotDetails = () => {
                       }</span>
                     </div>
                   </div>
+                  <InlineSensorPreview settings={setup} title={t('section.sensorPreview') || 'Sensorvorschau'} />
                 </div>
               ))}
             </div>
           ) : (
+            <>
             <div className="info-grid">
               <div className="info-item">
                 <label><strong>{t('camera.manufacturer')}</strong>:</label>
@@ -1761,6 +1919,8 @@ const ShotDetails = () => {
                 }</span>
               </div>
             </div>
+            <InlineSensorPreview settings={currentShotCameraSettings} title={t('section.sensorPreview') || 'Sensorvorschau'} />
+            </>
           )
         ) : (
           <div className="edit-form" style={{ display: isCameraSettingsCollapsed ? 'none' : 'block' }}>
@@ -1832,7 +1992,7 @@ const ShotDetails = () => {
                   <option value="Manuell">{t('common.manual')}</option>
                   {availableFormats.map(format => (
                     <option key={format} value={format}>
-                      {formatFormatDisplay(format, selectedManufacturer, selectedModel)}
+                      {format}
                     </option>
                   ))}
                 </select>
@@ -2101,6 +2261,7 @@ const ShotDetails = () => {
                 )}
               </div>
             </div>
+            <InlineSensorPreview settings={currentEditedCameraSettings} title={t('section.sensorPreview') || 'Sensorvorschau'} />
           </div>
         )}
       </div>
@@ -2114,8 +2275,8 @@ const ShotDetails = () => {
               type="button"
               className="collapse-toggle"
               onClick={() => setLensSettingsCollapsed(prev => !prev)}
-              aria-label={isLensSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
-              title={isLensSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+              aria-label={isLensSettingsCollapsed ? t('common.expand') : t('common.collapse')}
+              title={isLensSettingsCollapsed ? t('common.expand') : t('common.collapse')}
               style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
             >
               {isLensSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
@@ -2127,7 +2288,7 @@ const ShotDetails = () => {
             <div className="multi-setup-grid">
               {allShotCameraSettings.map((setup, i) => (
                 <div className="setup-column" key={`lens-settings-${i}`}>
-                  <h3 className="setup-title">{`Kamera ${getSetupLabel(i)}`}</h3>
+                  <h3 className="setup-title">{`${t('camera.model')} ${getSetupLabel(i)}`}</h3>
                   <div className="info-grid">
                     <div className="info-item">
                       <label><strong>{t('lens.manufacturer')}</strong>:</label>
@@ -2148,6 +2309,10 @@ const ShotDetails = () => {
                     <div className="info-item">
                       <label><strong>{t('lens.focalLengthZoom')}</strong>:</label>
                       <span className="info-value">{setup.focalLength || t('common.notAvailable')}</span>
+                    </div>
+                    <div className="info-item">
+                      <label><strong>{t('lens.fov', 'Sichtfeld (FOV)')}</strong>:</label>
+                      <span className="info-value">{allReadonlyFovDisplays?.[i] || t('common.notAvailable')}</span>
                     </div>
                     <div className="info-item">
                       <label><strong>{t('lens.aperture')}</strong>:</label>
@@ -2191,11 +2356,38 @@ const ShotDetails = () => {
                       }</span>
                     </div>
                   </div>
+
+                  <EmbeddedFovCalculator
+                    selectedManufacturer={setup.manufacturer || ''}
+                    selectedModel={((setup.model || '').startsWith((setup.manufacturer || '') + ' ')) ? (setup.model || '').slice(((setup.manufacturer || '') + ' ').length) : (setup.model || '')}
+                    selectedLensManufacturer={setup.lensManufacturer || ''}
+                    selectedLens={setup.lens || ''}
+                    isAnamorphicEnabled={!!setup.isAnamorphic}
+                    settings={{
+                      format: setup.format || '',
+                      focalLength: String(extractFocalLength(setup.focalLength || setup.lens || '') || setup.focalLength || ''),
+                      aperture: setup.aperture || '',
+                      focusDistance: setup.focusDistance || ''
+                    }}
+                    onManufacturerChange={() => {}}
+                    onModelChange={() => {}}
+                    onCameraChange={() => {}}
+                    onLensManufacturerChange={() => {}}
+                    onLensChange={() => {}}
+                    onAnamorphicToggle={() => {}}
+                    compact={true}
+                    hideCameraSelectors={true}
+                    plain={true}
+                    hideControls={true}
+                    diagramOnly={true}
+                  />
+
                 </div>
               ))}
             </div>
           ) : (
-            <div className="info-grid">
+            <>
+              <div className="info-grid">
               <div className="info-item">
                 <label><strong>{t('lens.manufacturer')}</strong>:</label>
                 <span className="info-value">{
@@ -2223,6 +2415,10 @@ const ShotDetails = () => {
               <div className="info-item">
                 <label><strong>{t('lens.focalLengthZoom')}</strong>:</label>
                 <span className="info-value">{currentShotCameraSettings.focalLength || t('common.notAvailable')}</span>
+              </div>
+              <div className="info-item">
+                <label><strong>{t('lens.fov', 'Sichtfeld (FOV)')}</strong>:</label>
+                <span className="info-value">{readonlyFovDisplay}</span>
               </div>
               <div className="info-item">
                 <label><strong>{t('lens.aperture')}</strong>:</label>
@@ -2270,127 +2466,101 @@ const ShotDetails = () => {
                 }</span>
               </div>
             </div>
+
+            <EmbeddedFovCalculator
+              selectedManufacturer={currentShotCameraSettings.manufacturer || ''}
+              selectedModel={((currentShotCameraSettings.model || '').startsWith((currentShotCameraSettings.manufacturer || '') + ' ')) ? (currentShotCameraSettings.model || '').slice(((currentShotCameraSettings.manufacturer || '') + ' ').length) : (currentShotCameraSettings.model || '')}
+              selectedLensManufacturer={currentShotCameraSettings.lensManufacturer || ''}
+              selectedLens={currentShotCameraSettings.lens || ''}
+              isAnamorphicEnabled={!!currentShotCameraSettings.isAnamorphic}
+              settings={{
+                format: currentShotCameraSettings.format || '',
+                focalLength: String(extractFocalLength(currentShotCameraSettings.focalLength || currentShotCameraSettings.lens || '') || currentShotCameraSettings.focalLength || ''),
+                aperture: currentShotCameraSettings.aperture || '',
+                focusDistance: currentShotCameraSettings.focusDistance || ''
+              }}
+              onManufacturerChange={() => {}}
+              onModelChange={() => {}}
+              onCameraChange={() => {}}
+              onLensManufacturerChange={() => {}}
+              onLensChange={() => {}}
+              onAnamorphicToggle={() => {}}
+              compact={true}
+              hideCameraSelectors={true}
+              plain={true}
+              hideControls={true}
+              diagramOnly={true}
+            />
+
+            </>
           )
         ) : (
           <div className="edit-form" style={{ display: isLensSettingsCollapsed ? 'none' : 'block' }}>
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('lens.manufacturer')}:</label>
-                <select 
-                  name="lensManufacturer" 
-                  value={selectedLensManufacturer} 
-                  onChange={handleLensManufacturerChange}
-                >
-                  <option value="">{t('lens.selectManufacturer')}</option>
-                  <option value="Manuell">{t('common.manual')}</option>
-                  {(isAnamorphicEnabled ? getAnamorphicLensManufacturers() : getLensManufacturers()).map(manufacturer => (
-                    <option key={manufacturer} value={manufacturer}>
-                      {manufacturer}
-                    </option>
-                  ))}
-                </select>
-                {selectedLensManufacturer === 'Manuell' && (
-                  <input 
-                    type="text"
-                    name="manualLensManufacturer"
-                    placeholder={t('lens.selectManufacturer')}
-                    value={currentEditedCameraSettings.manualLensManufacturer || ''}
-                    onChange={handleCameraChange}
-                    style={{ marginTop: '8px' }}
+            <EmbeddedFovCalculator
+              selectedManufacturer={selectedManufacturer}
+              selectedModel={selectedModel}
+              selectedLensManufacturer={selectedLensManufacturer}
+              selectedLens={selectedLens}
+              isAnamorphicEnabled={isAnamorphicEnabled}
+              settings={currentEditedCameraSettings}
+              onManufacturerChange={handleManufacturerChange}
+              onModelChange={handleModelChange}
+              onCameraChange={handleCameraChange}
+              onLensManufacturerChange={handleLensManufacturerChange}
+              onLensChange={handleLensChange}
+              onAnamorphicToggle={handleAnamorphicToggle}
+              compact={true}
+              hideCameraSelectors={true}
+              plain={true}
+            />
+
+            {isZoomLens(selectedLensManufacturer, selectedLens) && (
+              <div className="form-row">
+                <div className="form-group">
+                  <label>Brennweite (manuell)</label>
+                  <input
+                    type="number"
+                    name="focalLength"
+                    step="0.1"
+                    placeholder={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      if (!m || m.minMm == null || m.maxMm == null) return 'z. B. 35';
+                      return `${m.minMm}-${m.maxMm}mm`;
+                    })()}
+                    min={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      return (m && m.minMm != null) ? m.minMm : undefined;
+                    })()}
+                    max={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      return (m && m.maxMm != null) ? m.maxMm : undefined;
+                    })()}
+                    value={currentEditedCameraSettings?.focalLength || ''}
+                    onChange={(e) => {
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      let v = e.target.value;
+                      if (m && m.minMm != null && m.maxMm != null) {
+                        const num = parseFloat(v);
+                        if (!isNaN(num)) {
+                          const clamped = Math.max(m.minMm, Math.min(m.maxMm, num));
+                          e.target.value = String(clamped);
+                        }
+                      }
+                      handleCameraChange(e);
+                    }}
                   />
-                )}
-              </div>
-              <div className="form-group">
-                <label>{t('lens.lens')}:</label>
-                <select 
-                  name="lens" 
-                  value={selectedLens} 
-                  onChange={handleLensChange}
-                  disabled={!selectedLensManufacturer}
-                >
-                  <option value="">{t('common.select')}</option>
-                  <option value="Manuell">{t('common.manual')}</option>
-                  {availableLenses.map(lens => (
-                    <option key={lens} value={lens}>
-                      {lens}
-                    </option>
-                  ))}
-                </select>
-                {selectedLens === 'Manuell' && (
-                  <input 
-                    type="text"
-                    name="manualLens"
-                    placeholder={t('lens.lens')}
-                    value={currentEditedCameraSettings.manualLens || ''}
-                    onChange={handleCameraChange}
-                    style={{ marginTop: '8px' }}
-                  />
-                )}
-              </div>
-              <div className="form-group">
-                <div className="checkbox-group">
-                  <input 
-                    type="checkbox" 
-                    id="anamorphic"
-                    checked={isAnamorphicEnabled}
-                    onChange={handleAnamorphicToggle}
-                  />
-                  <label htmlFor="anamorphic">{t('lens.anamorphic')}</label>
+                  <small className="helper-text">Zoom-Objektiv: Nur Werte innerhalb des Bereichs zulässig.</small>
                 </div>
               </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('lens.focalLengthZoom')}:</label>
-                <input 
-                  type="text" 
-                  name="focalLength" 
-                  value={currentEditedCameraSettings.focalLength || ''} 
-                  onChange={handleCameraChange}
-                  placeholder="z.B. 24-70mm oder 50mm"
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('lens.aperture')}:</label>
-                <input 
-                  type="text" 
-                  name="aperture" 
-                  value={currentEditedCameraSettings.aperture || ''} 
-                  onChange={handleCameraChange}
-                  placeholder={t('lens.aperturePlaceholder')}
-                />
-              </div>
-            </div>
-            
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('lens.focus')}:</label>
-                <input 
-                  type="text" 
-                  name="focusDistance" 
-                  value={currentEditedCameraSettings.focusDistance || ''} 
-                  onChange={handleCameraChange}
-                  placeholder={t('lens.focusDistancePlaceholder')}
-                />
-              </div>
-              <div className="form-group">
-                <label>{t('lens.hyperfocalDistance')}:</label>
-                <input 
-                  type="text" 
-                  name="hyperfocalDistance" 
-                  value={currentEditedCameraSettings.hyperfocalDistance || ''} 
-                  onChange={handleCameraChange}
-                  placeholder={t('lens.hyperfocalPlaceholder')}
-                />
-              </div>
-            </div>
+            )}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('lens.lensStabilization')}:</label>
-                <select 
-                  name="lensStabilization" 
+            {/* Kompletter FOV‑Rechner oben ersetzt die Objektiv‑Eingaben (Hersteller, Linse, Brennweite, Blende, Fokus, Hyperfokal). */}
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('lens.lensStabilization')}:</label>
+              <select 
+                name="lensStabilization" 
                   value={currentEditedCameraSettings.lensStabilization || ''}
                   onChange={handleCameraChange}
                 >
@@ -3053,18 +3223,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-distortion-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-distortion-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-distortion-grids-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-distortion-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-distortion-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-distortion-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-distortion-grids-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3113,18 +3283,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-hdri-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-hdri-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-hdri-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-hdri-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-hdri-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-hdri-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-hdri-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3172,18 +3342,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-setrefs-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-setrefs-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-set-references-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-setrefs-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-setrefs-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-setrefs-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-set-references-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3231,18 +3401,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-clean-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-clean-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-cleanplates-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-clean-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-clean-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-clean-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-cleanplates-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3299,18 +3469,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-chrome-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-chrome-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-chrome-ball-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-chrome-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-chrome-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-chrome-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-chrome-ball-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3367,18 +3537,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-gray-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-gray-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-gray-ball-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-gray-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-gray-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-gray-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-gray-ball-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3435,18 +3605,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-cc-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-cc-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-color-checker-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-cc-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-cc-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-cc-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-color-checker-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3494,18 +3664,18 @@ const ShotDetails = () => {
                       const ref = refsForCat[i];
                       if (ref) {
                         if (typeof ref === 'string') {
-                          tiles.push({ key: `mini-meas-${i}-${ref}`, url: dummyReference, name: ref });
+                          tiles.push({ key: `mini-meas-${i}-${ref}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-measurements-${i}`), name: ref });
                         } else {
                           tiles.push({ key: `mini-meas-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-meas-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-meas-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-measurements-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3558,13 +3728,13 @@ const ShotDetails = () => {
                           tiles.push({ key: `mini-3d-${i}-${ref.id}`, url: ref.url, name: ref.name });
                         }
                       } else {
-                        tiles.push({ key: `mini-3d-dummy-${i}`, url: dummyReference, name: `Ref ${i+1}` });
+                        tiles.push({ key: `mini-3d-dummy-${i}`, url: makeRealImageUrl(`${(editedShot?.name || shot?.name || ('SH_' + String(id).slice(-3)))}-vfx-3d-scans-${i}`), name: `Ref ${i+1}` });
                       }
                     }
                     return tiles.map(tile => (
                       <div className="reference-item" key={tile.key}>
                         <div className="reference-image-container">
-                          <img src={tile.url} alt={tile.name} className="reference-image" />
+                          <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                           <div className="reference-info">
                             <span className="reference-name">{tile.name}</span>
                           </div>
@@ -3661,7 +3831,7 @@ const ShotDetails = () => {
                           {tiles.map(tile => (
                             <div className="reference-item" key={tile.key}>
                               <div className="reference-image-container">
-                                <img src={tile.url} alt={tile.name} className="reference-image" />
+                                <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                                 <div className="reference-info">
                                   <span className="reference-name">{tile.name}</span>
                                 </div>

@@ -1,0 +1,4 @@
+/* Quickstart page spacing tweaks */
+.quickstart-page .card .form-row {
+  margin-top: 12px;
+}

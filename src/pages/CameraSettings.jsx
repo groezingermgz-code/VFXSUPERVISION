@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import './CameraSettings.css';
 import { cameraDatabase, cameraColorSpaces, getManufacturers, getModelsByManufacturer, flickerSafeGuidelines, logCExposureInfo, eiBehaviorNotes } from '../data/cameraDatabase';
-import { lensDatabase, getLensManufacturers, getLensesByManufacturer } from '../data/lensDatabase';
+import { lensDatabase, getLensManufacturers, getLensesByManufacturer, getLensMeta, isZoomLens } from '../data/lensDatabase';
 
 // Exportiere die Presets als globale Variable, damit sie in anderen Komponenten verfügbar sind
 let globalPresets = [];
@@ -67,7 +67,8 @@ const CameraSettings = () => {
     lensModel: '', 
     aperture: '', 
     iso: '', 
-    notes: '' 
+    notes: '',
+    focalLength: ''
   });
 
   // Initialisiere Hersteller und Modelle
@@ -125,7 +126,8 @@ const CameraSettings = () => {
       lensModel: selectedLensModel,
       aperture: newPreset.aperture,
       iso: newPreset.iso,
-      notes: newPreset.notes
+      notes: newPreset.notes,
+      focalLength: newPreset.focalLength
     };
     
     setPresets([...presets, preset]);
@@ -134,7 +136,8 @@ const CameraSettings = () => {
       name: '', 
       aperture: '', 
       iso: '', 
-      notes: '' 
+      notes: '',
+      focalLength: ''
     });
   };
 
@@ -169,6 +172,7 @@ const CameraSettings = () => {
               <p><strong>{t('lens.lens')}:</strong> {preset.lensManufacturer} {preset.lensModel}</p>
               <p><strong>{t('lens.aperture')}:</strong> {preset.aperture}</p>
               <p><strong>{t('camera.iso')}:</strong> {preset.iso}</p>
+              <p><strong>{t('tools.fov.controls.focalLengthMm')}:</strong> {preset.focalLength || '—'}</p>
               <p><strong>{t('common.notes')}:</strong> {preset.notes}</p>
               <button className="btn-danger" onClick={() => handleDeletePreset(preset.id)}>{t('action.delete')}</button>
             </div>
@@ -233,7 +237,18 @@ const CameraSettings = () => {
               <label>{t('lens.lens')}:</label>
               <select 
                 value={selectedLensModel} 
-                onChange={(e) => setSelectedLensModel(e.target.value)}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  setSelectedLensModel(val);
+                  const meta = getLensMeta(selectedLensManufacturer, val);
+                  const midpoint = meta && meta.minMm != null && meta.maxMm != null
+                    ? ((meta.minMm + meta.maxMm) / 2)
+                    : (meta && meta.minMm != null ? meta.minMm : null);
+                  setNewPreset(prev => ({
+                    ...prev,
+                    focalLength: midpoint != null ? String(midpoint) : ''
+                  }));
+                }}
               >
                 {lensModels.map((model, index) => (
                   <option key={index} value={model}>{model}</option>
@@ -273,7 +288,102 @@ const CameraSettings = () => {
             ></textarea>
           </div>
 
-          <button className="btn-primary" onClick={handleAddPreset}>{t('action.create')}</button>
+          <div className="form-row">
+            {selectedLensModel && (
+              <div className="form-row">
+                <div className="form-group">
+                  <label>{t('tools.fov.controls.focalLengthMm')}</label>
+                  <input
+                    type="number"
+                    name="focalLength"
+                    step="0.1"
+                    placeholder={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLensModel);
+                      const zoom = isZoomLens(selectedLensManufacturer, selectedLensModel);
+                      if (!m) return '';
+                      return zoom && m.minMm != null && m.maxMm != null ? `${m.minMm}-${m.maxMm}mm` : (m.minMm != null ? `${m.minMm}mm` : '');
+                    })()}
+                    min={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLensModel);
+                      const zoom = isZoomLens(selectedLensManufacturer, selectedLensModel);
+                      return (zoom && m && m.minMm != null) ? m.minMm : undefined;
+                    })()}
+                    max={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLensModel);
+                      const zoom = isZoomLens(selectedLensManufacturer, selectedLensModel);
+                      return (zoom && m && m.maxMm != null) ? m.maxMm : undefined;
+                    })()}
+                    value={newPreset.focalLength}
+                    onChange={(e) => {
+                      const m = getLensMeta(selectedLensManufacturer, selectedLensModel);
+                      const zoom = isZoomLens(selectedLensManufacturer, selectedLensModel);
+                      let v = e.target.value;
+                      if (zoom && m && m.minMm != null && m.maxMm != null) {
+                        const num = parseFloat(v);
+                        if (!isNaN(num)) {
+                          const clamped = Math.max(m.minMm, Math.min(m.maxMm, num));
+                          e.target.value = String(clamped);
+                        }
+                      }
+                      handlePresetChange(e);
+                    }}
+                  />
+                  <div style={{marginTop:4}}>
+                    {(() => {
+                      const m = getLensMeta(selectedLensManufacturer, selectedLensModel);
+                      const zoom = isZoomLens(selectedLensManufacturer, selectedLensModel);
+                      const v = parseFloat(newPreset.focalLength);
+                      if (!m || !zoom) return null;
+                      const invalid = !v || v < m.minMm || v > m.maxMm;
+                      return (
+                        <small style={{color: invalid ? 'var(--danger, #c00)' : 'var(--text-secondary)'}}>
+                          {invalid ? `Bitte Wert zwischen ${m.minMm} und ${m.maxMm} mm eingeben.` : `Bereich: ${m.minMm}–${m.maxMm} mm`}
+                        </small>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('lens.aperture')}:</label>
+              <input 
+                type="text" 
+                name="aperture" 
+                value={newPreset.aperture} 
+                onChange={handlePresetChange} 
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>{t('camera.iso')}:</label>
+              <input 
+                type="text" 
+                name="iso" 
+                value={newPreset.iso} 
+                onChange={handlePresetChange} 
+              />
+            </div>
+          </div>
+          
+          <div className="form-group">
+            <label>{t('common.notes')}:</label>
+            <textarea 
+              name="notes" 
+              value={newPreset.notes} 
+              onChange={handlePresetChange}
+            ></textarea>
+          </div>
+
+          <button className="btn-primary" onClick={handleAddPreset} disabled={(function(){
+            const m = getLensMeta(selectedLensManufacturer, selectedLensModel);
+            const zoom = isZoomLens(selectedLensManufacturer, selectedLensModel);
+            const v = parseFloat(newPreset.focalLength);
+            return zoom && (!v || (m && (v < m.minMm || v > m.maxMm)));
+          })()}>{t('action.create')}</button>
           
           {/* Kamera-Infos: Flicker-Safe & LogC/EI */}
           <div className="card" style={{ marginTop: '16px' }}>

@@ -4,11 +4,25 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/Icons/Icon.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="/Icons/Icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="VFX Supervision App" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>VFX Supervision App</title>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Hidden Netlify form for build-time detection -->
+    <form name="feedback" method="POST" data-netlify="true" netlify-honeypot="bot-field" hidden>
+      <input type="hidden" name="form-name" value="feedback" />
+      <input type="text" name="name" />
+      <input type="email" name="email" />
+      <input type="text" name="subject" />
+      <textarea name="message"></textarea>
+      <input type="text" name="device" />
+      <input type="text" name="pwaInstalled" />
+    </form>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

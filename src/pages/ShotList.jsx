@@ -2,8 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import './ShotList.css';
 import { exportProjectToPDF, savePDF } from '../utils/pdfExporter';
-import dummyPreview from '../assets/dummy-preview.svg';
+import { exportProjectAsZip } from '../utils/folderExporter';
+import storyboard1 from '../assets/storyboard-scribble-1.svg';
+import storyboard2 from '../assets/storyboard-scribble-2.svg';
+import storyboard3 from '../assets/storyboard-scribble-3.svg';
+import storyboard4 from '../assets/storyboard-scribble-4.svg';
 import { useLanguage } from '../contexts/LanguageContext';
+import { useAuth } from '../contexts/AuthContext';
+import { useNavigate } from 'react-router-dom';
 
 // Funktion zur Extraktion der Brennweite aus dem Objektiv-Modell
 const extractFocalLengthFromLens = (lensModel) => {
@@ -69,6 +75,8 @@ const extractManufacturerFromLens = (lensModel) => {
 
 const ShotList = () => {
   const { t } = useLanguage();
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
   // Lade das ausgewählte Projekt aus localStorage
   const [selectedProjectId, setSelectedProjectId] = useState(() => {
     return parseInt(localStorage.getItem('selectedProjectId')) || 1;
@@ -83,19 +91,27 @@ const ShotList = () => {
   const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
   
   // Funktion zum Exportieren des Projekts als PDF
-  const handleExportProjectToPDF = () => {
+  const handleExportProjectToPDF = async () => {
     try {
       if (selectedProject && selectedProject.shots) {
-        // Erstelle das PDF
-        const doc = exportProjectToPDF(selectedProject, selectedProject.shots);
-        
-        // Speichere das PDF
-        savePDF(doc, `Projekt_${selectedProject.name}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`);
+        const doc = await exportProjectToPDF(selectedProject, selectedProject.shots)
+        savePDF(doc, `Projekt_${selectedProject.name}_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`)
       }
     } catch (error) {
-      console.error('Fehler beim Exportieren des Projekts als PDF:', error);
+      console.error('Fehler beim Exportieren des Projekts als PDF:', error)
     }
-  };
+  }
+  
+  // ZIP-Export mit Ordnerstruktur
+  const handleExportProjectZip = async () => {
+    try {
+      if (selectedProject) {
+        await exportProjectAsZip(selectedProject)
+      }
+    } catch (error) {
+      console.error('Fehler beim ZIP-Export des Projekts:', error)
+    }
+  }
   
   // Initialisiere Shots aus dem ausgewählten Projekt oder mit Standardwerten
   const [shots, setShots] = useState([]);
@@ -203,13 +219,30 @@ const ShotList = () => {
     }
   }, [shots, selectedProjectId]);
 
+  useEffect(() => {
+    try {
+      shots.forEach(s => {
+        if (!s || s.id === undefined || s.id === null) return;
+        const serialized = JSON.stringify(s);
+        localStorage.setItem(`shot-file-${s.id}`, serialized);
+        localStorage.setItem(`shot_${s.id}`, serialized);
+      });
+    } catch (e) {}
+  }, [shots]);
+
   const addNewShot = () => {
+    if (!currentUser) {
+      // Require login before creating shots
+      navigate('/login');
+      return;
+    }
     const newShot = {
       id: Date.now(),
       name: `SH_${String(shots.length + 1).padStart(3, '0')}`,
       description: 'Neuer Shot',
       status: 'Ausstehend',
       notes: '',
+      createdBy: currentUser?.name || null,
       previewScale: 1,
       referencesScale: 1,
       additionalCameraSetups: [],
@@ -299,6 +332,11 @@ const ShotList = () => {
       projectId: selectedProjectId
     };
     setShots([...shots, newShot]);
+    try {
+      const serialized = JSON.stringify(newShot);
+      localStorage.setItem(`shot-file-${newShot.id}`, serialized);
+      localStorage.setItem(`shot_${newShot.id}`, serialized);
+    } catch (e) {}
   };
 
   const filteredShots = shots.filter(shot => {
@@ -321,9 +359,13 @@ const ShotList = () => {
         <div className="header-content">
   <h1>{t('nav.shots')}</h1>
           <p className="subtitle">{filteredShots.length} {t('common.of')} {shots.length} {t('shot.plural')}</p>
+          <p className="subtitle" style={{ opacity: 0.8 }}>
+            {currentUser ? `${t('auth.currentUser', 'Angemeldet als')}: ${currentUser.name}` : t('auth.notLoggedIn', 'Nicht angemeldet')}
+          </p>
         </div>
         <div className="header-buttons">
           <button className="export-btn" onClick={handleExportProjectToPDF}>{t('action.exportProjectPDF')}</button>
+          <button className="export-btn" onClick={handleExportProjectZip}>{t('action.exportProjectZIP', 'Projekt als ZIP exportieren')}</button>
           <button className="btn-primary" onClick={addNewShot}>
             {t('action.newShot')}
           </button>
@@ -401,11 +443,40 @@ const ShotList = () => {
               </div>
               {(shot.previewImage) ? (
                 <div className="shot-thumbnail">
-                  <img src={shot.previewImage} alt={`Vorschau für ${shot.name}`} />
+                  <img src={shot.previewImage} alt={`Vorschau für ${shot.name}`} onError={(e) => {
+                    try {
+                      const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                      const selectedId = localStorage.getItem('selectedProjectId');
+                      const filmName = projects.find(p => String(p.id) === String(selectedId))?.name || 'Film';
+                      const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+                      const variants = [storyboard1, storyboard2, storyboard3, storyboard4];
+                      const idx = Math.abs(hashSeed(`${filmName}-${shot.name}`)) % variants.length;
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = variants[idx];
+                    } catch {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = storyboard1;
+                    }
+                  }} />
                 </div>
               ) : (
                 <div className="shot-thumbnail placeholder">
-                  <img src={dummyPreview} alt="Vorschau" />
+                  <img
+                    src={(() => {
+                      try {
+                        const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+                        const selectedId = localStorage.getItem('selectedProjectId');
+                        const filmName = projects.find(p => String(p.id) === String(selectedId))?.name || 'Film';
+                        const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+                        const variants = [storyboard1, storyboard2, storyboard3, storyboard4];
+                        const idx = Math.abs(hashSeed(`${filmName}-${shot.name}`)) % variants.length;
+                        return variants[idx];
+                      } catch {
+                        return storyboard1;
+                      }
+                    })()}
+                    alt="Vorschau"
+                  />
                 </div>
               )}
               
@@ -414,6 +485,12 @@ const ShotList = () => {
               </div>
               
               <div className="shot-details">
+                {shot.createdBy && (
+                  <div className="detail-item">
+                    <span className="detail-label">{t('user.createdBy', 'Erstellt von')}:</span>
+                    <span className="detail-value">{shot.createdBy}</span>
+                  </div>
+                )}
                 <div className="detail-item">
                   <span className="detail-label">{t('shot.setupCount')}:</span>
                   <span className="detail-value">{setupCount}</span>

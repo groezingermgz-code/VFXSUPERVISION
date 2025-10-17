@@ -1,4 +1,5 @@
 // Field of View (FOV) Berechnungsutilities
+import { getSensorSizeByFormat } from '../data/cameraDatabase';
 
 /**
  * Extrahiert die Brennweite aus einem Objektivnamen
@@ -292,15 +293,14 @@ export const calculateAllFOV = (cameraSettings, lensSettings) => {
   // Prüfe, ob alle notwendigen Daten vorhanden sind
   if (!manufacturer || !model || !format) return null;
   
-  // Import der getCameraInfoByFormat Funktion
-  const { getCameraInfoByFormat } = require('../data/cameraDatabase');
+  // Sensorgröße aus der Datenbank abrufen (als String, z. B. "36 x 24 mm")
+  const sensorSizeStr = getSensorSizeByFormat(manufacturer, model, format);
   
-  // Sensorgröße aus der Datenbank abrufen
-  const cameraInfo = getCameraInfoByFormat(manufacturer, model, format);
-  if (!cameraInfo || !cameraInfo.sensorSize) return null;
+  // Falls kein Eintrag vorhanden ist, abbrechen (Aufrufer formatiert "Nicht verfügbar")
+  if (!sensorSizeStr) return null;
   
   // Sensorgröße parsen
-  const sensor = parseSensorSize(cameraInfo.sensorSize);
+  const sensor = parseSensorSize(sensorSizeStr);
   if (!sensor) return null;
   
   // Brennweite bestimmen (entweder manuell eingegeben oder aus dem Objektivnamen extrahiert)

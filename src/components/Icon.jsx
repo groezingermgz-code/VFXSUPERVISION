@@ -45,6 +45,23 @@ const paths = {
       <path d="M10 10v6M14 10v6" />
     </>
   ),
+  chevronDown: (
+    <>
+      <polyline points="6 9 12 15 18 9" />
+    </>
+  ),
+  chevronRight: (
+    <>
+      <polyline points="9 6 15 12 9 18" />
+    </>
+  ),
+  info: (
+    <>
+      <circle cx="12" cy="12" r="10" />
+      <path d="M12 10v6" />
+      <circle cx="12" cy="7.5" r="1" />
+    </>
+  ),
 };
 
 const Icon = ({ name, size = 20, strokeWidth = 1.8, className = '' }) => {

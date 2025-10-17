@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect x="0" y="0" width="640" height="360" fill="#fafafa"/>
+  <g stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Frame -->
+    <rect x="24" y="24" width="592" height="312" rx="8"/>
+    <!-- Rule of Thirds Grid -->
+    <line x1="221" y1="24" x2="221" y2="336" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="418" y1="24" x2="418" y2="336" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="24" y1="128" x2="616" y2="128" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="24" y1="232" x2="616" y2="232" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <!-- Diagonal road / perspective -->
+    <path d="M80 320 L560 60" />
+    <!-- Subject silhouette (close-up) -->
+    <circle cx="320" cy="150" r="24" />
+    <path d="M300 188 C320 182 340 182 360 188" />
+    <!-- Motion arrows -->
+    <path d="M320 240 L360 220" />
+    <path d="M360 220 L348 210" />
+    <path d="M360 220 L350 232" />
+    <!-- Focus marks -->
+    <path d="M270 130 L290 130 L290 150" />
+    <path d="M370 130 L350 130 L350 150" />
+    <!-- Notes / scribbles -->
+    <path d="M520 300 l20 -8 l-20 -8" />
+    <path d="M120 80 l40 0 m-20 -12 l0 24" />
+  </g>
+  <text x="34" y="46" fill="#1a1a1a" font-size="12" font-family="monospace">CU</text>
+  <text x="556" y="46" fill="#1a1a1a" font-size="12" font-family="monospace" text-anchor="end">Focus</text>
+</svg>

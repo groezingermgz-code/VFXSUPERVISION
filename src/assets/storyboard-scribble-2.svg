@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect x="0" y="0" width="640" height="360" fill="#fafafa"/>
+  <g stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Frame -->
+    <rect x="24" y="24" width="592" height="312" rx="8"/>
+    <!-- Rule of Thirds Grid -->
+    <line x1="221" y1="24" x2="221" y2="336" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="418" y1="24" x2="418" y2="336" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="24" y1="128" x2="616" y2="128" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="24" y1="232" x2="616" y2="232" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <!-- Foreground shoulder (OTS) -->
+    <path d="M80 240 C110 210 140 210 160 240" fill="#eaeaea" opacity="0.4"/>
+    <circle cx="150" cy="200" r="16" fill="#eaeaea" opacity="0.4"/>
+    <!-- Subject silhouette -->
+    <circle cx="420" cy="170" r="16" />
+    <path d="M390 210 C395 190 445 190 450 210 S480 240 480 225" />
+    <!-- Leading lines (stairs) -->
+    <path d="M60 300 L140 260 L220 300 L300 260 L380 300 L460 260 L540 300" />
+    <!-- Framing marks -->
+    <path d="M80 80 L120 100 L80 120" />
+    <path d="M560 80 L520 100 L560 120" />
+    <!-- Notes / scribbles -->
+    <path d="M280 80 q20 10 40 0 q-20 -10 -40 0" />
+    <path d="M260 260 l40 -10 l-40 -10" />
+  </g>
+  <text x="34" y="46" fill="#1a1a1a" font-size="12" font-family="monospace">OTS</text>
+  <text x="556" y="46" fill="#1a1a1a" font-size="12" font-family="monospace" text-anchor="end">Framing</text>
+</svg>

@@ -218,6 +218,61 @@ export const getLensFullName = (manufacturer, lens) => {
   return `${manufacturer} ${lens}`;
 };
 
+// Neue: Brennweite aus Objektivnamen extrahieren und Zoom kennzeichnen
+export const parseFocalFromLensName = (lensModel) => {
+  if (!lensModel) return { focalString: '', minMm: null, maxMm: null, isZoom: false };
+  const s = String(lensModel);
+  const rangeMatch = s.match(/(\d+(?:\.\d+)?)\s*[-–]\s*(\d+(?:\.\d+)?)\s*mm/i);
+  if (rangeMatch) {
+    const min = parseFloat(rangeMatch[1]);
+    const max = parseFloat(rangeMatch[2]);
+    return { focalString: `${min}-${max}mm`, minMm: min, maxMm: max, isZoom: true };
+  }
+  const singleMatch = s.match(/(\d+(?:\.\d+)?)\s*mm\b/i);
+  if (singleMatch) {
+    const mm = parseFloat(singleMatch[1]);
+    return { focalString: `${mm}mm`, minMm: mm, maxMm: mm, isZoom: false };
+  }
+  return { focalString: '', minMm: null, maxMm: null, isZoom: false };
+};
+
+const buildLensMeta = () => {
+  const meta = {};
+  for (const manu of Object.keys(lensDatabase)) {
+    meta[manu] = {};
+    for (const lens of lensDatabase[manu].lenses) {
+      const parsed = parseFocalFromLensName(lens);
+      const type = parsed.isZoom ? 'Zoom' : (parsed.minMm ? 'Prime' : 'Unknown');
+      meta[manu][lens] = {
+        type,
+        focal: parsed.focalString,
+        minMm: parsed.minMm,
+        maxMm: parsed.maxMm,
+        isZoom: parsed.isZoom,
+      };
+    }
+  }
+  return meta;
+};
+
+export const lensMetaByManufacturer = buildLensMeta();
+
+export const getLensMeta = (manufacturer, lensModel) => {
+  if (!manufacturer || !lensModel) return null;
+  const m = lensMetaByManufacturer[manufacturer];
+  return m ? (m[lensModel] || null) : null;
+};
+
+export const isZoomLens = (manufacturer, lensModel) => {
+  const meta = getLensMeta(manufacturer, lensModel);
+  return !!(meta && meta.isZoom);
+};
+
+export const getFocalStringForLens = (manufacturer, lensModel) => {
+  const meta = getLensMeta(manufacturer, lensModel);
+  return meta?.focal || '';
+};
+
 // Anamorphe Objektiv-Datenbank
 export const anamorphicLensDatabase = {
   "Cooke": {
@@ -298,32 +353,7 @@ export const anamorphicLensDatabase = {
       "Orion C 50mm T2",
       "Orion D 65mm T2",
       "Orion E 80mm T2",
-      "Orion F 100mm T2",
-      "Mercury 36mm T2.2 (1.5x)",
-      "Mercury 42mm T2.2 (1.5x)",
-      "Mercury 54mm T2.2 (1.5x)",
-      "Mercury 72mm T2.2 (1.5x)",
-      "Mercury 95mm T2.5 (1.5x)"
-    ]
-  },
-  "DZOFilm": {
-    lenses: [
-      "Pavo 2x 28mm T2.8",
-      "Pavo 2x 32mm T2.1",
-      "Pavo 2x 40mm T2.1",
-      "Pavo 2x 55mm T2.1",
-      "Pavo 2x 75mm T2.1",
-      "Pavo 2x 100mm T2.1"
-    ]
-  },
-  "Sirui": {
-    lenses: [
-      "Anamorphic 1.33x 24mm f/2.8",
-      "Anamorphic 1.33x 35mm f/1.8",
-      "Anamorphic 1.33x 50mm f/1.8",
-      "Anamorphic 1.33x 75mm f/1.8",
-      "Anamorphic 1.6x 35mm T2.9",
-      "Anamorphic 1.6x 50mm T2.9"
+      "Orion F 100mm T2"
     ]
   }
 };

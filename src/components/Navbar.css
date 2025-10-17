@@ -169,8 +169,33 @@
 .nav-tools .nav-tools-title {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 1rem 1.25rem;
+  gap: 8px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.nav-tools .nav-toggle-icon {
+  margin-left: auto;
+  opacity: 0.8;
+}
+
+.nav-tools.expanded .nav-toggle-icon { transform: rotate(0deg); }
+.nav-tools.collapsed .nav-toggle-icon { transform: rotate(0deg); }
+
+.nav-tools .submenu {
+  margin-left: 24px;
+  padding-left: 0;
+}
+
+/* Improve keyboard focus */
+.nav-tools .nav-tools-title:focus {
+  outline: 2px solid var(--accent-color, #3b82f6);
+  outline-offset: 2px;
 }
 
 .nav-tools .submenu {

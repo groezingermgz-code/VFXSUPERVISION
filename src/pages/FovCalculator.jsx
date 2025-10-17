@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import './FovCalculator.css';
+import { useLanguage } from '../contexts/LanguageContext';
 import { 
   getManufacturers,
   getModelsByManufacturer,
@@ -12,6 +13,8 @@ import {
   getLensFullName,
   getAnamorphicLensManufacturers,
   getAnamorphicLensesByManufacturer,
+  getLensMeta,
+  isZoomLens,
 } from '../data/lensDatabase';
   import {
     parseSensorSize,
@@ -27,6 +30,7 @@ import {
   } from '../utils/fovCalculator';
 
 const FovCalculator = () => {
+  const { t } = useLanguage();
   const [manufacturer, setManufacturer] = useState('');
   const [model, setModel] = useState('');
   const [format, setFormat] = useState('');
@@ -99,55 +103,55 @@ const FovCalculator = () => {
   return (
     <div className="fov-page">
       <div className="fov-header">
-        <h2>FOV‑Rechner</h2>
-        <p>Berechne Sichtfeld basierend auf Sensorformat und Brennweite.</p>
+        <h2>{t('tools.fov.header', 'FOV Calculator')}</h2>
+        <p>{t('tools.fov.description', 'Compute field of view from sensor format and focal length.')}</p>
       </div>
 
-      {/* Infofeld */}
-      <div className="card info-card" role="note" aria-label="Erklärung zum FOV‑Diagramm">
-        <h3>Info</h3>
+      {/* Info card */}
+      <div className="card info-card" role="note" aria-label="FOV diagram explanation">
+        <h3>{t('tools.fov.infoTitle', 'Info')}</h3>
         <div>
-          <div className="info-section-title">Diagrammfarben</div>
+          <div className="info-section-title">{t('tools.fov.legendColorsTitle', 'Diagram colors')}</div>
           <ul className="info-list">
-            <li>Blau: Vertikaler FOV (VFOV) – die beiden blauen Linien zeigen die oberen/unteren Extremstrahlen vom Linsen‑Apex aus; der blaue Punkt markiert die optische Mitte.</li>
-            <li>Rot: Horizontaler FOV (HFOV) – die roten Linien zeigen die linken/rechten Extremstrahlen.</li>
-            <li>Grau: Sensorrahmen (rechts) in Millimetern skaliert, inklusive gestrichelter Diagonale für die Sensor‑Diagonal (DFOV).</li>
+            <li>{t('tools.fov.legendBlue', 'Blue: Vertical FOV (VFOV); blue dot marks optical center.')}</li>
+            <li>{t('tools.fov.legendRed', 'Red: Horizontal FOV (HFOV) – left/right extreme rays.')}</li>
+            <li>{t('tools.fov.legendGray', 'Gray: Sensor frame (right) in mm incl. dashed diagonal (DFOV).')}</li>
           </ul>
-          <div className="info-section-title">Was du ablesen kannst</div>
+          <div className="info-section-title">{t('tools.fov.readTitle', 'What you can read')}</div>
           <ul className="info-list">
-            <li>HFOV/VFOV/DFOV: Die Winkelwerte entsprechen den berechneten Ergebnissen und aktualisieren sich live.</li>
-            <li>Sensorgröße: Beschriftung mit Breite × Höhe in mm, passend zum gewählten Format.</li>
-            <li>Crop‑Faktor: Verhältnis der Sensor‑Diagonal zu Vollformat, als zusätzlicher Kontext zum Bildwinkel.</li>
+            <li>{t('tools.fov.readHFOV', 'HFOV/VFOV/DFOV: angles update live.')}</li>
+            <li>{t('tools.fov.readSensor', 'Sensor size: width × height in mm per format.')}</li>
+            <li>{t('tools.fov.readCrop', 'Crop factor: sensor diagonal vs. full frame.')}</li>
           </ul>
-          <div className="info-section-title">Hinweis</div>
-          <p>Die Darstellung ist schematisch. Sie zeigt Winkelbeziehungen und den Sensormaßstab, nicht die reale Projektion/Verzeichnung einer Fisheye‑Optik.</p>
+          <div className="info-section-title">{t('tools.fov.hintTitle', 'Note')}</div>
+          <p>{t('tools.fov.hintText', 'Schematic view: angles and sensor scale, not lens distortion.')}</p>
         </div>
       </div>
 
       <div className="card fov-controls">
         <div className="control-row">
           <div className="form-group">
-            <label>Hersteller</label>
+            <label>{t('tools.fov.controls.manufacturer', 'Manufacturer')}</label>
             <select value={manufacturer} onChange={(e) => { setManufacturer(e.target.value); resetSelection(); }}>
-              <option value="">Bitte wählen…</option>
+              <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {manufacturers.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label>Kamera</label>
+            <label>{t('tools.fov.controls.camera', 'Camera')}</label>
             <select value={model} onChange={(e) => { setModel(e.target.value); setFormat(''); }} disabled={!manufacturer}>
-              <option value="">Bitte wählen…</option>
+              <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {models.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label>Format</label>
+            <label>{t('tools.fov.controls.format', 'Format')}</label>
             <select value={format} onChange={(e) => setFormat(e.target.value)} disabled={!model}>
-              <option value="">Bitte wählen…</option>
+              <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {formats.map(f => (
                 <option key={f} value={f}>{f}</option>
               ))}
@@ -158,7 +162,7 @@ const FovCalculator = () => {
         {/* Objektiv-Auswahl */}
         <div className="control-row">
           <div className="form-group">
-            <label>Anamorph</label>
+            <label>{t('tools.fov.controls.anamorph', 'Anamorphic')}</label>
             <input
               type="checkbox"
               checked={isAnamorphic}
@@ -173,16 +177,16 @@ const FovCalculator = () => {
             />
           </div>
           <div className="form-group">
-            <label>Objektiv‑Hersteller</label>
+            <label>{t('tools.fov.controls.lensManufacturer', 'Lens Manufacturer')}</label>
             <select value={lensManufacturer} onChange={(e) => { setLensManufacturer(e.target.value); setLensModel(''); }}>
-              <option value="">Bitte wählen…</option>
+              <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {lensManufacturers.map(m => (
                 <option key={m} value={m}>{m}</option>
               ))}
             </select>
           </div>
           <div className="form-group">
-            <label>Objektiv</label>
+            <label>{t('tools.fov.controls.lens', 'Lens')}</label>
             <select
               value={lensModel}
               onChange={(e) => {
@@ -198,7 +202,7 @@ const FovCalculator = () => {
               }}
               disabled={!lensManufacturer}
             >
-              <option value="">Bitte wählen…</option>
+              <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {lenses.map(l => (
                 <option key={l} value={l}>{l}</option>
               ))}
@@ -208,44 +212,65 @@ const FovCalculator = () => {
 
         <div className="control-row">
           <div className="form-group">
-            <label>Brennweite (mm)</label>
+            <label>{t('tools.fov.controls.focalLengthMm', 'Focal Length (mm)')}</label>
             <input
-              type="text"
-              inputMode="decimal"
-              placeholder="z. B. 50"
+              type="number"
+              step="0.1"
+              placeholder={(function(){
+                const m = getLensMeta(lensManufacturer, lensModel);
+                const zoom = isZoomLens(lensManufacturer, lensModel);
+                if (!m) return 'e.g., 50';
+                return zoom && m.minMm != null && m.maxMm != null ? `${m.minMm}-${m.maxMm}mm` : (m.minMm != null ? `${m.minMm}mm` : 'e.g., 50');
+              })()}
+              min={(function(){
+                const m = getLensMeta(lensManufacturer, lensModel);
+                const zoom = isZoomLens(lensManufacturer, lensModel);
+                return (zoom && m && m.minMm != null) ? m.minMm : undefined;
+              })()}
+              max={(function(){
+                const m = getLensMeta(lensManufacturer, lensModel);
+                const zoom = isZoomLens(lensManufacturer, lensModel);
+                return (zoom && m && m.maxMm != null) ? m.maxMm : undefined;
+              })()}
               value={focalLength}
               onChange={(e) => {
-                // Erlaube nur Ziffern, Punkt und Komma und normalisiere Komma → Punkt
                 let v = e.target.value;
                 v = v.replace(',', '.');
-                // Entferne alle Zeichen außer Ziffern und Punkt
                 v = v.replace(/[^0-9.]/g, '');
-                // Erlaube nur einen Dezimalpunkt
                 const firstDot = v.indexOf('.');
                 if (firstDot !== -1) {
                   v = v.slice(0, firstDot + 1) + v.slice(firstDot + 1).replace(/\./g, '');
+                }
+                const m = getLensMeta(lensManufacturer, lensModel);
+                const zoom = isZoomLens(lensManufacturer, lensModel);
+                if (zoom && m && m.minMm != null && m.maxMm != null) {
+                  const num = parseFloat(v);
+                  if (!isNaN(num)) {
+                    const clamped = Math.max(m.minMm, Math.min(m.maxMm, num));
+                    v = String(clamped);
+                  }
                 }
                 setFocalLength(v);
               }}
             />
           </div>
           <div className="form-group">
-            <label>Projektion</label>
+            <label>{t('tools.fov.controls.projection', 'Projection')}</label>
             <select value={projectionType} onChange={(e) => setProjectionType(e.target.value)}>
-              <option value="rectilinear">Rectilinear</option>
-              <option value="fisheye-equidistant">Fisheye (equidistant)</option>
-              <option value="fisheye-stereographic">Fisheye (stereographic)</option>
+              <option value="rectilinear">{t('tools.fov.controls.projectionOptions.rectilinear', 'Rectilinear')}</option>
+              <option value="fisheye-equidistant">{t('tools.fov.controls.projectionOptions.fisheyeEquidistant', 'Fisheye (equidistant)')}</option>
+              <option value="fisheye-stereographic">{t('tools.fov.controls.projectionOptions.fisheyeStereographic', 'Fisheye (stereographic)')}</option>
             </select>
           </div>
         </div>
 
         <div className="control-row">
           <div className="form-group">
-            <label>Blende (f/N)</label>
+            <label>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')}</label>
             <input
               type="text"
               inputMode="decimal"
-              placeholder="z. B. 2.8"
+              placeholder="e.g., 2.8"
               value={aperture}
               onChange={(e) => {
                 let v = e.target.value;
@@ -260,11 +285,11 @@ const FovCalculator = () => {
             />
           </div>
           <div className="form-group">
-            <label>Fokus‑Distanz (m)</label>
+            <label>{t('tools.fov.controls.focusDistanceM', 'Focus Distance (m)')}</label>
             <input
               type="text"
               inputMode="decimal"
-              placeholder="z. B. 5"
+              placeholder="e.g., 5"
               value={focusDistance}
               onChange={(e) => {
                 let v = e.target.value;
@@ -281,7 +306,7 @@ const FovCalculator = () => {
         </div>
         <div className="control-row">
           <div className="form-group" style={{flex: 1}}>
-            <label>Fokus‑Distanz</label>
+            <label>{t('tools.fov.controls.focusDistance', 'Focus Distance')}</label>
             <input
               type="range"
               min="0.3"
@@ -296,74 +321,74 @@ const FovCalculator = () => {
       </div>
 
       <div className="card fov-results">
-        <h3>Ergebnis</h3>
+        <h3>{t('tools.fov.controls.resultTitle', 'Result')}</h3>
         <div className="result-grid">
           <div className="result-item">
-            <span className="label">Sensorgröße</span>
-            <span className="value">{sensorSizeString || 'Nicht verfügbar'}</span>
+            <span className="label">{t('tools.fov.controls.sensorSize', 'Sensor Size')}</span>
+            <span className="value">{sensorSizeString || t('tools.fov.controls.notAvailable', 'Not available')}</span>
           </div>
           <div className="result-item">
-            <span className="label">Objektiv</span>
+            <span className="label">{t('tools.fov.controls.lensInfo', 'Lens')}</span>
             <span className="value">{lensInfo.fullName || '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Objektiv‑Typ</span>
+            <span className="label">{t('tools.fov.controls.lensType', 'Lens Type')}</span>
             <span className="value">{lensInfo.fullName ? lensInfo.type : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Anamorph‑Faktor</span>
+            <span className="label">{t('tools.fov.controls.anamorphFactor', 'Anamorphic Factor')}</span>
             <span className="value">{lensInfo.fullName ? `${(anamorphicFactor || 1)}×` : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Horizontal</span>
+            <span className="label">{t('tools.fov.controls.horizontal', 'Horizontal')}</span>
             <span className="value">{fov?.h ? `${fov.h}°` : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Vertikal</span>
+            <span className="label">{t('tools.fov.controls.vertical', 'Vertical')}</span>
             <span className="value">{fov?.v ? `${fov.v}°` : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Diagonal</span>
+            <span className="label">{t('tools.fov.controls.diagonal', 'Diagonal')}</span>
             <span className="value">{fov?.d ? `${fov.d}°` : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Crop‑Faktor (vs. Vollformat)</span>
+            <span className="label">{t('tools.fov.controls.cropVsFF', 'Crop factor (vs. full frame)')}</span>
             <span className="value">{fov?.crop ? `${fov.crop}×` : '—'}</span>
           </div>
         </div>
       </div>
 
       <div className="card fov-results">
-        <h3>Fokus / DOF</h3>
+        <h3>{t('tools.fov.focusTitle', 'Focus / DOF')}</h3>
         <div className="result-grid">
           <div className="result-item">
-            <span className="label">Hyperfokale Distanz</span>
+            <span className="label">{t('camera.hyperfocalDistance', 'Hyperfocal Distance')}</span>
             <span className="value">{optics?.H != null ? `${optics.H.toFixed(2)} m` : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Nahgrenze</span>
+            <span className="label">{t('tools.fov.threeD.legendNear', 'Near limit')}</span>
             <span className="value">{optics?.dof?.near != null ? `${optics.dof.near.toFixed(2)} m` : '—'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Ferngrenze</span>
+            <span className="label">{t('tools.fov.threeD.legendFar', 'Far limit')}</span>
             <span className="value">{optics?.dof?.far != null ? `${optics.dof.far.toFixed(2)} m` : '∞'}</span>
           </div>
           <div className="result-item">
-            <span className="label">Gesamt Schärfentiefe</span>
+            <span className="label">{t('tools.fov.totalDOF', 'Total depth of field')}</span>
             <span className="value">{optics?.dof ? (optics.dof.total === Infinity ? '∞' : `${optics.dof.total.toFixed(2)} m`) : '—'}</span>
           </div>
         </div>
       </div>
 
       <div className="card">
-        <h3>FOV Diagramm</h3>
+        <h3>{t('tools.fov.controls.diagramTitle', 'FOV Diagram')}</h3>
         <div className="fov-diagram-grid">
           <div>
-            <div className="panel-title">2D</div>
+            <div className="panel-title">{t('tools.fov.controls.panel2D', '2D')}</div>
             <FovDiagram fov={fov} sensorDims={sensorDims} />
           </div>
           <div>
-            <div className="panel-title">3D</div>
+            <div className="panel-title">{t('tools.fov.controls.panel3D', '3D')}</div>
             <FovDiagram3D fov={fov} sensorDims={sensorDims} optics={optics} focusDistance={parseFloat(focusDistance) || 0} />
           </div>
         </div>
@@ -375,6 +400,7 @@ const FovCalculator = () => {
 export default FovCalculator;
   const FovDiagram3D = ({ fov, sensorDims, optics, focusDistance }) => {
     const canvasRef = useRef(null);
+    const { t } = useLanguage();
     // Start in einer 3/4‑Ansicht für bessere Orientierung
     const [yaw, setYaw] = useState(Math.PI / 4);   // Isometrischer Yaw ~45°
     const [pitch, setPitch] = useState(-Math.atan(1/Math.sqrt(2))); // Isometrischer Pitch ~‑35.264°
@@ -523,7 +549,7 @@ export default FovCalculator;
       if (!effectiveFov?.h || !effectiveFov?.v) {
         ctx.fillStyle = textColor;
         ctx.font = '14px sans-serif';
-        ctx.fillText('Bitte Sensor & Brennweite auswählen, um die 3D‑Ansicht zu sehen.', 16, 24);
+        ctx.fillText(t('tools.fov.threeD.selectSensorFocalToSee3D', 'Select sensor & focal length to see the 3D view.'), 16, 24);
         return;
       }
 
@@ -665,7 +691,7 @@ export default FovCalculator;
         const labelPos2 = project(applyRot(add(sensorRect[2])), w, h);
         ctx.fillStyle = textColor;
         ctx.font = '12px sans-serif';
-        ctx.fillText('Sensor-Position', labelPos2[0] - 60, labelPos2[1] + 16);
+        ctx.fillText(t('tools.fov.threeD.sensorPosition', 'Sensor Position'), labelPos2[0] - 60, labelPos2[1] + 16);
       }
 
       // Fokus- und DOF-Ebenen (optional)
@@ -717,17 +743,17 @@ export default FovCalculator;
         const focusCol = '#22c55e'; // grün
         const nearCol = '#f59e0b'; // orange
         const farCol = '#0ea5e9';  // cyan
-        drawPlane(focusRect, focusCol, 0.10, `Fokus ${focusDistance.toFixed(2)} m`);
-        drawPlane(nearRect, nearCol, 0.08, `Nah ${optics.dof.near.toFixed(2)} m`);
-        drawPlane(farRect, farCol, 0.08, `Fern ${optics.dof.far != null ? optics.dof.far.toFixed(2)+' m' : '∞'}`);
+        drawPlane(focusRect, focusCol, 0.10, `${t('tools.fov.threeD.legendFocus', 'Focus')} ${focusDistance.toFixed(2)} m`);
+        drawPlane(nearRect, nearCol, 0.08, `${t('tools.fov.threeD.legendNear', 'Near')} ${optics.dof.near.toFixed(2)} m`);
+        drawPlane(farRect, farCol, 0.08, `${t('tools.fov.threeD.legendFar', 'Far')} ${optics.dof.far != null ? optics.dof.far.toFixed(2)+' m' : '∞'}`);
       }
 
       // Legende oben links
       const legendX = 16, legendY = 16;
       const legendItems = [
-        { text: 'Fokus', color: '#22c55e' },
-        { text: 'Nahgrenze', color: '#f59e0b' },
-        { text: 'Ferngrenze', color: '#0ea5e9' },
+        { text: t('tools.fov.threeD.legendFocus', 'Focus'), color: '#22c55e' },
+        { text: t('tools.fov.threeD.legendNear', 'Near limit'), color: '#f59e0b' },
+        { text: t('tools.fov.threeD.legendFar', 'Far limit'), color: '#0ea5e9' },
       ];
       ctx.save();
       ctx.font = '13px sans-serif';
@@ -748,11 +774,11 @@ export default FovCalculator;
       }
       ctx.restore();
 
-      // Beschriftungen unten: farblich gekennzeichnet und mit Hintergrund
-      drawTag(`Anzeige‑Kamera HFOV: ${effectiveFov.h}°`, 16, h - 44, accent, 0.5);
-      drawTag(`Anzeige‑Kamera VFOV: ${effectiveFov.v}°`, 16, h - 20, secondary, 0.5);
+      // Bottom tags: HFOV/VFOV short labels
+      drawTag(`${t('tools.fov.threeD.labelHFOV', 'HFOV')}: ${effectiveFov.h}°`, 16, h - 44, accent, 0.5);
+      drawTag(`${t('tools.fov.threeD.labelVFOV', 'VFOV')}: ${effectiveFov.v}°`, 16, h - 20, secondary, 0.5);
       if (sensorDims) {
-        const sensorText = `Sensor: ${sensorDims.width} × ${sensorDims.height} mm`;
+        const sensorText = `${t('tools.fov.threeD.labelSensor', 'Sensor')}: ${sensorDims.width} × ${sensorDims.height} mm`;
         // rechts unten ausrichten
         ctx.font = '13px sans-serif';
         const tw = ctx.measureText(sensorText).width;
@@ -814,13 +840,13 @@ export default FovCalculator;
           onPointerLeave={onUp}
           onWheel={onWheel}
         />
-      <div className="hint">Ziehe mit der Maus, um zu drehen; Mausrad zoomt</div>
+      <div className="hint">{t('tools.fov.threeD.controlsHint', 'Drag to rotate; mouse wheel to zoom')}</div>
       <div className="fov-3d-actions">
-        <button className="btn-reset" onClick={resetView}>Ansicht zurücksetzen</button>
-        <button className="btn-reset" onClick={setCurrentAsDefault}>Als Standard übernehmen</button>
-        <div className="view-toggle" aria-label="Darstellung umschalten">
-          <button className={projection3D === 'isometric' ? 'active' : ''} onClick={() => setProjection3D('isometric')}>Isometrisch</button>
-          <button className={projection3D === 'perspective' ? 'active' : ''} onClick={() => setProjection3D('perspective')}>Perspektivisch</button>
+        <button className="btn-reset" onClick={resetView}>{t('common.resetView', 'Reset view')}</button>
+        <button className="btn-reset" onClick={setCurrentAsDefault}>{t('common.setAsDefault', 'Set as default')}</button>
+        <div className="view-toggle" aria-label={t('tools.fov.threeD.toggleProjection', 'Toggle projection')}>
+          <button className={projection3D === 'isometric' ? 'active' : ''} onClick={() => setProjection3D('isometric')}>{t('tools.fov.threeD.projectionIsometric', 'Isometric')}</button>
+          <button className={projection3D === 'perspective' ? 'active' : ''} onClick={() => setProjection3D('perspective')}>{t('tools.fov.threeD.projectionPerspective', 'Perspective')}</button>
         </div>
       </div>
       <div className="fov-3d-controls">
@@ -835,22 +861,22 @@ export default FovCalculator;
           <div className="value">{Math.round(toDeg(pitch))}°</div>
         </div>
         <div className="control">
-          <label>Zoom</label>
+          <label>{t('tools.fov.threeD.zoom', 'Zoom')}</label>
           <input type="range" min="0.1" max="3.0" step="0.01" value={zoom} onChange={(e)=>setZoom(Number(e.target.value))} />
           <div className="value">{zoom.toFixed(2)}x</div>
         </div>
         <div className="control">
-          <label>Kamera‑X</label>
+          <label>Camera‑X</label>
           <input type="range" min="-2.0" max="2.0" step="0.01" value={camX} onChange={(e)=>setCamX(Number(e.target.value))} />
           <div className="value">{camX.toFixed(2)}</div>
         </div>
         <div className="control">
-          <label>Kamera‑Y</label>
+          <label>Camera‑Y</label>
           <input type="range" min="-2.0" max="2.0" step="0.01" value={camY} onChange={(e)=>setCamY(Number(e.target.value))} />
           <div className="value">{camY.toFixed(2)}</div>
         </div>
         <div className="control">
-          <label>Kamera‑Z</label>
+          <label>Camera‑Z</label>
           <input type="range" min="-3.0" max="3.0" step="0.01" value={camZ} onChange={(e)=>setCamZ(Number(e.target.value))} />
           <div className="value">{camZ.toFixed(2)}</div>
         </div>
@@ -859,7 +885,9 @@ export default FovCalculator;
   );
   };
   const FovDiagram = ({ fov, sensorDims }) => {
+    const { t } = useLanguage();
     const width = 640; const height = 360;
+    const pad = 28; // zusätzlicher Rand, damit Texte nicht abgeschnitten werden
     const cx = 80; const cy = height/2; // Linsen-Apex
     const r = 140; // Radius für FOV-Winkel
     const rectCenterX = 360; // Sensor-Darstellung rechts
@@ -875,42 +903,76 @@ export default FovCalculator;
     const h2 = { x: cx + r * Math.cos(halfH), y: cy - r * Math.sin(halfH) };
 
     const halfV = toRad((fov?.v || 0) / 2);
+    // Fallback-Vektoren für VFOV (falls keine Sensor-Daten vorhanden)
     const v1 = { x: cx + r * Math.sin(halfV), y: cy - r * Math.cos(halfV) };
-    const v2 = { x: cx - r * Math.sin(halfV), y: cy - r * Math.cos(halfV) };
+    const v2 = { x: cx - r * Math.sin(halfV), y: cy + r * Math.cos(halfV) };
 
     return (
       <div className="fov-diagram-container">
-        <svg viewBox={`0 0 ${width} ${height}`} role="img" aria-label="FOV Diagramm">
+        <svg viewBox={`-${pad} -${pad} ${width + 2*pad} ${height + 2*pad}`} role="img" aria-label="FOV Diagram">
           {/* Hintergrund grid leicht */}
           <defs>
             <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
               <path d="M 24 0 L 0 0 0 24" fill="none" stroke="var(--border-color)" strokeWidth="0.5" />
             </pattern>
           </defs>
-          <rect x="0" y="0" width={width} height={height} fill="url(#grid)" opacity="0.12" />
+          <rect x={-pad} y={-pad} width={width + 2*pad} height={height + 2*pad} fill="url(#grid)" opacity="0.12" />
 
           {/* Linsen-Apex */}
           <circle cx={cx} cy={cy} r="6" fill="var(--secondary-color)" />
-          <text x={cx + 10} y={cy - 10} fill="var(--text-color)" fontSize="12">Linse</text>
+          <text x={cx + 10} y={cy - 10} fill="var(--text-color)" fontSize="12">{t('lens.lens', 'Lens')}</text>
 
-          {/* Horizontaler FOV-Winkel */}
-          <line x1={cx} y1={cy} x2={h1.x} y2={h1.y} stroke="var(--accent-color)" strokeWidth="2" />
-          <line x1={cx} y1={cy} x2={h2.x} y2={h2.y} stroke="var(--accent-color)" strokeWidth="2" />
-          <path d={`M ${cx + 20} ${cy} A 20 20 0 0 1 ${cx + 20*Math.cos(halfH)} ${cy + 20*Math.sin(halfH)}`} fill="none" stroke="var(--accent-color)" strokeWidth="2" />
-          <path d={`M ${cx + 20} ${cy} A 20 20 0 0 0 ${cx + 20*Math.cos(halfH)} ${cy - 20*Math.sin(halfH)}`} fill="none" stroke="var(--accent-color)" strokeWidth="2" />
-          <text x={cx + 60} y={cy - 24} fill="var(--text-color)" fontSize="12">HFOV: {fov?.h ? `${fov.h}°` : '—'}</text>
+          {/* Horizontaler FOV-Winkel / Richtungsstrahlen */}
+          {sensorDims ? (
+            <>
+              {/* Linke obere und linke untere Sensorecke */}
+              <line x1={cx} y1={cy} x2={rectX} y2={rectY} stroke="var(--accent-color)" strokeWidth="2" />
+              <line x1={cx} y1={cy} x2={rectX} y2={rectY + rectH} stroke="var(--accent-color)" strokeWidth="2" />
+              <text x={cx + 60} y={cy - 24} fill="var(--text-color)" fontSize="12">{t('tools.fov.threeD.labelHFOV', 'HFOV')}: {fov?.h ? `${fov.h}°` : '—'}</text>
+            </>
+          ) : (
+            <>
+              <line x1={cx} y1={cy} x2={h1.x} y2={h1.y} stroke="var(--accent-color)" strokeWidth="2" />
+              <line x1={cx} y1={cy} x2={h2.x} y2={h2.y} stroke="var(--accent-color)" strokeWidth="2" />
+              <path d={`M ${cx + 20} ${cy} A 20 20 0 0 1 ${cx + 20*Math.cos(halfH)} ${cy + 20*Math.sin(halfH)}`} fill="none" stroke="var(--accent-color)" strokeWidth="2" />
+              <path d={`M ${cx + 20} ${cy} A 20 20 0 0 0 ${cx + 20*Math.cos(halfH)} ${cy - 20*Math.sin(halfH)}`} fill="none" stroke="var(--accent-color)" strokeWidth="2" />
+              <text x={cx + 60} y={cy - 24} fill="var(--text-color)" fontSize="12">{t('tools.fov.threeD.labelHFOV', 'HFOV')}: {fov?.h ? `${fov.h}°` : '—'}</text>
+            </>
+          )}
 
-          {/* Vertikaler FOV-Winkel (schematisch) */}
-          <line x1={cx} y1={cy} x2={v1.x} y2={v1.y} stroke="var(--secondary-color)" strokeWidth="2" opacity="0.8" />
-          <line x1={cx} y1={cy} x2={v2.x} y2={v2.y} stroke="var(--secondary-color)" strokeWidth="2" opacity="0.8" />
-          <text x={cx + 60} y={cy + 24} fill="var(--text-color)" fontSize="12">VFOV: {fov?.v ? `${fov.v}°` : '—'}</text>
+          {/* Vertikaler FOV-Winkel / Richtungsstrahlen zum Sensor */}
+          {sensorDims ? (
+            <>
+              {/* Rechte obere und rechte untere Sensorecke */}
+              <line x1={cx} y1={cy} x2={rectX + rectW} y2={rectY} stroke="var(--secondary-color)" strokeWidth="2" opacity="0.9" />
+              <line x1={cx} y1={cy} x2={rectX + rectW} y2={rectY + rectH} stroke="var(--secondary-color)" strokeWidth="2" opacity="0.9" />
+            </>
+          ) : (
+            <>
+              {/* Fallback: schematische VFOV-Linien, wenn kein Sensor vorhanden ist */}
+              <line x1={cx} y1={cy} x2={v1.x} y2={v1.y} stroke="var(--secondary-color)" strokeWidth="2" opacity="0.8" />
+              <line x1={cx} y1={cy} x2={v2.x} y2={v2.y} stroke="var(--secondary-color)" strokeWidth="2" opacity="0.8" />
+            </>
+          )}
+          <text x={cx + 60} y={cy + 24} fill="var(--text-color)" fontSize="12">{t('tools.fov.threeD.labelVFOV', 'VFOV')}: {fov?.v ? `${fov.v}°` : '—'}</text>
 
           {/* Sensorrahmen (mm skaliert) */}
           {sensorDims && (
             <>
               <rect x={rectX} y={rectY} width={rectW} height={rectH} fill="none" stroke="var(--border-color)" strokeWidth="2" />
               <line x1={rectX} y1={rectY} x2={rectX + rectW} y2={rectY + rectH} stroke="var(--border-color)" strokeDasharray="4 4" />
-              <text x={rectX} y={rectY - 8} fill="var(--text-color)" fontSize="12">Sensor: {sensorDims.width} × {sensorDims.height} mm</text>
+              <text x={rectX} y={rectY - 8} fill="var(--text-color)" fontSize="12">{t('tools.fov.threeD.labelSensor', 'Sensor')}: {sensorDims.width} × {sensorDims.height} mm</text>
+              {/* Sensorhöhe innen im Rahmen anzeigen */}
+              <text
+                x={rectX + rectW - 6}
+                y={cy}
+                textAnchor="end"
+                dominantBaseline="middle"
+                fill="var(--text-color)"
+                fontSize="12"
+              >
+                {typeof sensorDims.height === 'number' ? `${sensorDims.height.toFixed(1)} mm` : `${sensorDims.height} mm`}
+              </text>
               <text x={rectX} y={rectY + rectH + 16} fill="var(--text-color)" fontSize="12">Crop: {fov?.crop ? `${fov.crop}×` : '—'}</text>
               <text x={rectX + rectW - 80} y={rectY + rectH + 16} fill="var(--text-color)" fontSize="12">DFOV: {fov?.d ? `${fov.d}°` : '—'}</text>
             </>

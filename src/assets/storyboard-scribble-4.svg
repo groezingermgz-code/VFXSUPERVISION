@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
+  <rect x="0" y="0" width="640" height="360" fill="#fafafa"/>
+  <g stroke="#1a1a1a" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Frame -->
+    <rect x="24" y="24" width="592" height="312" rx="8"/>
+    <!-- Rule of Thirds Grid -->
+    <line x1="221" y1="24" x2="221" y2="336" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="418" y1="24" x2="418" y2="336" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="24" y1="128" x2="616" y2="128" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <line x1="24" y1="232" x2="616" y2="232" stroke="#cfcfcf" stroke-dasharray="6 6"/>
+    <!-- Corridor / vanishing point -->
+    <path d="M80 300 L320 180 L560 300" />
+    <path d="M120 260 L320 180 L520 260" />
+    <!-- Subject silhouette centered -->
+    <circle cx="350" cy="200" r="16" />
+    <path d="M320 250 C320 230 350 230 350 250 S380 270 380 250" />
+    <!-- Camera tracking arrow -->
+    <path d="M260 210 L300 210" />
+    <path d="M300 210 L288 198" />
+    <path d="M300 210 L288 222" />
+    <!-- Framing marks -->
+    <path d="M40 60 L80 60 L80 100" />
+    <path d="M600 60 L560 60 L560 100" />
+    <!-- Notes / scribbles -->
+    <path d="M440 80 q22 12 44 0 q-22 -12 -44 0" />
+    <path d="M240 290 l36 -10 l-36 -10" />
+  </g>
+  <text x="34" y="46" fill="#1a1a1a" font-size="12" font-family="monospace">WS / Tracking</text>
+  <text x="556" y="46" fill="#1a1a1a" font-size="12" font-family="monospace" text-anchor="end">Vanishing</text>
+</svg>

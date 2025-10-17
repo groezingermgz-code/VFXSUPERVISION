@@ -1075,6 +1075,102 @@ export const cameraDatabase = {
           }
         }
       },
+      "A7 III": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["XAVC S"],
+        sensorSizes: {
+          "4K UHD": "35.60 x 23.80 mm",
+          "HD": "35.60 x 23.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "A7C": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["XAVC S"],
+        sensorSizes: {
+          "4K UHD": "35.60 x 23.80 mm",
+          "HD": "35.60 x 23.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "A7C II": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["XAVC S-I", "XAVC HS", "XAVC S"],
+        sensorSizes: {
+          "4K UHD": "35.60 x 23.80 mm",
+          "HD": "35.60 x 23.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "A6700": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["XAVC HS", "XAVC S"],
+        sensorSizes: {
+          "4K UHD": "23.50 x 15.60 mm",
+          "HD": "23.50 x 15.60 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "ZV-E1": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["XAVC S-I", "XAVC HS", "XAVC S"],
+        sensorSizes: {
+          "4K UHD": "35.60 x 23.80 mm",
+          "HD": "35.60 x 23.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "ZV-E10": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["XAVC S"],
+        sensorSizes: {
+          "4K UHD": "23.50 x 15.60 mm",
+          "HD": "23.50 x 15.60 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
       "VENICE": {
         formats: ["6K FF", "4K", "2K", "HD"],
         codecs: ["X-OCN", "XAVC-I", "ProRes 422 HQ", "ProRes 422"],
@@ -2652,6 +2748,734 @@ export const cameraDatabase = {
         }
       }
     }
+  },
+  "GoPro": {
+    models: {
+      "HERO12 Black": {
+        formats: ["5.3K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.3K": "6.80 x 4.70 mm",
+          "4K UHD": "6.80 x 4.70 mm",
+          "2.7K": "6.80 x 4.70 mm",
+          "HD": "6.80 x 4.70 mm"
+        },
+        pixelResolutions: {
+          "5.3K": "5312 x 2988",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5.3K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "HERO11 Black": {
+        formats: ["5.3K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.3K": "6.80 x 4.70 mm",
+          "4K UHD": "6.80 x 4.70 mm",
+          "2.7K": "6.80 x 4.70 mm",
+          "HD": "6.80 x 4.70 mm"
+        },
+        pixelResolutions: {
+          "5.3K": "5312 x 2988",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5.3K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "HERO10 Black": {
+        formats: ["5.3K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.3K": "6.80 x 4.70 mm",
+          "4K UHD": "6.80 x 4.70 mm",
+          "2.7K": "6.80 x 4.70 mm",
+          "HD": "6.80 x 4.70 mm"
+        },
+        pixelResolutions: {
+          "5.3K": "5312 x 2988",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5.3K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "HERO9 Black": {
+        formats: ["5K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5K": "6.30 x 4.70 mm",
+          "4K UHD": "6.30 x 4.70 mm",
+          "2.7K": "6.30 x 4.70 mm",
+          "HD": "6.30 x 4.70 mm"
+        },
+        pixelResolutions: {
+          "5K": "5120 x 2880",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "HERO8 Black": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "6.17 x 4.55 mm",
+          "2.7K": "6.17 x 4.55 mm",
+          "HD": "6.17 x 4.55 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "HERO7 Black": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "6.17 x 4.55 mm",
+          "2.7K": "6.17 x 4.55 mm",
+          "HD": "6.17 x 4.55 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "MAX": {
+        formats: ["5.6K 360", "4K 360"],
+        codecs: ["H.265", "MP4"],
+        sensorSizes: {
+          "5.6K 360": "6.40 x 4.80 mm",
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "5.6K 360": "4992 x 2496",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.6K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "Fusion": {
+        formats: ["5.2K 360", "4K 360"],
+        codecs: ["H.264", "MP4"],
+        sensorSizes: {
+          "5.2K 360": "6.17 x 4.55 mm",
+          "4K 360": "6.17 x 4.55 mm"
+        },
+        pixelResolutions: {
+          "5.2K 360": "5120 x 2560",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.2K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      }
+    }
+  },
+  "DJI": {
+    models: {
+      "Osmo Action 4": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "9.60 x 7.20 mm",
+          "2.7K": "9.60 x 7.20 mm",
+          "HD": "9.60 x 7.20 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Osmo Action 3": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "7.40 x 5.60 mm",
+          "2.7K": "7.40 x 5.60 mm",
+          "HD": "7.40 x 5.60 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Osmo Action 2": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "7.40 x 5.60 mm",
+          "2.7K": "7.40 x 5.60 mm",
+          "HD": "7.40 x 5.60 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Osmo Action": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "6.17 x 4.55 mm",
+          "2.7K": "6.17 x 4.55 mm",
+          "HD": "6.17 x 4.55 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Osmo Pocket 3": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "13.20 x 8.80 mm",
+          "2.7K": "13.20 x 8.80 mm",
+          "HD": "13.20 x 8.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "2.7K": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "Osmo Pocket 2": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "6.40 x 4.80 mm",
+          "2.7K": "6.40 x 4.80 mm",
+          "HD": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Osmo Pocket": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "6.17 x 4.55 mm",
+          "2.7K": "6.17 x 4.55 mm",
+          "HD": "6.17 x 4.55 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Mavic 3": {
+        formats: ["5.1K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.1K": "17.30 x 13.00 mm",
+          "4K UHD": "17.30 x 13.00 mm",
+          "2.7K": "17.30 x 13.00 mm",
+          "HD": "17.30 x 13.00 mm"
+        },
+        pixelResolutions: {
+          "5.1K": "5120 x 2700",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5.1K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Mavic 3 Classic": {
+        formats: ["5.1K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.1K": "17.30 x 13.00 mm",
+          "4K UHD": "17.30 x 13.00 mm",
+          "2.7K": "17.30 x 13.00 mm",
+          "HD": "17.30 x 13.00 mm"
+        },
+        pixelResolutions: {
+          "5.1K": "5120 x 2700",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5.1K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Mavic 3 Pro": {
+        formats: ["5.1K", "4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.1K": "17.30 x 13.00 mm",
+          "4K UHD": "17.30 x 13.00 mm",
+          "2.7K": "17.30 x 13.00 mm",
+          "HD": "17.30 x 13.00 mm"
+        },
+        pixelResolutions: {
+          "5.1K": "5120 x 2700",
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "5.1K": { recorded: "16:9", sensor: "4:3" },
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Air 3": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "9.60 x 7.20 mm",
+          "2.7K": "9.60 x 7.20 mm",
+          "HD": "9.60 x 7.20 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Mini 4 Pro": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "9.60 x 7.20 mm",
+          "2.7K": "9.60 x 7.20 mm",
+          "HD": "9.60 x 7.20 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Avata 2": {
+        formats: ["4K UHD", "2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "9.60 x 7.20 mm",
+          "2.7K": "9.60 x 7.20 mm",
+          "HD": "9.60 x 7.20 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Inspire 3": {
+        formats: ["8K", "4K DCI", "4K UHD", "HD"],
+        codecs: ["ProRes 422 HQ", "ProRes 422", "H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "8K": "36.00 x 24.00 mm",
+          "4K DCI": "36.00 x 24.00 mm",
+          "4K UHD": "36.00 x 24.00 mm",
+          "HD": "36.00 x 24.00 mm"
+        },
+        pixelResolutions: {
+          "8K": "8192 x 4320",
+          "4K DCI": "4096 x 2160",
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "8K": { recorded: "16:9", sensor: "3:2" },
+          "4K DCI": { recorded: "17:9", sensor: "3:2" },
+          "4K UHD": { recorded: "16:9", sensor: "3:2" },
+          "HD": { recorded: "16:9", sensor: "3:2" }
+        }
+      }
+    }
+  },
+  "Insta360": {
+    models: {
+      "X3": {
+        formats: ["5.7K 360", "4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.7K 360": "6.40 x 4.80 mm",
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "5.7K 360": "5760 x 2880",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "One X2": {
+        formats: ["5.7K 360", "4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.7K 360": "6.40 x 4.80 mm",
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "5.7K 360": "5760 x 2880",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "X4": {
+        formats: ["8K 360", "5.7K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "8K 360": "6.40 x 4.80 mm",
+          "5.7K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "8K 360": "7680 x 3840",
+          "5.7K 360": "5760 x 2880"
+        },
+        aspectRatios: {
+          "8K 360": { recorded: "2:1", sensor: "2:1" },
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "X5": {
+        formats: ["8K 360", "5.7K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "8K 360": "6.40 x 4.80 mm",
+          "5.7K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "8K 360": "7680 x 3840",
+          "5.7K 360": "5760 x 2880"
+        },
+        aspectRatios: {
+          "8K 360": { recorded: "2:1", sensor: "2:1" },
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "One RS 1-Inch 360": {
+        formats: ["6K 360", "4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "6K 360": "13.20 x 8.80 mm",
+          "4K 360": "13.20 x 8.80 mm"
+        },
+        pixelResolutions: {
+          "6K 360": "6144 x 3072",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "6K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "GO 3": {
+        formats: ["2.7K", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "2.7K": "6.40 x 4.80 mm",
+          "HD": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "GO 2": {
+        formats: ["2.7K", "HD"],
+        codecs: ["H.264", "MP4"],
+        sensorSizes: {
+          "2.7K": "6.40 x 4.80 mm",
+          "HD": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "2.7K": "2704 x 1520",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "2.7K": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "One X": {
+        formats: ["5.7K 360", "4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.7K 360": "6.40 x 4.80 mm",
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "5.7K 360": "5760 x 2880",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "One R 360": {
+        formats: ["5.7K 360", "4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.7K 360": "6.40 x 4.80 mm",
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "5.7K 360": "5760 x 2880",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "One RS 4K": {
+        formats: ["4K UHD", "HD"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K UHD": "6.40 x 4.80 mm",
+          "HD": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "4K UHD": "3840 x 2160",
+          "HD": "1920 x 1080"
+        },
+        aspectRatios: {
+          "4K UHD": { recorded: "16:9", sensor: "4:3" },
+          "HD": { recorded: "16:9", sensor: "4:3" }
+        }
+      },
+      "Pro 2": {
+        formats: ["8K 360", "5.7K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "8K 360": "6.17 x 4.55 mm",
+          "5.7K 360": "6.17 x 4.55 mm"
+        },
+        pixelResolutions: {
+          "8K 360": "7680 x 3840",
+          "5.7K 360": "5760 x 2880"
+        },
+        aspectRatios: {
+          "8K 360": { recorded: "2:1", sensor: "2:1" },
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "Titan": {
+        formats: ["11K 360", "8K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "11K 360": "17.30 x 13.00 mm",
+          "8K 360": "17.30 x 13.00 mm"
+        },
+        pixelResolutions: {
+          "11K 360": "10560 x 5280",
+          "8K 360": "7680 x 3840"
+        },
+        aspectRatios: {
+          "11K 360": { recorded: "2:1", sensor: "2:1" },
+          "8K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      }
+    }
+  },
+  "Ricoh Theta": {
+    models: {
+      "THETA Z1": {
+        formats: ["4K 360", "HD 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K 360": "13.20 x 8.80 mm",
+          "HD 360": "13.20 x 8.80 mm"
+        },
+        pixelResolutions: {
+          "4K 360": "3840 x 1920",
+          "HD 360": "1920 x 960"
+        },
+        aspectRatios: {
+          "4K 360": { recorded: "2:1", sensor: "2:1" },
+          "HD 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "THETA X": {
+        formats: ["5.7K 360", "4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "5.7K 360": "6.40 x 4.80 mm",
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "5.7K 360": "5760 x 2880",
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "5.7K 360": { recorded: "2:1", sensor: "2:1" },
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "THETA V": {
+        formats: ["4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "THETA SC2": {
+        formats: ["4K 360"],
+        codecs: ["H.265", "H.264", "MP4"],
+        sensorSizes: {
+          "4K 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "4K 360": "3840 x 1920"
+        },
+        aspectRatios: {
+          "4K 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "THETA S": {
+        formats: ["HD 360"],
+        codecs: ["H.264", "MP4"],
+        sensorSizes: {
+          "HD 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "HD 360": "1920 x 960"
+        },
+        aspectRatios: {
+          "HD 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      },
+      "THETA SC": {
+        formats: ["HD 360"],
+        codecs: ["H.264", "MP4"],
+        sensorSizes: {
+          "HD 360": "6.40 x 4.80 mm"
+        },
+        pixelResolutions: {
+          "HD 360": "1920 x 960"
+        },
+        aspectRatios: {
+          "HD 360": { recorded: "2:1", sensor: "2:1" }
+        }
+      }
+    }
   }
 };
 
@@ -2712,6 +3536,9 @@ const getMaxPixelResolutionForModel = (manufacturer, model) => {
     return null;
   }
 };
+
+// Exportiere Hilfsfunktionen für maximale Sensor-/Pixel-Abmessungen
+export { getMaxSensorDimsForModel, getMaxPixelResolutionForModel };
 
 // Ergänze systematisch fehlende mm-Werte in sensorSizes per Pixel-Pitch
 (() => {
@@ -2774,25 +3601,39 @@ export const getSensorSizeByFormat = (manufacturer, model, format) => {
   if (!manufacturer || !model || !format || !cameraDatabase[manufacturer]?.models[model]) {
     return 'Nicht verfügbar';
   }
-  
+
   const camera = cameraDatabase[manufacturer].models[model];
-  if (camera.sensorSizes && camera.sensorSizes[format]) {
-    return camera.sensorSizes[format];
-  }
-  
-  // Fallback: Versuche zu berechnen aus Pixelauflösung und größtem Sensorbereich
+  const explicitMmStr = camera.sensorSizes?.[format];
+  const explicitMm = parseMm(explicitMmStr);
+
   const baseMm = getMaxSensorDimsForModel(manufacturer, model);
   const basePx = getMaxPixelResolutionForModel(manufacturer, model);
   const px = parsePixels(camera.pixelResolutions?.[format]);
+
+  // Wenn Pixel- und Basisdaten vorhanden sind, berechne aktive Fläche in mm aus Pitch
   if (baseMm && basePx && px) {
     const pitchW = baseMm.width / basePx.width;
     const pitchH = baseMm.height / basePx.height;
-    const w = (px.width * pitchW);
-    const h = (px.height * pitchH);
-    return `${w.toFixed(2)} x ${h.toFixed(2)} mm`;
+    const w = px.width * pitchW;
+    const h = px.height * pitchH;
+    const computedStr = `${w.toFixed(2)} x ${h.toFixed(2)} mm`;
+
+    // Falls die Pixelauflösung dem maximalen Sensorbereich entspricht, ist es "Full Sensor"
+    const pxArea = px.width * px.height;
+    const basePxArea = basePx.width * basePx.height;
+    const isFullSensor = basePxArea > 0 && Math.abs(pxArea - basePxArea) / basePxArea < 0.01;
+
+    // Für kleinere Formate (Cropping/Windowing) verwende die berechnete aktive Fläche
+    if (!isFullSensor) {
+      return computedStr;
+    }
+
+    // Bei Full Sensor bevorzuge vorhandenen expliziten Wert, sonst berechneten
+    return explicitMmStr || computedStr;
   }
-  
-  // Fallback für Kameras ohne spezifische Sensorgrößen-Daten
+
+  // Fallback: keine Berechnung möglich, gib expliziten Wert zurück
+  if (explicitMmStr) return explicitMmStr;
   return 'Nicht verfügbar';
 };
 
@@ -3054,6 +3895,12 @@ export const cameraColorSpaces = {
     "A7 IV": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
     "A7R V": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
     "A9 III": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
+    "A7 III": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
+    "A7C": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
+    "A7C II": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
+    "A6700": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
+    "ZV-E1": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020", "DCI-P3"],
+    "ZV-E10": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
     "VENICE": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
     "FS7": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020"],
     "FS5": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709"],
@@ -3114,8 +3961,55 @@ export const cameraColorSpaces = {
     "E2-S6": ["Z-Gamut", "Rec. 709", "Rec. 2020", "DCI-P3"],
     "E2-F6": ["Z-Gamut", "Rec. 709", "Rec. 2020", "DCI-P3"],
     "E2-F8": ["Z-Gamut", "Rec. 709", "Rec. 2020", "DCI-P3"]
-  }
-  ,
+  },
+  "GoPro": {
+    "HERO12 Black": ["Rec. 709", "HLG", "Rec. 2020"],
+    "HERO11 Black": ["Rec. 709", "HLG", "Rec. 2020"],
+    "HERO10 Black": ["Rec. 709", "HLG", "Rec. 2020"],
+    "HERO9 Black": ["Rec. 709", "HLG", "Rec. 2020"],
+    "HERO8 Black": ["Rec. 709"],
+    "HERO7 Black": ["Rec. 709"],
+    "MAX": ["Rec. 709"],
+    "Fusion": ["Rec. 709"]
+  },
+  "DJI": {
+    "Osmo Action 4": ["D-Cinelike", "Rec. 709", "HLG"],
+    "Osmo Action 3": ["D-Cinelike", "Rec. 709", "HLG"],
+    "Osmo Pocket 3": ["D-Cinelike", "Rec. 709", "HLG"],
+    "Osmo Pocket 2": ["D-Cinelike", "Rec. 709"],
+    "Osmo Action 2": ["D-Cinelike", "Rec. 709"],
+    "Osmo Action": ["D-Cinelike", "Rec. 709"],
+    "Osmo Pocket": ["D-Cinelike", "Rec. 709"],
+    "Mavic 3": ["D-Log", "HLG", "Rec. 709"],
+    "Mavic 3 Classic": ["D-Log", "HLG", "Rec. 709"],
+    "Mavic 3 Pro": ["D-Log M", "HLG", "Rec. 709"],
+    "Air 3": ["D-Log M", "HLG", "Rec. 709"],
+    "Mini 4 Pro": ["D-Log M", "HLG", "Rec. 709"],
+    "Avata 2": ["D-Log M", "HLG", "Rec. 709"],
+    "Inspire 3": ["D-Log", "HLG", "Rec. 709"]
+  },
+  "Insta360": {
+    "X3": ["Rec. 709", "HLG"],
+    "One X2": ["Rec. 709", "HLG"],
+    "X4": ["Rec. 709", "HLG"],
+    "X5": ["Rec. 709", "HLG"],
+    "One RS 1-Inch 360": ["Rec. 709", "HLG"],
+    "GO 3": ["Rec. 709"],
+    "GO 2": ["Rec. 709"],
+    "One X": ["Rec. 709", "HLG"],
+    "One R 360": ["Rec. 709", "HLG"],
+    "One RS 4K": ["Rec. 709", "HLG"],
+    "Pro 2": ["Rec. 709", "HLG"],
+    "Titan": ["Rec. 709", "HLG"]
+  },
+  "Ricoh Theta": {
+    "THETA Z1": ["Rec. 709"],
+    "THETA X": ["Rec. 709"],
+    "THETA V": ["Rec. 709"],
+    "THETA SC2": ["Rec. 709"],
+    "THETA S": ["Rec. 709"],
+    "THETA SC": ["Rec. 709"]
+  },
   "WEISSCAM": {
     "HS-2": ["Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
     "HS-1": ["Rec. 709", "DCI-P3", "ACES"]
