@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef, useEffect } from 'react';
 import './FovCalculator.css';
 import { useLanguage } from '../contexts/LanguageContext';
+import Icon from '../components/Icon';
 import { 
   getManufacturers,
   getModelsByManufacturer,
@@ -131,7 +132,7 @@ const FovCalculator = () => {
       <div className="card fov-controls">
         <div className="control-row">
           <div className="form-group">
-            <label>{t('tools.fov.controls.manufacturer', 'Manufacturer')}</label>
+            <label>{t('tools.fov.controls.manufacturer', 'Manufacturer')} <span title={t('help.cameraManufacturer', 'Kamerahersteller wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={manufacturer} onChange={(e) => { setManufacturer(e.target.value); resetSelection(); }}>
               <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {manufacturers.map(m => (
@@ -140,7 +141,7 @@ const FovCalculator = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>{t('tools.fov.controls.camera', 'Camera')}</label>
+            <label>{t('tools.fov.controls.camera', 'Camera')} <span title={t('help.cameraModel', 'Kameramodell wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={model} onChange={(e) => { setModel(e.target.value); setFormat(''); }} disabled={!manufacturer}>
               <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {models.map(m => (
@@ -149,7 +150,7 @@ const FovCalculator = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>{t('tools.fov.controls.format', 'Format')}</label>
+            <label>{t('tools.fov.controls.format', 'Format')} <span title={t('help.cameraFormat', 'Sensor-/Aufzeichnungsformat wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={format} onChange={(e) => setFormat(e.target.value)} disabled={!model}>
               <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
               {formats.map(f => (
@@ -186,7 +187,7 @@ const FovCalculator = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>{t('tools.fov.controls.lens', 'Lens')}</label>
+            <label>{t('tools.fov.controls.lens', 'Lens')} <span title={t('help.lensModel', 'Objektiv auswählen; Brennweite ggf. übernommen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select
               value={lensModel}
               onChange={(e) => {
@@ -212,7 +213,7 @@ const FovCalculator = () => {
 
         <div className="control-row">
           <div className="form-group">
-            <label>{t('tools.fov.controls.focalLengthMm', 'Focal Length (mm)')}</label>
+            <label>{t('tools.fov.controls.focalLengthMm', 'Focal Length (mm)')} <span title={t('help.focalLength', 'Numerisch, z. B. 50; bei Zooms passende Brennweite wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <input
               type="number"
               step="0.1"
@@ -255,7 +256,7 @@ const FovCalculator = () => {
             />
           </div>
           <div className="form-group">
-            <label>{t('tools.fov.controls.projection', 'Projection')}</label>
+            <label>{t('tools.fov.controls.projection', 'Projection')} <span title={t('help.projectionType', 'Rectilinear oder Fisheye; beeinflusst FOV')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={projectionType} onChange={(e) => setProjectionType(e.target.value)}>
               <option value="rectilinear">{t('tools.fov.controls.projectionOptions.rectilinear', 'Rectilinear')}</option>
               <option value="fisheye-equidistant">{t('tools.fov.controls.projectionOptions.fisheyeEquidistant', 'Fisheye (equidistant)')}</option>
@@ -266,7 +267,7 @@ const FovCalculator = () => {
 
         <div className="control-row">
           <div className="form-group">
-            <label>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')}</label>
+            <label>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')} <span title={t('help.aperture', 'Blende f/N; beeinflusst Schärfentiefe')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <input
               type="text"
               inputMode="decimal"
@@ -285,7 +286,7 @@ const FovCalculator = () => {
             />
           </div>
           <div className="form-group">
-            <label>{t('tools.fov.controls.focusDistanceM', 'Focus Distance (m)')}</label>
+            <label>{t('tools.fov.controls.focusDistanceM', 'Focus Distance (m)')} <span title={t('help.focusDistanceM', 'Fokusdistanz in Metern')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <input
               type="text"
               inputMode="decimal"
@@ -306,7 +307,7 @@ const FovCalculator = () => {
         </div>
         <div className="control-row">
           <div className="form-group" style={{flex: 1}}>
-            <label>{t('tools.fov.controls.focusDistance', 'Focus Distance')}</label>
+            <label>{t('tools.fov.controls.focusDistance', 'Focus Distance')} <span title={t('help.focusDistanceSlider', 'Schieberegler für Fokusdistanz; gleiche Einheit (m)')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <input
               type="range"
               min="0.3"
@@ -318,6 +319,7 @@ const FovCalculator = () => {
             <div className="value">{(parseFloat(focusDistance) || 0).toFixed(2)} m</div>
           </div>
         </div>
+
       </div>
 
       <div className="card fov-results">
