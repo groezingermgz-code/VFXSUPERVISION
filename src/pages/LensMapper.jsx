@@ -16,6 +16,8 @@ import {
   calculateVerticalFOV,
   calculateDiagonalFOV,
 } from '../utils/fovCalculator';
+import { useLanguage } from '../contexts/LanguageContext';
+import Icon from '../components/Icon';
 
 function solveFocalForTargetFOV(target, dims, projection, type) {
   // Simple binary search to find focal length that yields the target FOV
@@ -41,6 +43,7 @@ function solveFocalForTargetFOV(target, dims, projection, type) {
 }
 
 const LensMapper = () => {
+  const { t } = useLanguage();
   const [manufacturer, setManufacturer] = useState('');
   const [model, setModel] = useState('');
   const [sourceFormat, setSourceFormat] = useState('');
@@ -166,7 +169,7 @@ const LensMapper = () => {
       <div className="card lm-controls">
         <div className="control-row">
           <div className="form-group">
-            <label>Hersteller</label>
+            <label>Hersteller <span title={t('help.cameraManufacturer', 'Kamerahersteller wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={manufacturer} onChange={(e) => { setManufacturer(e.target.value); resetSelection(); }}>
               <option value="">Bitte wählen…</option>
               {manufacturers.map(m => (
@@ -175,7 +178,7 @@ const LensMapper = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>Kamera</label>
+            <label>Kamera <span title={t('help.cameraModel', 'Kameramodell wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={model} onChange={(e) => { setModel(e.target.value); setSourceFormat(''); }} disabled={!manufacturer}>
               <option value="">Bitte wählen…</option>
               {models.map(m => (
@@ -184,7 +187,7 @@ const LensMapper = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>Quell‑Format</label>
+            <label>Quell‑Format <span title={t('help.sourceFormat', 'Sensor-/Aufzeichnungsformat der Quelle')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={sourceFormat} onChange={(e) => setSourceFormat(e.target.value)} disabled={!model}>
               <option value="">Bitte wählen…</option>
               {formats.map(f => (
@@ -196,7 +199,7 @@ const LensMapper = () => {
 
         <div className="control-row">
           <div className="form-group">
-            <label>Optik Hersteller</label>
+            <label>Optik Hersteller <span title={t('help.lensManufacturer', 'Objektivhersteller wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={lensManufacturer} onChange={handleLensManufacturerChange}>
               <option value="">Bitte wählen…</option>
               {lensManufacturers.map(m => (
@@ -205,7 +208,7 @@ const LensMapper = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>Optik Modell</label>
+            <label>Optik Modell <span title={t('help.lensModel', 'Objektiv auswählen; Brennweite wird ggf. übernommen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={selectedLens} onChange={handleLensChange} disabled={!lensManufacturer}>
               <option value="">Bitte wählen…</option>
               {availableLenses.map(l => (
@@ -217,7 +220,7 @@ const LensMapper = () => {
 
         <div className="control-row">
           <div className="form-group">
-            <label>Brennweite (mm)</label>
+            <label>Brennweite (mm) <span title={t('help.focalLength', 'Numerisch, z. B. 50; bei Zooms passende Brennweite wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <input
               type="number"
               step="0.1"
@@ -228,7 +231,7 @@ const LensMapper = () => {
             />
           </div>
           <div className="form-group">
-            <label>Projektion</label>
+            <label>Projektion <span title={t('help.projectionType', 'Rectilinear oder Fisheye; beeinflusst die Äquivalenz')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={projectionType} onChange={(e) => setProjectionType(e.target.value)}>
               <option value="rectilinear">Rectilinear</option>
               <option value="fisheye-equidistant">Fisheye (equidistant)</option>
@@ -236,7 +239,7 @@ const LensMapper = () => {
             </select>
           </div>
           <div className="form-group">
-            <label>Gleiches Sichtfeld</label>
+            <label>Gleiches Sichtfeld <span title={t('help.matchType', 'Vergleichstyp: horizontal, vertikal oder diagonal')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <select value={matchType} onChange={(e) => setMatchType(e.target.value)}>
               <option value="h">Horizontal</option>
               <option value="v">Vertikal</option>
