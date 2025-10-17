@@ -10,6 +10,7 @@ import storyboard4 from '../assets/storyboard-scribble-4.svg';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import Icon from '../components/Icon';
 
 // Funktion zur Extraktion der Brennweite aus dem Objektiv-Modell
 const extractFocalLengthFromLens = (lensModel) => {
@@ -357,7 +358,7 @@ const ShotList = () => {
     <div className="shot-list-page">
       <div className="header">
         <div className="header-content">
-  <h1>{t('nav.shots')}</h1>
+  <h1 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{t('nav.shots')} <span title="Übersicht aller Shots im Projekt"><Icon name="info" size={16} /></span></h1>
           <p className="subtitle">{filteredShots.length} {t('common.of')} {shots.length} {t('shot.plural')}</p>
           <p className="subtitle" style={{ opacity: 0.8 }}>
             {currentUser ? `${t('auth.currentUser', 'Angemeldet als')}: ${currentUser.name}` : t('auth.notLoggedIn', 'Nicht angemeldet')}
@@ -487,41 +488,41 @@ const ShotList = () => {
               <div className="shot-details">
                 {shot.createdBy && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('user.createdBy', 'Erstellt von')}:</span>
+                    <span className="detail-label">{t('user.createdBy', 'Erstellt von')} <span title="Ersteller des Shots"><Icon name="info" size={14} /></span>:</span>
                     <span className="detail-value">{shot.createdBy}</span>
                   </div>
                 )}
                 <div className="detail-item">
-                  <span className="detail-label">{t('shot.setupCount')}:</span>
+                  <span className="detail-label">{t('shot.setupCount')} <span title="Anzahl der Kamera-Setups"><Icon name="info" size={14} /></span>:</span>
                   <span className="detail-value">{setupCount}</span>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-label">{t('camera.model')}:</span>
+                  <span className="detail-label">{t('camera.model')} <span title="Kameramodell des Shots"><Icon name="info" size={14} /></span>:</span>
                   <span className="detail-value">{shot.cameraSettings?.model || t('common.notAvailable')}</span>
                 </div>
                 
                 {lensManufacturer && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('lens.manufacturer')}:</span>
+                    <span className="detail-label">{t('lens.manufacturer')} <span title="Objektivhersteller"><Icon name="info" size={14} /></span>:</span>
                     <span className="detail-value">{lensManufacturer}</span>
                   </div>
                 )}
                 
                 <div className="detail-item">
-                  <span className="detail-label">{t('lens.lens')}:</span>
+                  <span className="detail-label">{t('lens.lens')} <span title="Objektivbezeichnung"><Icon name="info" size={14} /></span>:</span>
                   <span className="detail-value">{shot.cameraSettings?.lens || t('common.notAvailable')}</span>
                 </div>
                 
                 {displayFocalLength && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('lens.focalLength')}:</span>
+                    <span className="detail-label">{t('lens.focalLength')} <span title="Brennweite des Objektivs"><Icon name="info" size={14} /></span>:</span>
                     <span className="detail-value">{displayFocalLength}</span>
                   </div>
                 )}
                 
                 {shot.notes && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('common.notes')}:</span>
+                    <span className="detail-label">{t('common.notes')} <span title="Zusätzliche Notizen zum Shot"><Icon name="info" size={14} /></span>:</span>
                     <span className="detail-value">{shot.notes}</span>
                   </div>
                 )}
