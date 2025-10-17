@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import './Notes.css';
+import DrawingCanvas from '../components/DrawingCanvas';
 
 const Notes = () => {
   const { t } = useLanguage();
@@ -12,6 +13,7 @@ const Notes = () => {
 
   const [newNote, setNewNote] = useState({ title: '', content: '', tags: '' });
   const [filter, setFilter] = useState('');
+  const [canvasImage, setCanvasImage] = useState(null);
 
   const handleAddNote = () => {
     if (newNote.title.trim() === '' || newNote.content.trim() === '') return;
@@ -25,11 +27,13 @@ const Notes = () => {
         title: newNote.title,
         content: newNote.content,
         date: new Date().toISOString().split('T')[0],
-        tags: tagsArray
+        tags: tagsArray,
+        imageDataUrl: canvasImage || null,
       }
     ]);
     
     setNewNote({ title: '', content: '', tags: '' });
+    setCanvasImage(null);
   };
 
   const handleNoteChange = (e) => {
@@ -102,6 +106,11 @@ const Notes = () => {
             </div>
             <div className="note-date">{note.date}</div>
             <div className="note-content">{note.content}</div>
+            {note.imageDataUrl && (
+              <div className="note-image" style={{ marginTop: 8 }}>
+                <img src={note.imageDataUrl} alt="Skizze" style={{ maxWidth: '100%', borderRadius: 8 }} />
+              </div>
+            )}
             {note.tags.length > 0 && (
               <div className="note-tags">
                 {note.tags.map(tag => (
@@ -115,6 +124,15 @@ const Notes = () => {
       
       <div className="add-note card">
         <h2>{t('shot.newNote')}</h2>
+
+        <DrawingCanvas onSave={(url) => setCanvasImage(url)} width={800} height={400} />
+        {canvasImage && (
+          <div style={{ marginBottom: 12 }}>
+            <strong>Skizzen‑Vorschau</strong>
+            <img src={canvasImage} alt="Skizze" style={{ maxWidth: '100%', borderRadius: 8, marginTop: 8 }} />
+          </div>
+        )}
+
         <div className="form-group">
           <label>{t('notes.titleLabel')}:</label>
           <input 
