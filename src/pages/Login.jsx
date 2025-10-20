@@ -175,16 +175,17 @@ const Login = () => {
             <Link to="/accept-invite" className="btn-link" style={{ marginLeft: 8 }}>Einladungslink öffnen</Link>
           </div>
         </form>
+        <div style={{ marginTop: 8 }}>
+          <button className="btn-link" onClick={handleResend} disabled={resendLoading || !loginEmail}>
+            {resendLoading ? 'Sende erneut…' : 'Bestätigungslink erneut senden'}
+          </button>
+          <small style={{ display: 'block', marginTop: 4, color: 'var(--text-muted, #666)' }}>
+            Trage oben deine E‑Mail ein, damit wir den Link senden.
+          </small>
+        </div>
         {error && (
           <div style={{ marginTop: 8 }}>
             <p className="error-text" style={{ margin: 0 }}>{error}</p>
-            {error.includes('E‑Mail bestätigen') && (
-              <div style={{ marginTop: 8 }}>
-                <button className="btn-link" onClick={handleResend} disabled={resendLoading || !loginEmail}>
-                  {resendLoading ? 'Sende erneut…' : 'E‑Mail erneut senden'}
-                </button>
-              </div>
-            )}
           </div>
         )}
         {verifyInfo && (
