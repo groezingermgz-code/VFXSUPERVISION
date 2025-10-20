@@ -26,6 +26,8 @@ app.use(cors({
     // Produktion: der-automat.com
     'https://www.der-automat.com',
     'http://www.der-automat.com',
+    'https://der-automat.com',
+    'http://der-automat.com',
   ],
   credentials: false,
 }));
