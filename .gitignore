@@ -3,3 +3,10 @@
 node_modules
 dist/
 backups/
+
+# Backup archives
+backup-*.zip
+
+# Python virtual environments
+.venv/
+bridge/insta360-python/.venv/
