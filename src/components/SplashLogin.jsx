@@ -6,7 +6,7 @@ const SPLASH_KEY = 'splashLoginSeen';
 
 const SplashLogin = () => {
   const { t } = useLanguage();
-  const { currentUser, login, users } = useAuth();
+  const { currentUser, login, users = [] } = useAuth();
   const [visible, setVisible] = useState(() => {
     try {
       return localStorage.getItem(SPLASH_KEY) !== 'true';

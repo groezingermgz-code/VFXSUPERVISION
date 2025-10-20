@@ -279,13 +279,17 @@
 }
 
 .action-btn {
-  padding: 10px 20px;
-  border-radius: 8px;
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
+  border-radius: var(--btn-radius);
   text-decoration: none;
   font-weight: 600;
   font-size: 0.9rem;
   transition: all 0.3s ease;
   border: 2px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .action-btn.primary {

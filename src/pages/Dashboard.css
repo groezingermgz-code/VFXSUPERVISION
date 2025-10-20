@@ -692,3 +692,110 @@
   text-overflow: ellipsis;
   color: var(--text-secondary, #666);
 }
+
+/* Projekt-Vorschaubild */
+.project-thumbnail {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 8px;
+  background: var(--light-gray);
+  margin-bottom: 0.75rem;
+}
+
+.project-thumbnail img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* etwas Abstand unter dem Header, wenn ein Thumbnail vorhanden ist */
+.project-card .project-header {
+  margin-top: 0.25rem;
+}
+
+/* Bild-Dropzone */
+.image-dropzone {
+  border: 2px dashed var(--border-color);
+  border-radius: 8px;
+  padding: 12px;
+  background: var(--card-bg);
+  color: var(--text-secondary);
+  text-align: center;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+.image-dropzone.drag-over {
+  border-color: var(--project-accent-color, var(--primary-color));
+  background: rgba(74, 144, 226, 0.08);
+}
+.image-dropzone input[type="file"] {
+  display: inline-block;
+  margin-top: 8px;
+}
+
+/* Cropper Modal */
+.image-editor-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+.image-editor-modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: min(900px, 95vw);
+  max-width: 900px;
+  padding: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  color: var(--text-color);
+}
+.crop-stage {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--light-gray);
+  overflow: hidden;
+  border-radius: 8px;
+  cursor: grab;
+}
+.crop-stage:active {
+  cursor: grabbing;
+}
+.grid-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.grid-line {
+  position: absolute;
+  background: rgba(255, 255, 255, 0.4);
+}
+.grid-line.vertical {
+  width: 1px;
+  top: 0;
+  bottom: 0;
+}
+.grid-line.horizontal {
+  height: 1px;
+  left: 0;
+  right: 0;
+}
+.crop-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+.crop-controls input[type="range"] {
+  flex: 1;
+}
+.crop-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

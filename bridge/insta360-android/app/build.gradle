@@ -1,0 +1,47 @@
+plugins {
+  id 'com.android.application'
+  id 'org.jetbrains.kotlin.android'
+}
+
+android {
+  namespace 'com.example.insta360bridge'
+  compileSdk 34
+
+  defaultConfig {
+    applicationId 'com.example.insta360bridge'
+    minSdk 24
+    targetSdk 34
+    versionCode 1
+    versionName "0.1.0"
+  }
+
+  buildTypes {
+    release {
+      minifyEnabled false
+      proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+    }
+  }
+
+  buildFeatures {
+    compose true
+  }
+  composeOptions {
+    kotlinCompilerExtensionVersion '1.5.14'
+  }
+}
+
+dependencies {
+  implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.9.24'
+  implementation 'androidx.core:core-ktx:1.13.1'
+  implementation 'androidx.appcompat:appcompat:1.7.0'
+  implementation 'com.google.android.material:material:1.12.0'
+  // Compose
+  implementation platform('androidx.compose:compose-bom:2024.10.00')
+  implementation 'androidx.compose.ui:ui'
+  implementation 'androidx.compose.material3:material3'
+  implementation 'androidx.activity:activity-compose:1.9.3'
+  // Embedded NanoHTTPD for lightweight HTTP server
+  implementation 'org.nanohttpd:nanohttpd:2.3.1'
+  // Insta360 SDK AARs: place in app/libs and add here (example)
+  // implementation files('libs/insta360-camera-sdk.aar')
+}

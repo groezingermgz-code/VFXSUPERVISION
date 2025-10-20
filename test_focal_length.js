@@ -3,7 +3,8 @@ const extractFocalLengthFromLens = (lensModel) => {
   if (!lensModel) return '';
   
   const patterns = [
-    /(\d+)-(\d+)mm/i,
+    /(\d+)\s*[-–—]\s*(\d+)\s*mm/i,
+    /(\d+)\s*(?:bis|to)\s*(\d+)\s*mm/i,
     /(\d+)mm\s+T\d+(?:\.\d+)?/i,
     /(\d+)mm\s+Macro/i,
     /(\d+)mm\s+T\d+(?:\.\d+)?\s*\([^)]+\)/i,
@@ -33,7 +34,14 @@ const testLenses = [
   'Sony FE 85mm f/1.4 GM',
   'Canon EF 100mm f/2.8L Macro IS USM',
   'Hawk V-Lite 28mm T2.2 (2x)',
-  'Angenieux Optimo Anamorphic 30-72mm T4'
+  'Angenieux Optimo Anamorphic 30-72mm T4',
+  // Neue Fälle
+  'Canon EF 24 – 70 mm f/2.8L II USM',
+  'Zeiss 24 — 70 mm T2.8',
+  'Tokina 24 bis 70 mm f/2.8',
+  'Sigma 24 to 70mm f/2.8',
+  'Canon EF 100 mm Macro',
+  'Zeiss 50mm T1.4 (FF)'
 ];
 
 console.log('Test der Brennweiten-Extraktion:');

@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import {
   getManufacturers,
@@ -66,6 +66,11 @@ const parseARtoNumber = (arString) => {
 
 const CameraFormatAudit = () => {
   const { t } = useLanguage();
+  const [manufacturerFilter, setManufacturerFilter] = useState('');
+  const [modelFilter, setModelFilter] = useState('');
+  const [onlyIssues, setOnlyIssues] = useState(false);
+  // Codec filter state
+  const [codecFilter, setCodecFilter] = useState('');
 
   const rows = useMemo(() => {
     const out = [];
@@ -150,18 +155,59 @@ const CameraFormatAudit = () => {
     return out;
   }, []);
 
+  const manufacturersList = useMemo(() => Array.from(new Set(rows.map(r => r.manufacturer))).sort(), [rows]);
+  const modelsList = useMemo(() => {
+    const s = new Set(rows.filter(r => !manufacturerFilter || r.manufacturer === manufacturerFilter).map(r => r.model));
+    return Array.from(s).sort();
+  }, [rows, manufacturerFilter]);
+
+  // Build codec list (respect current manufacturer/model filters)
+  const codecsList = useMemo(() => {
+    const base = rows.filter(r => (!manufacturerFilter || r.manufacturer === manufacturerFilter) && (!modelFilter || r.model === modelFilter));
+    const set = new Set();
+    base.forEach(r => (r.codecs || []).forEach(c => set.add(c)));
+    return Array.from(set).sort();
+  }, [rows, manufacturerFilter, modelFilter]);
+
+  // Matching logic: BRAW variants vs generic
+  const matchesCodec = (rowCodecs, selected) => {
+    if (!selected) return true;
+    const list = rowCodecs || [];
+    const sel = String(selected).trim();
+    if (sel.includes('Blackmagic RAW')) {
+      const isVariant = /\(CBR|\(CQ/.test(sel);
+      if (isVariant) {
+        // Match this specific variant, generic BRAW, or any BRAW variant listed
+        return list.some(c => c === sel || c === 'Blackmagic RAW' || c.startsWith('Blackmagic RAW ('));
+      }
+      // Generic selected: match any BRAW
+      return list.some(c => c === 'Blackmagic RAW' || c.startsWith('Blackmagic RAW ('));
+    }
+    // Exact match for non-BRAW codecs
+    return list.includes(sel);
+  };
+
+  const filteredRows = useMemo(() => {
+    let base = rows;
+    if (manufacturerFilter) base = base.filter(r => r.manufacturer === manufacturerFilter);
+    if (modelFilter) base = base.filter(r => r.model === modelFilter);
+    if (codecFilter) base = base.filter(r => matchesCodec(r.codecs, codecFilter));
+    if (onlyIssues) base = base.filter(r => r.flags.pxMissing || r.flags.mmMissing || r.flags.mmMismatch || r.flags.arRecordedMismatch);
+    return base;
+  }, [rows, manufacturerFilter, modelFilter, codecFilter, onlyIssues]);
+
   const summary = useMemo(() => {
-    const total = rows.length;
-    const issues = rows.filter(r => r.flags.pxMissing || r.flags.mmMissing || r.flags.mmMismatch || r.flags.arRecordedMismatch).length;
+    const total = filteredRows.length;
+    const issues = filteredRows.filter(r => r.flags.pxMissing || r.flags.mmMissing || r.flags.mmMismatch || r.flags.arRecordedMismatch).length;
     const byManufacturer = {};
-    for (const r of rows) {
+    for (const r of filteredRows) {
       const key = r.manufacturer;
       byManufacturer[key] = byManufacturer[key] || { total: 0, issues: 0 };
       byManufacturer[key].total += 1;
       if (r.flags.pxMissing || r.flags.mmMissing || r.flags.mmMismatch || r.flags.arRecordedMismatch) byManufacturer[key].issues += 1;
     }
     return { total, issues, byManufacturer };
-  }, [rows]);
+  }, [filteredRows]);
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -173,9 +219,38 @@ const CameraFormatAudit = () => {
       </div>
 
       <div className="card" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
           <div><strong>Gesamt:</strong> {summary.total}</div>
           <div><strong>Auffällige Einträge:</strong> {summary.issues}</div>
+
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Hersteller:
+              <select value={manufacturerFilter} onChange={(e) => setManufacturerFilter(e.target.value)}>
+                <option value="">Alle Hersteller</option>
+                {manufacturersList.map((m) => (<option key={m} value={m}>{m}</option>))}
+              </select>
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Modell:
+              <select value={modelFilter} onChange={(e) => setModelFilter(e.target.value)} disabled={!manufacturerFilter && modelsList.length === 0}>
+                <option value="">Alle Modelle</option>
+                {modelsList.map((md) => (<option key={md} value={md}>{md}</option>))}
+              </select>
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              Codec:
+              <select value={codecFilter} onChange={(e) => setCodecFilter(e.target.value)} disabled={codecsList.length === 0}>
+                <option value="">Alle Codecs</option>
+                {codecsList.map((c) => (<option key={c} value={c}>{c}</option>))}
+              </select>
+            </label>
+          </div>
+
+          <label style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <input type="checkbox" checked={onlyIssues} onChange={(e) => setOnlyIssues(e.target.checked)} />
+            Nur Auffällige
+          </label>
         </div>
         <div style={{ marginTop: 8, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8 }}>
           {Object.keys(summary.byManufacturer).sort().map((m) => (
@@ -206,7 +281,7 @@ const CameraFormatAudit = () => {
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, idx) => {
+            {filteredRows.map((r, idx) => {
               const warn = r.flags.pxMissing || r.flags.mmMissing || r.flags.mmMismatch || r.flags.arRecordedMismatch;
               const bg = warn ? 'rgba(231, 76, 60, 0.12)' : 'transparent';
               const codecsStr = (r.codecs && r.codecs.length) ? r.codecs.join(', ') : 'N/V';

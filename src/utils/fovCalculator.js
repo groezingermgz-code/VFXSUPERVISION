@@ -1,5 +1,6 @@
 // Field of View (FOV) Berechnungsutilities
 import { getSensorSizeByFormat } from '../data/cameraDatabase';
+import { getLensManufacturers } from '../data/lensDatabase';
 
 /**
  * Extrahiert die Brennweite aus einem Objektivnamen
@@ -8,22 +9,32 @@ import { getSensorSizeByFormat } from '../data/cameraDatabase';
  */
 export const extractFocalLength = (lensName) => {
   if (!lensName) return null;
-  
-  // Regex für verschiedene Brennweiten-Formate
+
+  // Robustere Extraktion: unterstützt Bereiche, T‑Stops, Macro und Varianten
   const patterns = [
-    /(\d+)mm/i,           // z.B. "50mm"
-    /(\d+)-\d+mm/i,       // z.B. "24-70mm" (nimmt die erste Zahl)
-    /(\d+)\.?\d*mm/i      // z.B. "85.5mm"
+    // Zoom-Bereich: „24-70mm“, „16 – 35 mm“
+    /(\d+(?:\.\d+)?)\s*[-–—]\s*(\d+(?:\.\d+)?)\s*mm/i,
+    // Zoom-Bereich mit Worten: „24 bis 70 mm“, „24 to 70mm“
+    /(\d+(?:\.\d+)?)\s*(?:bis|to)\s*(\d+(?:\.\d+)?)\s*mm/i,
+    // Einzelbrennweite mit T‑Stop: „50mm T1.4“, „25 mm T2.1“
+    /(\d+(?:\.\d+)?)\s*mm\s*T\d+(?:\.\d+)?/i,
+    // Einzelbrennweite mit Macro: „100mm Macro“
+    /(\d+(?:\.\d+)?)\s*mm\s*Macro/i,
+    // Einzelbrennweite mit Zusätzen in Klammern: „28mm T2.2 (2x)“
+    /(\d+(?:\.\d+)?)\s*mm\s*(?:\([^)]*\))?/i,
   ];
-  
+
   for (const pattern of patterns) {
     const match = lensName.match(pattern);
     if (match) {
+      // Für Bereiche: nimm die erste Zahl als FOV‑Basis
       return parseFloat(match[1]);
     }
   }
-  
-  return null;
+
+  // Fallback: einfache Erkennung
+  const simple = lensName.match(/(\d+(?:\.\d+)?)\s*mm/i);
+  return simple ? parseFloat(simple[1]) : null;
 };
 
 /**
@@ -330,4 +341,49 @@ export const formatFOVDisplay = (fovData) => {
   }
   
   return `${fovData.horizontal}° × ${fovData.vertical}° (${fovData.diagonal}° diagonal)`;
+};
+
+export const extractLensManufacturer = (lensStr, fallbackManufacturer = '') => {
+  const s = typeof lensStr === 'string' ? lensStr.trim() : '';
+  if (!s) return fallbackManufacturer || '';
+  // Spezialfall: DJI X7
+  if (/^X7\b/i.test(s) && fallbackManufacturer === 'DJI') return 'DJI';
+
+  let known = [];
+  try { known = getLensManufacturers() || []; } catch {}
+  const aliases = {
+    'angenieux': 'Angénieux',
+    'angénieux': 'Angénieux',
+    'voigtlander': 'Voigtländer',
+    'voigtländer': 'Voigtländer',
+  };
+
+  const lc = s.toLowerCase();
+
+  // Falls Name mit Zahl beginnt, steht der Hersteller vermutlich nicht vorne
+  if (/^\d|^mm\b/i.test(s)) {
+    for (const k of known) {
+      if (lc.includes(k.toLowerCase())) return k;
+    }
+    for (const [alias, canon] of Object.entries(aliases)) {
+      if (lc.includes(alias)) return canon;
+    }
+    return fallbackManufacturer || '';
+  }
+
+  // Erstes Wort als Kandidat prüfen
+  const firstWord = s.split(/\s+/)[0];
+  const fwLc = firstWord.toLowerCase();
+  if (aliases[fwLc]) return aliases[fwLc];
+  for (const k of known) {
+    if (fwLc === k.toLowerCase()) return k;
+  }
+  // Hersteller irgendwo im Namen
+  for (const k of known) {
+    if (lc.includes(k.toLowerCase())) return k;
+  }
+  for (const [alias, canon] of Object.entries(aliases)) {
+    if (lc.includes(alias)) return canon;
+  }
+  return fallbackManufacturer || '';
 };

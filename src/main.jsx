@@ -4,6 +4,7 @@ import App from './App.jsx'
 import './index.css'
 import { getFormatsByModel, getCodecsByModel, getColorSpacesByModel } from './data/cameraDatabase.js'
 import { getViewerLutsForManufacturer } from './data/lutDatabase.js'
+import { extractLensManufacturer } from './utils/fovCalculator.js'
 
 // Seed/Upgrade: Dummy-Projekt mit vollständigen VFX-Flags, Details und Referenzen (alle Shots)
 (() => {
@@ -177,17 +178,7 @@ import { getViewerLutsForManufacturer } from './data/lutDatabase.js'
       cs.manufacturer = cs.manufacturer || nm.manufacturer;
       cs.model = nm.model;
     
-      // Linsen-Hersteller aus Modell ableiten
-      const extractLensManufacturer = (lensStr, camMfr) => {
-        const lens = String(lensStr || '').trim();
-        if (!lens) return camMfr || 'Unbekannt';
-        const known = ['Zeiss', 'Sigma', 'Canon', 'Sony', 'Cooke', 'Angénieux', 'Angenieux', 'Leica', 'Tokina', 'Tamron'];
-        const first = lens.split(/\s+/)[0];
-        if (known.includes(first)) return first === 'Angenieux' ? 'Angénieux' : first;
-        // Spezialfall DJI X7
-        if (/^X7\b/.test(lens) && camMfr === 'DJI') return 'DJI';
-        return camMfr || 'Unbekannt';
-      };
+
     
       cs.lensManufacturer = cs.lensManufacturer || extractLensManufacturer(cs.lens, cs.manufacturer);
     

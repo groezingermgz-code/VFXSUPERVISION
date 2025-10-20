@@ -10,6 +10,10 @@
   --text-secondary: #666;
   --sidebar-width: 250px;
   --sidebar-collapsed-width: 64px;
+  /* Globale Button-Variablen */
+  --btn-height: 40px;
+  --btn-padding-x: 16px;
+  --btn-radius: 8px;
 }
 
 * {
@@ -37,11 +41,15 @@ body {
 button {
   cursor: pointer;
   border: none;
-  border-radius: 8px;
-  padding: 12px 24px;
+  border-radius: var(--btn-radius);
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
   font-size: 16px;
   font-weight: 600;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .btn-primary {

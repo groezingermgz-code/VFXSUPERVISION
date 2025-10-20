@@ -1,16 +1,24 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import './Settings.css';
+import Icon from '../components/Icon';
 import { saveAllDataToDevice } from '../utils/offlineManager';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   syncToDropbox, 
   syncToS3Presigned, 
   syncToWebDAV,
+  syncToOwnCloud,
+  syncToNextcloud,
   syncToGCSignedUrl,
   syncToAzureBlobSAS,
   syncToGoogleDrive,
   syncToOneDrive,
-  syncToGenericHTTP
+  syncToGenericHTTP,
+  downloadFromNextcloud,
+  downloadFromWebDAV,
+  downloadFromOwnCloud,
+  getCloudAutoSyncConfig
 } from '../utils/cloudSyncManager';
 import { 
   listVersions,
@@ -29,6 +37,7 @@ import {
 const Settings = ({ darkMode, toggleDarkMode }) => {
   const { language, setLanguage, t } = useLanguage();
   const locale = language === 'de' ? 'de-DE' : language === 'en' ? 'en-US' : language === 'fr' ? 'fr-FR' : language === 'es' ? 'es-ES' : 'de-DE';
+  const { authFetch, currentUser } = useAuth();
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState(null);
@@ -56,6 +65,48 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
   const [odPath, setOdPath] = useState('/vfx-supervision/snapshot.json');
   const [genericMethod, setGenericMethod] = useState('PUT');
   const [genericHeaders, setGenericHeaders] = useState('');
+  // OwnCloud (WebDAV) States
+  const [ocServerUrl, setOcServerUrl] = useState('');
+  const [ocUser, setOcUser] = useState('');
+  const [ocPass, setOcPass] = useState('');
+  const [ocPath, setOcPath] = useState('/vfx-supervision/snapshot.json');
+  // Nextcloud (WebDAV) States
+  const [ncServerUrl, setNcServerUrl] = useState('');
+  const [ncUser, setNcUser] = useState('');
+  const [ncPass, setNcPass] = useState('');
+  const [ncPath, setNcPath] = useState('/vfx-supervision/snapshot.json');
+  // Auto Cloud Sync (persisted)
+  const initialAutoCfg = getCloudAutoSyncConfig();
+  const [autoCloudEnabled, setAutoCloudEnabled] = useState(initialAutoCfg?.enabled || false);
+  const [autoCloudInterval, setAutoCloudInterval] = useState(initialAutoCfg?.intervalMinutes || 30);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await authFetch('/config/cloud', { method: 'GET' });
+        if (!res || !res.ok) return;
+        const cfg = await res.json();
+        if (cancelled) return;
+        setAutoCloudEnabled(!!cfg.enabled);
+        setAutoCloudInterval(cfg.intervalMinutes || 30);
+        if (cfg.provider) setProvider(cfg.provider);
+        const c = cfg.config || {};
+        if (cfg.provider === 'webdav') { setWdBaseUrl(c.baseUrl || ''); setWdUser(c.username || ''); setWdPass(c.password || ''); setWdPath(c.path || '/vfx-supervision/snapshot.json'); }
+        else if (cfg.provider === 'owncloud') { setOcServerUrl(c.serverUrl || ''); setOcUser(c.username || ''); setOcPass(c.password || ''); setOcPath(c.path || '/vfx-supervision/snapshot.json'); }
+        else if (cfg.provider === 'nextcloud') { setNcServerUrl(c.serverUrl || ''); setNcUser(c.username || ''); setNcPass(c.password || ''); setNcPath(c.path || '/vfx-supervision/snapshot.json'); }
+        else if (cfg.provider === 'dropbox') { setDbxToken(c.accessToken || ''); setDbxPath(c.path || '/vfx-supervision/snapshot.json'); }
+        else if (cfg.provider === 'google-drive') { setGdToken(c.accessToken || ''); setGdFolderId(c.folderId || ''); }
+        else if (cfg.provider === 'onedrive') { setOdToken(c.accessToken || ''); setOdPath(c.path || '/vfx-supervision/snapshot.json'); }
+        else if (cfg.provider === 's3' || cfg.provider === 'gcs' || cfg.provider === 'azure-blob') { setS3Url(c.presignedUrl || c.signedUrl || c.sasUrl || ''); }
+        else if (cfg.provider === 'generic-http') { setS3Url(c.url || ''); setGenericMethod(c.method || 'PUT'); setGenericHeaders(c.headers ? JSON.stringify(c.headers) : ''); }
+        try {
+          localStorage.setItem('cloud_auto_sync_config', JSON.stringify({ ...cfg, ownerUserId: currentUser?.id || null }));
+        } catch {}
+      } catch {}
+    })();
+    return () => { cancelled = true; };
+  }, [authFetch, currentUser?.id]);
 
   const handleSaveOffline = async () => {
     setSaving(true);
@@ -86,6 +137,10 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         res = await syncToAzureBlobSAS({ sasUrl: s3Url });
       } else if (provider === 'webdav') {
         res = await syncToWebDAV({ baseUrl: wdBaseUrl, username: wdUser, password: wdPass, path: wdPath });
+      } else if (provider === 'owncloud') {
+        res = await syncToOwnCloud({ serverUrl: ocServerUrl, username: ocUser, password: ocPass, path: ocPath });
+      } else if (provider === 'nextcloud') {
+        res = await syncToNextcloud({ serverUrl: ncServerUrl, username: ncUser, password: ncPass, path: ncPath });
       } else if (provider === 'google-drive') {
         res = await syncToGoogleDrive({ accessToken: gdToken, folderId: gdFolderId });
       } else if (provider === 'onedrive') {
@@ -104,6 +159,44 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
     }
   };
 
+  const handleCloudDownload = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      if (provider === 'nextcloud') {
+        const text = await downloadFromNextcloud({ serverUrl: ncServerUrl, username: ncUser, password: ncPass, path: ncPath });
+        await importSnapshotFromText(text, { saveVersion: true, note: 'Cloud Import (Nextcloud)' });
+        const snap = JSON.parse(text);
+        const projectsCount = Array.isArray(snap.projects) ? snap.projects.length : 0;
+        const shotsCount = (snap.projects || []).reduce((acc, p) => acc + ((p.shots || []).length), 0);
+        const shotFilesCount = Array.isArray(snap.shotFiles) ? snap.shotFiles.length : 0;
+        setResult({ ...(result || {}), cloudDownload: { provider, projectsCount, shotsCount, shotFilesCount } });
+      } else if (provider === 'owncloud') {
+        const text = await downloadFromOwnCloud({ serverUrl: ocServerUrl, username: ocUser, password: ocPass, path: ocPath });
+        await importSnapshotFromText(text, { saveVersion: true, note: 'Cloud Import (OwnCloud)' });
+        const snap = JSON.parse(text);
+        const projectsCount = Array.isArray(snap.projects) ? snap.projects.length : 0;
+        const shotsCount = (snap.projects || []).reduce((acc, p) => acc + ((p.shots || []).length), 0);
+        const shotFilesCount = Array.isArray(snap.shotFiles) ? snap.shotFiles.length : 0;
+        setResult({ ...(result || {}), cloudDownload: { provider, projectsCount, shotsCount, shotFilesCount } });
+      } else if (provider === 'webdav') {
+        const text = await downloadFromWebDAV({ baseUrl: wdBaseUrl, username: wdUser, password: wdPass, path: wdPath });
+        await importSnapshotFromText(text, { saveVersion: true, note: 'Cloud Import (WebDAV)' });
+        const snap = JSON.parse(text);
+        const projectsCount = Array.isArray(snap.projects) ? snap.projects.length : 0;
+        const shotsCount = (snap.projects || []).reduce((acc, p) => acc + ((p.shots || []).length), 0);
+        const shotFilesCount = Array.isArray(snap.shotFiles) ? snap.shotFiles.length : 0;
+        setResult({ ...(result || {}), cloudDownload: { provider, projectsCount, shotsCount, shotFilesCount } });
+      } else {
+        throw new Error('Cloud‑Download wird für den ausgewählten Provider noch nicht unterstützt.');
+      }
+    } catch (e) {
+      console.error('Cloud Download fehlgeschlagen:', e);
+      setError(e.message || 'Cloud Download fehlgeschlagen. Bitte prüfen.');
+    } finally {
+      setSaving(false);
+    }
+  };
   const refreshVersions = () => setVersions(listVersions());
 
   const handleCreateBackup = async () => {
@@ -137,6 +230,73 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
     setDailyBackupEnabled(enabled);
     setDailyBackupEnabledState(enabled);
     setLastDailyBackupAtState(getLastDailyBackupAt());
+  };
+
+  // Auto Cloud Sync Handlers
+  const handleToggleAutoCloud = (e) => {
+    const enabled = e.target.checked;
+    setAutoCloudEnabled(enabled);
+  };
+
+  const applyAutoCloudConfig = async () => {
+    setSaving(true);
+    setError(null);
+    try {
+      let config = {};
+      if (provider === 'dropbox') {
+        config = { accessToken: dbxToken, path: dbxPath };
+      } else if (provider === 's3') {
+        config = { presignedUrl: s3Url };
+      } else if (provider === 'gcs') {
+        config = { signedUrl: s3Url };
+      } else if (provider === 'azure-blob') {
+        config = { sasUrl: s3Url };
+      } else if (provider === 'webdav') {
+        config = { baseUrl: wdBaseUrl, username: wdUser, password: wdPass, path: wdPath };
+      } else if (provider === 'owncloud') {
+        config = { serverUrl: ocServerUrl, username: ocUser, password: ocPass, path: ocPath };
+      } else if (provider === 'nextcloud') {
+        config = { serverUrl: ncServerUrl, username: ncUser, password: ncPass, path: ncPath };
+      } else if (provider === 'google-drive') {
+        config = { accessToken: gdToken, folderId: gdFolderId };
+      } else if (provider === 'onedrive') {
+        config = { accessToken: odToken, path: odPath };
+      } else if (provider === 'generic-http') {
+        let headersObj = {};
+        try { headersObj = genericHeaders ? JSON.parse(genericHeaders) : {}; } catch (e) { /* ignore parse error */ }
+        config = { url: s3Url, method: genericMethod, headers: headersObj };
+      }
+
+      const res = await authFetch('/config/cloud', {
+        method: 'PUT',
+        body: JSON.stringify({
+          enabled: autoCloudEnabled,
+          intervalMinutes: Math.max(5, Number(autoCloudInterval || 30)),
+          provider,
+          config,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Server Fehler beim Speichern');
+      }
+      const data = await res.json();
+      try {
+        localStorage.setItem('cloud_auto_sync_config', JSON.stringify({
+          enabled: autoCloudEnabled,
+          intervalMinutes: Math.max(5, Number(autoCloudInterval || 30)),
+          provider,
+          config,
+          ownerUserId: currentUser?.id || null,
+          updatedAt: data.updatedAt,
+        }));
+      } catch {}
+      setResult({ ...(result || {}), cloudAutoSync: { provider, intervalMinutes: Math.max(5, Number(autoCloudInterval || 30)) } });
+    } catch (e) {
+      setError(e.message || 'Konfiguration konnte nicht gespeichert werden.');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleRestoreVersion = async (id) => {
@@ -179,16 +339,19 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       <h1>{t('nav.settings')}</h1>
 
       <div className="settings-card card">
-        <h2>{t('settings.appearance')}</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {t('settings.appearance')}
+          <span title="Oberfläche und Sprache konfigurieren."><Icon name="info" size={16} /></span>
+        </h2>
         <div className="setting-item">
           <label>
             <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} />
-            Dark Mode
+            Dark Mode <span title="Schaltet die dunkle Oberfläche ein/aus."><Icon name="info" size={14} /></span>
           </label>
         </div>
         <div className="setting-item">
           <label>
-            {t('settings.language')}
+            {t('settings.language')} <span title="Wähle die Anwendungs‑Sprache; betrifft Labels und Texte."><Icon name="info" size={14} /></span>
             <select
               style={{ marginLeft: '8px' }}
               value={language}
@@ -204,7 +367,10 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       </div>
 
       <div className="settings-card card">
-        <h2>{t('settings.offline')}</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {t('settings.offline')}
+          <span title="Sichert Daten lokal für Offline‑Verfügbarkeit; geeignet für Set‑Einsatz."><Icon name="info" size={16} /></span>
+        </h2>
         <p>{t('settings.offlineDescription')}</p>
         <button
           className="btn-primary"
@@ -225,17 +391,25 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       </div>
 
       <div className="settings-card card">
-        <h2>{t('settings.cloudSync.title')}</h2>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {t('settings.cloudSync.title')}
+          <span title="Synchronisiere Snapshots mit Cloud‑Anbietern (Dropbox, S3, WebDAV, u.a.)."><Icon name="info" size={16} /></span>
+        </h2>
         <p>{t('settings.cloudSync.description')}</p>
         <div className="form-row">
           <div className="form-group">
-            <label>{t('settings.cloudSync.providerLabel')}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {t('settings.cloudSync.providerLabel')}
+              <span title="Wähle den Anbieter für Cloud‑Synchronisierung."><Icon name="info" size={14} /></span>
+            </label>
             <select value={provider} onChange={(e) => setProvider(e.target.value)}>
               <option value="dropbox">Dropbox</option>
               <option value="s3">AWS S3 (Presigned URL)</option>
               <option value="gcs">Google Cloud Storage (Signed URL)</option>
               <option value="azure-blob">Azure Blob (SAS URL)</option>
               <option value="webdav">WebDAV</option>
+              <option value="owncloud">OwnCloud (WebDAV)</option>
+              <option value="nextcloud">Nextcloud (WebDAV)</option>
               <option value="google-drive">Google Drive (OAuth Token)</option>
               <option value="onedrive">OneDrive (OAuth Token)</option>
               <option value="generic-http">{t('settings.cloudSync.options.genericHttp')}</option>
@@ -308,6 +482,62 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
           </>
         )}
 
+        {provider === 'owncloud' && (
+          <>
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.baseUrl')}</label>
+                <input type="text" value={ocServerUrl} onChange={(e) => setOcServerUrl(e.target.value)} placeholder="https://cloud.example.com" />
+              </div>
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.username')}</label>
+                <input type="text" value={ocUser} onChange={(e) => setOcUser(e.target.value)} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.passwordToken')}</label>
+                <input type="password" value={ocPass} onChange={(e) => setOcPass(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.filePath')}</label>
+                <input type="text" value={ocPath} onChange={(e) => setOcPath(e.target.value)} placeholder="/vfx-supervision/snapshot.json" />
+              </div>
+            </div>
+            <p style={{ fontSize: '12px', opacity: 0.8 }}>
+              Hinweis: Pfad wird als /remote.php/dav/files/{ocUser}{ocPath} aufgebaut.
+            </p>
+          </>
+        )}
+
+        {provider === 'nextcloud' && (
+          <>
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.baseUrl')}</label>
+                <input type="text" value={ncServerUrl} onChange={(e) => setNcServerUrl(e.target.value)} placeholder="https://nextcloud.example.com" />
+              </div>
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.username')}</label>
+                <input type="text" value={ncUser} onChange={(e) => setNcUser(e.target.value)} />
+              </div>
+            </div>
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.passwordToken')}</label>
+                <input type="password" value={ncPass} onChange={(e) => setNcPass(e.target.value)} />
+              </div>
+              <div className="form-group">
+                <label>{t('settings.cloudSync.labels.filePath')}</label>
+                <input type="text" value={ncPath} onChange={(e) => setNcPath(e.target.value)} placeholder="/vfx-supervision/snapshot.json" />
+              </div>
+            </div>
+            <p style={{ fontSize: '12px', opacity: 0.8 }}>
+              Hinweis: Pfad wird als /remote.php/dav/files/{ncUser}{ncPath} aufgebaut.
+            </p>
+          </>
+        )}
+
         {provider === 'google-drive' && (
           <>
             <div className="form-row">
@@ -369,12 +599,44 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
         <button className="btn-secondary" onClick={handleCloudSync} disabled={saving}>
           {saving ? t('settings.cloudSync.syncing') : t('settings.cloudSync.syncNow')}
         </button>
+        {provider === 'nextcloud' || provider === 'owncloud' || provider === 'webdav' ? (
+          <button className="btn-secondary" onClick={handleCloudDownload} disabled={saving} style={{ marginLeft: 8 }}>
+            {saving ? t('common.loading') : t('settings.cloudSync.downloadNow')}
+          </button>
+        ) : null}
+        <div className="setting-item" style={{ marginTop: 12 }}>
+          <label>
+            <input type="checkbox" checked={autoCloudEnabled} onChange={handleToggleAutoCloud} />
+            {t('settings.cloudSync.autoSync')}
+          </label>
+        </div>
+        <div className="form-row" style={{ gap: '8px' }}>
+          <div className="form-group">
+            <label>{t('settings.cloudSync.intervalMinutes')}</label>
+            <input type="number" min="5" step="5" value={autoCloudInterval} onChange={(e) => setAutoCloudInterval(Number(e.target.value) || 30)} />
+          </div>
+          <button className="btn-secondary" onClick={applyAutoCloudConfig} disabled={saving}>
+            {t('common.save')}
+          </button>
+        </div>
+
         {error && <p className="error-text">{error}</p>}
         {result?.cloudSync && (
           <div className="save-result">
             <p>{t('settings.cloudSync.completedPrefix')} {result.cloudSync.provider}</p>
           </div>
         )}
+        {result?.cloudDownload && (
+          <div className="save-result">
+            <p>{t('settings.versioning.restoredPrefix')} {result.cloudDownload.projectsCount} {t('settings.versioning.projectsLabel')}, {result.cloudDownload.shotsCount} {t('settings.versioning.shotsLabel')}.</p>
+          </div>
+        )}
+        {result?.cloudAutoSync && (
+          <div className="save-result">
+            <p>{t('settings.cloudSync.autoSyncSavedPrefix')} {result.cloudAutoSync.provider} · {result.cloudAutoSync.intervalMinutes} min</p>
+          </div>
+        )}
+
       </div>
 
       <div className="settings-card card">

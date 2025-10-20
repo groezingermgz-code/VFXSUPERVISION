@@ -62,6 +62,58 @@ const paths = {
       <circle cx="12" cy="7.5" r="1" />
     </>
   ),
+  sun: (
+    <>
+      <circle cx="12" cy="12" r="5"></circle>
+      <line x1="12" y1="1" x2="12" y2="3"></line>
+      <line x1="12" y1="21" x2="12" y2="23"></line>
+      <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+      <line x1="1" y1="12" x2="3" y2="12"></line>
+      <line x1="21" y1="12" x2="23" y2="12"></line>
+      <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+      <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+    </>
+  ),
+  zap: (
+    <>
+      <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+    </>
+  ),
+  angle: (
+    <>
+      <line x1="4" y1="20" x2="20" y2="20" />
+      <line x1="4" y1="20" x2="16" y2="8" />
+      <path d="M10 20 A6 6 0 0 1 8.3 15.7" />
+    </>
+  ),
+  message: (
+    <>
+      <circle cx="12" cy="11" r="7" />
+      <polyline points="14.5 17.5 16 22 12 19" />
+    </>
+  ),
+  key: (
+    <>
+      <circle cx="7" cy="12" r="3" />
+      <path d="M10 12h9" />
+      <path d="M19 12v2" />
+      <path d="M17 12v2" />
+    </>
+  ),
+  lens: (
+    <>
+      <circle cx="12" cy="12" r="9" />
+      <circle cx="12" cy="12" r="5.5" />
+      <circle cx="9" cy="9" r="1.5" />
+    </>
+  ),
+  telescope: (
+    <>
+      <circle cx="18" cy="6" r="2" />
+      <line x1="3" y1="11" x2="16" y2="6" />
+    </>
+  ),
 };
 
 const Icon = ({ name, size = 20, strokeWidth = 1.8, className = '' }) => {

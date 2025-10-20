@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLanguage } from '../contexts/LanguageContext';
 
 // Einfache Zeichenfläche mit Maus/Touch, Farb- und Pinselkontrolle,
 // optionalem Hintergrundbild sowie Export als PNG.
@@ -6,13 +7,21 @@ import React, { useEffect, useRef, useState } from 'react';
 // - width, height: gewünschte CSS-Größe der Zeichenfläche
 // - onSave(dataUrl): Callback mit PNG DataURL
 // - initialColor, initialSize: Startwerte für Farbe und Pinselgröße
+// - backgroundImage: optionaler DataURL/String zum Laden als Hintergrund
+// - saveLabel: Label für den Speichern/Anwenden-Button
+// - hideBackgroundUpload: blendet den Upload für Hintergrund aus
 const DrawingCanvas = ({
   width = 800,
   height = 400,
   onSave,
   initialColor = '#ffdd00',
   initialSize = 6,
+  backgroundImage,
+  saveLabel,
+  hideBackgroundUpload = false,
+  actionsPlacement = 'end',
 }) => {
+  const { t } = useLanguage();
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
   const ctxRef = useRef(null);
@@ -28,6 +37,7 @@ const DrawingCanvas = ({
   const [dragStart, setDragStart] = useState(null);
   const [previewShape, setPreviewShape] = useState(null);
   const [textValue, setTextValue] = useState('');
+  const actionsJustify = actionsPlacement === 'start' ? 'flex-start' : actionsPlacement === 'center' ? 'center' : 'flex-end';
 
   const setupCanvas = () => {
     const canvas = canvasRef.current;
@@ -67,43 +77,37 @@ const DrawingCanvas = ({
   };
 
   const drawAction = (ctx, action) => {
-    if (!action) return;
+    if (!ctx || !action) return;
+    ctx.strokeStyle = action.color || color;
+    ctx.fillStyle = action.color || color;
+    ctx.lineWidth = action.size || size;
     if (action.type === 'pen') {
       const pts = action.points || [];
-      if (pts.length < 2) return;
-      ctx.strokeStyle = action.color;
-      ctx.lineWidth = action.size;
-      ctx.lineJoin = 'round';
-      ctx.lineCap = 'round';
-      ctx.beginPath();
-      ctx.moveTo(pts[0].x, pts[0].y);
-      for (let i = 1; i < pts.length; i++) {
-        ctx.lineTo(pts[i].x, pts[i].y);
+      if (pts.length > 1) {
+        ctx.beginPath();
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          ctx.lineTo(pts[i].x, pts[i].y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
-      ctx.closePath();
     } else if (action.type === 'rect') {
-      const { start, end } = action;
-      if (!start || !end) return;
-      ctx.strokeStyle = action.color;
-      ctx.lineWidth = action.size;
-      const x = Math.min(start.x, end.x);
-      const y = Math.min(start.y, end.y);
-      const w = Math.abs(end.x - start.x);
-      const h = Math.abs(end.y - start.y);
-      ctx.strokeRect(x, y, w, h);
+      const start = action.start;
+      const end = action.end;
+      const w = end.x - start.x;
+      const h = end.y - start.y;
+      ctx.strokeRect(start.x, start.y, w, h);
     } else if (action.type === 'arrow') {
-      const { start, end } = action;
-      if (!start || !end) return;
-      ctx.strokeStyle = action.color;
-      ctx.lineWidth = action.size;
+      const start = action.start;
+      const end = action.end;
+      // Linie
       ctx.beginPath();
       ctx.moveTo(start.x, start.y);
       ctx.lineTo(end.x, end.y);
       ctx.stroke();
       // Pfeilspitze
       const angle = Math.atan2(end.y - start.y, end.x - start.x);
-      const headLength = Math.max(8, action.size * 2);
+      const headLength = (action.size || 6) * 4;
       ctx.beginPath();
       ctx.moveTo(end.x, end.y);
       ctx.lineTo(end.x - headLength * Math.cos(angle - Math.PI / 6), end.y - headLength * Math.sin(angle - Math.PI / 6));
@@ -147,6 +151,27 @@ const DrawingCanvas = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [actions, previewShape, bgImageUrl]);
 
+  // Hintergrund aus Prop laden/aktualisieren
+  useEffect(() => {
+    if (backgroundImage === undefined) return; // Prop nicht gesetzt
+    if (backgroundImage) {
+      const img = new Image();
+      img.onload = () => {
+        bgImageRef.current = img;
+        setBgImageUrl(backgroundImage);
+        redrawBackground();
+        redrawAll();
+      };
+      img.src = backgroundImage;
+    } else if (backgroundImage === null) {
+      bgImageRef.current = null;
+      setBgImageUrl(null);
+      redrawBackground();
+      redrawAll();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [backgroundImage]);
+
   // Pointer Handling
   const getPos = (e) => {
     const rect = canvasRef.current.getBoundingClientRect();
@@ -176,7 +201,7 @@ const DrawingCanvas = ({
     } else if (tool === 'text') {
       const text = textValue?.trim() || '';
       if (!text) {
-        const p = window.prompt('Text eingeben');
+        const p = window.prompt(t('notes.canvas.textPrompt'));
         if (!p) return;
         const action = { type: 'text', x, y, text: p, color, size };
         setActions(prev => [...prev, action]);
@@ -273,7 +298,8 @@ const DrawingCanvas = ({
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
-    a.download = `skizze_${Date.now()}.png`;
+    const prefix = t('notes.canvas.filePrefix');
+    a.download = `${prefix}_${Date.now()}.png`;
     a.click();
   };
 
@@ -299,7 +325,8 @@ const DrawingCanvas = ({
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = `skizze_${Date.now()}.json`;
+    const prefix = t('notes.canvas.filePrefix');
+    a.download = `${prefix}_${Date.now()}.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
@@ -329,7 +356,7 @@ const DrawingCanvas = ({
           redrawAll();
         }
       } catch (err) {
-        console.error('Fehler beim Import der JSON:', err);
+        console.error(t('notes.canvas.jsonImportError'), err);
       }
     };
     reader.readAsText(file);
@@ -354,46 +381,41 @@ const DrawingCanvas = ({
   return (
     <div ref={containerRef} className="drawing-canvas card" style={{ padding: '12px' }}>
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
-        <strong>Skizze erstellen</strong>
+        <strong>{t('notes.canvas.createSketch')}</strong>
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          Werkzeug
+          {t('notes.canvas.tool')}
           <select value={tool} onChange={(e) => setTool(e.target.value)}>
-            <option value="pen">Stift</option>
-            <option value="rect">Rechteck</option>
-            <option value="arrow">Pfeil</option>
-            <option value="text">Text</option>
+            <option value="pen">{t('notes.canvas.toolOptions.pen')}</option>
+            <option value="rect">{t('notes.canvas.toolOptions.rect')}</option>
+            <option value="arrow">{t('notes.canvas.toolOptions.arrow')}</option>
+            <option value="text">{t('notes.canvas.toolOptions.text')}</option>
           </select>
         </label>
         {tool === 'text' && (
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            Text
-            <input type="text" placeholder="Text eingeben" value={textValue} onChange={(e) => setTextValue(e.target.value)} />
+            {t('notes.canvas.text')}
+            <input type="text" placeholder={t('notes.canvas.textPlaceholder')} value={textValue} onChange={(e) => setTextValue(e.target.value)} />
           </label>
         )}
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          Farbe
-          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} />
+          {t('notes.canvas.color')}
+          <input type="color" value={color} onChange={(e) => setColor(e.target.value)} style={{ width: 120, height: 28, padding: 0, border: '1px solid var(--border-color)', borderRadius: 6 }} />
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          Pinsel
+          {t('notes.canvas.brush')}
           <input type="range" min={1} max={32} value={size} onChange={(e) => setSize(parseInt(e.target.value, 10))} />
           <span>{size}px</span>
         </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          Hintergrund laden
-          <input type="file" accept="image/*" onChange={handleBgUpload} />
-        </label>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button className="btn-outline" onClick={handleUndo} disabled={actions.length === 0}>Undo</button>
-          <button className="btn-outline" onClick={handleRedo} disabled={redoStack.length === 0}>Redo</button>
-          <button className="btn-outline" onClick={handleClear}>Leeren</button>
-          <button className="btn-outline" onClick={handleDownload}>Als PNG speichern</button>
-          <button className="btn-outline" onClick={handleExportJSON}>Als JSON exportieren</button>
-          <label className="btn-outline" style={{ cursor: 'pointer' }}>
-            JSON importieren
-            <input type="file" accept="application/json" onChange={handleImportJSON} style={{ display: 'none' }} />
+        {!hideBackgroundUpload && (
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            {t('notes.canvas.loadBackground')}
+            <input type="file" accept="image/*" onChange={handleBgUpload} />
           </label>
-          <button className="btn-primary" onClick={handleSaveToNote}>In Notiz übernehmen</button>
+        )}
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button className="btn-primary" onClick={handleSaveToNote} style={{ textAlign: 'center' }}>
+            {saveLabel || t('notes.canvas.applyToNote')}
+          </button>
         </div>
       </div>
       <canvas
@@ -407,6 +429,17 @@ const DrawingCanvas = ({
         onTouchMove={onPointerMove}
         onTouchEnd={onPointerUp}
       />
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: actionsJustify, marginTop: 8 }}>
+        <button className="btn-outline" onClick={handleUndo} disabled={actions.length === 0} style={{ textAlign: 'center' }}>{t('common.undo')}</button>
+        <button className="btn-outline" onClick={handleRedo} disabled={redoStack.length === 0} style={{ textAlign: 'center' }}>{t('common.redo')}</button>
+        <button className="btn-outline" onClick={handleClear} style={{ textAlign: 'center' }}>{t('notes.canvas.clear')}</button>
+        <button className="btn-outline" onClick={handleDownload} style={{ textAlign: 'center' }}>{t('notes.canvas.savePng')}</button>
+        <button className="btn-outline" onClick={handleExportJSON} style={{ textAlign: 'center' }}>{t('notes.canvas.exportJson')}</button>
+        <label className="btn-outline" style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+          {t('notes.canvas.importJson')}
+          <input type="file" accept="application/json" onChange={handleImportJSON} style={{ display: 'none' }} />
+        </label>
+      </div>
     </div>
   );
 };

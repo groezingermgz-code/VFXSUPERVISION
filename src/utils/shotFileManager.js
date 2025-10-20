@@ -74,6 +74,52 @@ export const listShotFiles = () => {
   }
 };
 
+// --- Compact serialization helpers to keep projects lightweight ---
+export const compactShotForIndex = (s) => ({
+  id: s?.id,
+  name: s?.name,
+  description: s?.description,
+  status: s?.status,
+  notes: s?.notes,
+  createdBy: s?.createdBy,
+  // Keep only small summary of camera settings
+  cameraSettings: {
+    manufacturer: s?.cameraSettings?.manufacturer,
+    model: s?.cameraSettings?.model,
+    lensManufacturer: s?.cameraSettings?.lensManufacturer,
+    lens: s?.cameraSettings?.lens,
+    focalLength: s?.cameraSettings?.focalLength,
+    aperture: s?.cameraSettings?.aperture,
+    iso: s?.cameraSettings?.iso,
+    isAnamorphic: s?.cameraSettings?.isAnamorphic,
+  },
+  // Keep minimal arrays so list UI can default to 1 setup
+  additionalCameraSetups: Array.isArray(s?.additionalCameraSetups) ? [] : [],
+  // Deliberately omit heavy fields like previewImage, references, cameraMovement
+  projectId: s?.projectId,
+});
+
+export const compactProjectsForStorage = (projects) => {
+  try {
+    return (projects || []).map(p => ({
+      ...p,
+      shots: Array.isArray(p?.shots) ? p.shots.map(compactShotForIndex) : []
+    }));
+  } catch {
+    return [];
+  }
+};
+
+export const trySetLocalStorage = (key, jsonString) => {
+  try {
+    localStorage.setItem(key, jsonString);
+    return true;
+  } catch (e) {
+    try { console.warn(`localStorage set failed for ${key}:`, e?.name || e); } catch {}
+    return false;
+  }
+};
+
 // Auto-save functionality - immediate saving with full sync
 export const autoSaveShotToFile = (shotId, shotData, delay = 0) => {
   try {
@@ -83,7 +129,7 @@ export const autoSaveShotToFile = (shotId, shotData, delay = 0) => {
     // Also mirror to legacy key for compatibility
     localStorage.setItem(`shot_${shotId}`, JSON.stringify(shotData));
 
-    // Update shot in selected project's shots array
+    // Update shot in selected project's shots array (compact form)
     const savedProjects = localStorage.getItem('projects');
     if (savedProjects) {
       const projects = JSON.parse(savedProjects);
@@ -92,13 +138,19 @@ export const autoSaveShotToFile = (shotId, shotData, delay = 0) => {
         if (project.id === currentProjectId && Array.isArray(project.shots)) {
           const updatedShots = project.shots.map(shot => {
             const match = String(shot.id) === String(shotId);
-            return match ? { ...shot, ...shotData } : shot;
+            const merged = match ? { ...shot, ...shotData } : shot;
+            return compactShotForIndex(merged);
           });
           return { ...project, shots: updatedShots };
         }
-        return project;
+        return { ...project, shots: Array.isArray(project.shots) ? project.shots.map(compactShotForIndex) : project.shots };
       });
-      localStorage.setItem('projects', JSON.stringify(updatedProjects));
+
+      const ok = trySetLocalStorage('projects', JSON.stringify(updatedProjects));
+      if (!ok) {
+        const compact = compactProjectsForStorage(updatedProjects);
+        trySetLocalStorage('projects', JSON.stringify(compact));
+      }
     }
   } catch (error) {
     try { console.error('AutoSave sync error:', error); } catch {}

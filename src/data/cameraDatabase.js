@@ -530,7 +530,20 @@ export const cameraDatabase = {
     models: {
       "URSA Mini Pro 12K": {
         formats: ["12K", "8K", "4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["Blackmagic RAW", "ProRes 422 HQ", "ProRes 422", "DNxHR"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)",
+          "Blackmagic RAW (CBR 8:1)",
+          "Blackmagic RAW (CBR 12:1)",
+          "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)",
+          "Blackmagic RAW (CQ Q1)",
+          "Blackmagic RAW (CQ Q3)",
+          "Blackmagic RAW (CQ Q5)",
+          "ProRes 422 HQ",
+          "ProRes 422",
+          "DNxHR"
+        ],
         sensorSizes: {
           "12K": "35.64 x 23.32 mm",
           "8K": "35.64 x 23.32 mm",
@@ -576,7 +589,20 @@ export const cameraDatabase = {
       },
       "URSA Mini Pro 4.6K G2": {
         formats: ["4.6K", "4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["Blackmagic RAW", "ProRes 422 HQ", "ProRes 422", "DNxHR"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)",
+          "Blackmagic RAW (CBR 8:1)",
+          "Blackmagic RAW (CBR 12:1)",
+          "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)",
+          "Blackmagic RAW (CQ Q1)",
+          "Blackmagic RAW (CQ Q3)",
+          "Blackmagic RAW (CQ Q5)",
+          "ProRes 422 HQ",
+          "ProRes 422",
+          "DNxHR"
+        ],
         sensorSizes: {
           "4.6K": "25.34 x 14.25 mm",
           "4K DCI": "25.34 x 14.25 mm",
@@ -616,7 +642,19 @@ export const cameraDatabase = {
       },
       "Pocket Cinema Camera 6K Pro": {
         formats: ["6K", "4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["Blackmagic RAW", "ProRes 422 HQ", "ProRes 422"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)",
+          "Blackmagic RAW (CBR 8:1)",
+          "Blackmagic RAW (CBR 12:1)",
+          "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)",
+          "Blackmagic RAW (CQ Q1)",
+          "Blackmagic RAW (CQ Q3)",
+          "Blackmagic RAW (CQ Q5)",
+          "ProRes 422 HQ",
+          "ProRes 422"
+        ],
         sensorSizes: {
           "6K": "23.10 x 12.99 mm",
           "4K DCI": "23.10 x 12.99 mm",
@@ -656,7 +694,19 @@ export const cameraDatabase = {
       },
       "Pocket Cinema Camera 6K": {
         formats: ["6K", "4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["Blackmagic RAW", "ProRes 422 HQ", "ProRes 422"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)",
+          "Blackmagic RAW (CBR 8:1)",
+          "Blackmagic RAW (CBR 12:1)",
+          "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)",
+          "Blackmagic RAW (CQ Q1)",
+          "Blackmagic RAW (CQ Q3)",
+          "Blackmagic RAW (CQ Q5)",
+          "ProRes 422 HQ",
+          "ProRes 422"
+        ],
         sensorSizes: {
           "6K": "23.10 x 12.99 mm",
           "4K DCI": "23.10 x 12.99 mm",
@@ -696,7 +746,19 @@ export const cameraDatabase = {
       },
       "Pocket Cinema Camera 6K G2": {
         formats: ["6K", "4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["Blackmagic RAW", "ProRes 422 HQ", "ProRes 422"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)",
+          "Blackmagic RAW (CBR 8:1)",
+          "Blackmagic RAW (CBR 12:1)",
+          "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)",
+          "Blackmagic RAW (CQ Q1)",
+          "Blackmagic RAW (CQ Q3)",
+          "Blackmagic RAW (CQ Q5)",
+          "ProRes 422 HQ",
+          "ProRes 422"
+        ],
         sensorSizes: {
           "6K": "23.10 x 12.99 mm",
           "4K DCI": "23.10 x 12.99 mm",
@@ -736,7 +798,19 @@ export const cameraDatabase = {
       },
       "Pocket Cinema Camera 4K": {
         formats: ["4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["Blackmagic RAW", "ProRes 422 HQ", "ProRes 422"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)",
+          "Blackmagic RAW (CBR 8:1)",
+          "Blackmagic RAW (CBR 12:1)",
+          "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)",
+          "Blackmagic RAW (CQ Q1)",
+          "Blackmagic RAW (CQ Q3)",
+          "Blackmagic RAW (CQ Q5)",
+          "ProRes 422 HQ",
+          "ProRes 422"
+        ],
         sensorSizes: {
           "4K DCI": "18.96 x 10.00 mm",
           "4K UHD": "18.96 x 10.00 mm",
@@ -766,7 +840,7 @@ export const cameraDatabase = {
       },
       "Studio Camera 4K Plus": {
         formats: ["4K UHD", "HD"],
-        codecs: ["ProRes 422 HQ", "ProRes 422", "H.264"],
+        codecs: ["ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "25.34 x 14.25 mm",
           "HD": "25.34 x 14.25 mm"
@@ -785,14 +859,172 @@ export const cameraDatabase = {
             sensor: "16:9"
           }
         }
-      }
+      },
+      "PYXIS 6K": {
+        formats: ["6K 3:2 Open Gate", "6K 17:9", "4K DCI", "4K UHD"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)", "Blackmagic RAW (CBR 8:1)", "Blackmagic RAW (CBR 12:1)", "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)", "Blackmagic RAW (CQ Q1)", "Blackmagic RAW (CQ Q3)", "Blackmagic RAW (CQ Q5)",
+          "H.264 Proxy"
+        ],
+        sensorSizes: {
+          "6K 3:2 Open Gate": "36.00 x 24.00 mm",
+          "6K 17:9": "36.00 x 21.60 mm",
+          "4K DCI": "23.10 x 12.99 mm",
+          "4K UHD": "23.10 x 12.99 mm"
+        },
+        pixelResolutions: {
+          "6K 3:2 Open Gate": "6048 x 4032",
+          "6K 17:9": "6048 x 3172",
+          "4K DCI": "4096 x 2160",
+          "4K UHD": "3840 x 2160"
+        },
+        aspectRatios: {
+          "6K 3:2 Open Gate": { recorded: "3:2", sensor: "3:2" },
+          "6K 17:9": { recorded: "17:9", sensor: "3:2" },
+          "4K DCI": { recorded: "17:9", sensor: "3:2" },
+          "4K UHD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "Cinema Camera 6K": {
+        formats: ["6K 3:2 Open Gate", "6K 17:9", "4K DCI", "4K UHD"],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)", "Blackmagic RAW (CBR 8:1)", "Blackmagic RAW (CBR 12:1)", "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)", "Blackmagic RAW (CQ Q1)", "Blackmagic RAW (CQ Q3)", "Blackmagic RAW (CQ Q5)",
+          "H.264 Proxy"
+        ],
+        sensorSizes: {
+          "6K 3:2 Open Gate": "36.00 x 24.00 mm",
+          "6K 17:9": "36.00 x 21.60 mm",
+          "4K DCI": "23.10 x 12.99 mm",
+          "4K UHD": "23.10 x 12.99 mm"
+        },
+        pixelResolutions: {
+          "6K 3:2 Open Gate": "6048 x 4032",
+          "6K 17:9": "6048 x 3172",
+          "4K DCI": "4096 x 2160",
+          "4K UHD": "3840 x 2160"
+        },
+        aspectRatios: {
+          "6K 3:2 Open Gate": { recorded: "3:2", sensor: "3:2" },
+          "6K 17:9": { recorded: "17:9", sensor: "3:2" },
+          "4K DCI": { recorded: "17:9", sensor: "3:2" },
+          "4K UHD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "PYXIS 12K": {
+        formats: [
+          "12K 3:2 Open Gate", "12K 16:9", "12K 17:9", "12K 2.4:1", "12K 6:5",
+          "9K 3:2 Super 35", "9K 16:9 Super 35", "9K 17:9 Super 35", "9K 2.4:1 Super 35", "9K 6:5 Super 35",
+          "8K 3:2 Open Gate", "8K DCI", "8K UHD", "8K 2.4:1", "8K 6:5",
+          "4K DCI", "4K UHD"
+        ],
+        codecs: [
+          "Blackmagic RAW",
+          "Blackmagic RAW (CBR 5:1)", "Blackmagic RAW (CBR 8:1)", "Blackmagic RAW (CBR 12:1)", "Blackmagic RAW (CBR 18:1)",
+          "Blackmagic RAW (CQ Q0)", "Blackmagic RAW (CQ Q1)", "Blackmagic RAW (CQ Q3)", "Blackmagic RAW (CQ Q5)",
+          "H.264 Proxy"
+        ],
+        sensorSizes: {
+          "12K 3:2 Open Gate": "35.64 x 23.32 mm",
+          "12K 16:9": "35.64 x 23.32 mm",
+          "12K 17:9": "35.64 x 23.32 mm",
+          "12K 2.4:1": "35.64 x 23.32 mm",
+          "12K 6:5": "35.64 x 23.32 mm",
+          "9K 3:2 Super 35": "35.64 x 23.32 mm",
+          "9K 16:9 Super 35": "35.64 x 23.32 mm",
+          "9K 17:9 Super 35": "35.64 x 23.32 mm",
+          "9K 2.4:1 Super 35": "35.64 x 23.32 mm",
+          "9K 6:5 Super 35": "35.64 x 23.32 mm",
+          "8K 3:2 Open Gate": "35.64 x 23.32 mm",
+          "8K DCI": "35.64 x 23.32 mm",
+          "8K UHD": "35.64 x 23.32 mm",
+          "8K 2.4:1": "35.64 x 23.32 mm",
+          "8K 6:5": "35.64 x 23.32 mm",
+          "4K DCI": "35.64 x 23.32 mm",
+          "4K UHD": "35.64 x 23.32 mm"
+        },
+        pixelResolutions: {
+          "12K 3:2 Open Gate": "12288 x 8040",
+          "12K 16:9": "12288 x 6912",
+          "12K 17:9": "12288 x 6480",
+          "12K 2.4:1": "12288 x 5112",
+          "12K 6:5": "9648 x 8040",
+          "9K 3:2 Super 35": "9216 x 6144",
+          "9K 16:9 Super 35": "9216 x 5184",
+          "9K 17:9 Super 35": "9216 x 4864",
+          "9K 2.4:1 Super 35": "9216 x 3840",
+          "9K 6:5 Super 35": "9216 x 7680",
+          "8K 3:2 Open Gate": "8192 x 5360",
+          "8K DCI": "8192 x 4320",
+          "8K UHD": "7680 x 4320",
+          "8K 2.4:1": "8192 x 3408",
+          "8K 6:5": "6432 x 5360",
+          "4K DCI": "4096 x 2160",
+          "4K UHD": "3840 x 2160"
+        },
+        aspectRatios: {
+          "12K 3:2 Open Gate": { recorded: "3:2", sensor: "3:2" },
+          "12K 16:9": { recorded: "16:9", sensor: "3:2" },
+          "12K 17:9": { recorded: "17:9", sensor: "3:2" },
+          "12K 2.4:1": { recorded: "2.4:1", sensor: "3:2" },
+          "12K 6:5": { recorded: "6:5", sensor: "3:2" },
+          "9K 3:2 Super 35": { recorded: "3:2", sensor: "3:2" },
+          "9K 16:9 Super 35": { recorded: "16:9", sensor: "3:2" },
+          "9K 17:9 Super 35": { recorded: "17:9", sensor: "3:2" },
+          "9K 2.4:1 Super 35": { recorded: "2.4:1", sensor: "3:2" },
+          "9K 6:5 Super 35": { recorded: "6:5", sensor: "3:2" },
+          "8K 3:2 Open Gate": { recorded: "3:2", sensor: "3:2" },
+          "8K DCI": { recorded: "17:9", sensor: "3:2" },
+          "8K UHD": { recorded: "16:9", sensor: "3:2" },
+          "8K 2.4:1": { recorded: "2.4:1", sensor: "3:2" },
+          "8K 6:5": { recorded: "6:5", sensor: "3:2" },
+          "4K DCI": { recorded: "17:9", sensor: "3:2" },
+          "4K UHD": { recorded: "16:9", sensor: "3:2" }
+        }
+      },
+      "URSA Cine 12K": {
+         formats: ["12K", "8K", "4K DCI", "4K UHD", "2K", "HD"],
+         codecs: [
+           "Blackmagic RAW",
+           "Blackmagic RAW (CBR 5:1)", "Blackmagic RAW (CBR 8:1)", "Blackmagic RAW (CBR 12:1)", "Blackmagic RAW (CBR 18:1)",
+           "Blackmagic RAW (CQ Q0)", "Blackmagic RAW (CQ Q1)", "Blackmagic RAW (CQ Q3)", "Blackmagic RAW (CQ Q5)",
+           "H.264 Proxy"
+         ],
+         sensorSizes: {
+           "12K": "35.64 x 23.32 mm",
+           "8K": "35.64 x 23.32 mm",
+           "4K DCI": "35.64 x 23.32 mm",
+           "4K UHD": "35.64 x 23.32 mm",
+           "2K": "35.64 x 23.32 mm",
+           "HD": "35.64 x 23.32 mm"
+         },
+         pixelResolutions: {
+           "12K": "12288 x 6480",
+           "8K": "8192 x 4320",
+           "4K DCI": "4096 x 2160",
+           "4K UHD": "3840 x 2160",
+           "2K": "2048 x 1080",
+           "HD": "1920 x 1080"
+         },
+         aspectRatios: {
+           "12K": { recorded: "17:9", sensor: "1.53:1" },
+           "8K": { recorded: "17:9", sensor: "1.53:1" },
+           "4K DCI": { recorded: "17:9", sensor: "1.53:1" },
+           "4K UHD": { recorded: "16:9", sensor: "1.53:1" },
+           "2K": { recorded: "17:9", sensor: "1.53:1" },
+           "HD": { recorded: "16:9", sensor: "1.53:1" }
+         }
+       }
     }
   },
   "Sony": {
     models: {
       "FX9": {
         formats: ["6K", "4K", "2K", "HD"],
-        codecs: ["XAVC-I", "XAVC-L", "ProRes 422 HQ", "ProRes 422"],
+        codecs: ["XAVC-I", "XAVC-L", "ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "6K": "35.70 x 18.80 mm",
           "4K": "35.70 x 18.80 mm",
@@ -826,7 +1058,7 @@ export const cameraDatabase = {
       },
       "FX30": {
         formats: ["4K", "HD"],
-        codecs: ["XAVC S-I", "XAVC S", "XAVC HS"],
+        codecs: ["XAVC S-I", "XAVC S", "XAVC HS", "H.264 Proxy"],
         sensorSizes: {
           "4K": "23.00 x 15.50 mm",
           "HD": "23.00 x 15.50 mm"
@@ -848,7 +1080,7 @@ export const cameraDatabase = {
       },
       "FX6": {
         formats: ["4K", "2K", "HD"],
-        codecs: ["XAVC-I", "XAVC-L", "ProRes 422 HQ", "ProRes 422"],
+        codecs: ["XAVC-I", "XAVC-L", "ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "4K": "35.70 x 18.80 mm",
           "2K": "35.70 x 18.80 mm",
@@ -876,7 +1108,7 @@ export const cameraDatabase = {
       },
       "FX3": {
         formats: ["4K", "HD"],
-        codecs: ["XAVC S-I", "XAVC S", "XAVC HS"],
+        codecs: ["XAVC S-I", "XAVC S", "XAVC HS", "H.264 Proxy"],
         sensorSizes: {
           "4K": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -898,7 +1130,7 @@ export const cameraDatabase = {
       },
       "A7S III": {
         formats: ["4K", "HD"],
-        codecs: ["XAVC S-I", "XAVC S", "XAVC HS"],
+        codecs: ["XAVC S-I", "XAVC S", "XAVC HS", "H.264 Proxy"],
         sensorSizes: {
           "4K": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -920,7 +1152,7 @@ export const cameraDatabase = {
       },
       "VENICE 2": {
         formats: ["8.6K", "6K", "4K", "2K"],
-        codecs: ["X-OCN", "XAVC-I", "ProRes 4444", "ProRes 422 HQ"],
+        codecs: ["X-OCN", "XAVC-I", "ProRes 4444", "ProRes 422 HQ", "H.264 Proxy"],
         sensorSizes: {
           "8.6K": "36.20 x 24.10 mm",
           "6K": "36.20 x 24.10 mm",
@@ -954,7 +1186,7 @@ export const cameraDatabase = {
       },
       "BURANO": {
         formats: ["8.6K", "4K", "2K"],
-        codecs: ["X-OCN", "XAVC-I", "ProRes 4444", "ProRes 422 HQ"],
+        codecs: ["X-OCN", "XAVC-I", "ProRes 4444", "ProRes 422 HQ", "H.264 Proxy"],
         sensorSizes: {
           "8.6K": "36.20 x 24.10 mm",
           "4K": "36.20 x 24.10 mm",
@@ -983,7 +1215,7 @@ export const cameraDatabase = {
       ,
       "A1": {
         formats: ["8K", "4K UHD", "HD"],
-        codecs: ["XAVC HS", "XAVC S-I", "XAVC S", "H.265", "H.264"],
+        codecs: ["XAVC HS", "XAVC S-I", "XAVC S", "H.265", "H.264", "H.264 Proxy"],
         sensorSizes: {
           "8K": "35.60 x 23.80 mm",
           "4K UHD": "35.60 x 23.80 mm",
@@ -1011,7 +1243,7 @@ export const cameraDatabase = {
       },
       "A7 IV": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S-I", "XAVC S", "XAVC HS"],
+        codecs: ["XAVC S-I", "XAVC S", "XAVC HS", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1033,7 +1265,7 @@ export const cameraDatabase = {
       },
       "A7R V": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S-I", "XAVC S", "XAVC HS"],
+        codecs: ["XAVC S-I", "XAVC S", "XAVC HS", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1055,7 +1287,7 @@ export const cameraDatabase = {
       },
       "A9 III": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S-I", "XAVC S", "XAVC HS"],
+        codecs: ["XAVC S-I", "XAVC S", "XAVC HS", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1077,7 +1309,7 @@ export const cameraDatabase = {
       },
       "A7 III": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S"],
+        codecs: ["XAVC S", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1093,7 +1325,7 @@ export const cameraDatabase = {
       },
       "A7C": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S"],
+        codecs: ["XAVC S", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1109,7 +1341,7 @@ export const cameraDatabase = {
       },
       "A7C II": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S-I", "XAVC HS", "XAVC S"],
+        codecs: ["XAVC S-I", "XAVC HS", "XAVC S", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1125,7 +1357,7 @@ export const cameraDatabase = {
       },
       "A6700": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC HS", "XAVC S"],
+        codecs: ["XAVC HS", "XAVC S", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "23.50 x 15.60 mm",
           "HD": "23.50 x 15.60 mm"
@@ -1141,7 +1373,7 @@ export const cameraDatabase = {
       },
       "ZV-E1": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S-I", "XAVC HS", "XAVC S"],
+        codecs: ["XAVC S-I", "XAVC HS", "XAVC S", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "35.60 x 23.80 mm",
           "HD": "35.60 x 23.80 mm"
@@ -1157,7 +1389,7 @@ export const cameraDatabase = {
       },
       "ZV-E10": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC S"],
+        codecs: ["XAVC S", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "23.50 x 15.60 mm",
           "HD": "23.50 x 15.60 mm"
@@ -1173,7 +1405,7 @@ export const cameraDatabase = {
       },
       "VENICE": {
         formats: ["6K FF", "4K", "2K", "HD"],
-        codecs: ["X-OCN", "XAVC-I", "ProRes 422 HQ", "ProRes 422"],
+        codecs: ["X-OCN", "XAVC-I", "ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "6K FF": "36.00 x 24.00 mm",
           "4K": "36.00 x 24.00 mm",
@@ -1207,7 +1439,7 @@ export const cameraDatabase = {
       },
       "FS7": {
         formats: ["4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["XAVC-I", "XAVC-L", "ProRes 422 HQ", "ProRes 422"],
+        codecs: ["XAVC-I", "XAVC-L", "ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "4K DCI": "26.20 x 13.80 mm",
           "4K UHD": "26.20 x 13.80 mm",
@@ -1241,7 +1473,7 @@ export const cameraDatabase = {
       },
       "FS5": {
         formats: ["4K UHD", "HD"],
-        codecs: ["XAVC-L", "AVCHD"],
+        codecs: ["XAVC-L", "AVCHD", "H.264 Proxy"],
         sensorSizes: {
           "4K UHD": "26.20 x 13.80 mm",
           "HD": "26.20 x 13.80 mm"
@@ -1263,7 +1495,7 @@ export const cameraDatabase = {
       },
       "F55": {
         formats: ["4K", "2K", "HD"],
-        codecs: ["XAVC-I", "RAW", "ProRes 422 HQ", "ProRes 422"],
+        codecs: ["XAVC-I", "RAW", "ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "4K": "24.00 x 13.00 mm",
           "2K": "24.00 x 13.00 mm",
@@ -1291,7 +1523,7 @@ export const cameraDatabase = {
       },
       "F65": {
         formats: ["8K", "4K", "2K", "HD"],
-        codecs: ["RAW", "XAVC-I", "ProRes 422 HQ", "ProRes 422"],
+        codecs: ["RAW", "XAVC-I", "ProRes 422 HQ", "ProRes 422", "H.264 Proxy"],
         sensorSizes: {
           "8K": "24.70 x 13.10 mm",
           "4K": "24.70 x 13.10 mm",
@@ -2128,7 +2360,7 @@ export const cameraDatabase = {
       },
       "AU-EVA1": {
         formats: ["5.7K", "4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["ProRes 422 HQ", "ProRes 422", "AVC-Intra"],
+        codecs: ["ProRes 422 HQ", "ProRes 422", "AVC-Intra", "AVC-Intra 100", "AVC-Intra 200"],
         sensorSizes: {
           "5.7K": "23.10 x 12.99 mm",
           "4K DCI": "23.10 x 12.99 mm",
@@ -2168,7 +2400,7 @@ export const cameraDatabase = {
       },
       "VariCam LT": {
         formats: ["4K DCI", "4K UHD", "2K", "HD"],
-        codecs: ["ProRes 4444", "ProRes 422 HQ", "ProRes 422", "AVC-Intra"],
+        codecs: ["ProRes 4444", "ProRes 422 HQ", "ProRes 422", "AVC-Intra", "AVC-Intra 100", "AVC-Intra 200"],
         sensorSizes: {
           "4K DCI": "23.10 x 12.99 mm",
           "4K UHD": "23.10 x 12.99 mm",
@@ -2402,7 +2634,7 @@ export const cameraDatabase = {
     models: {
       "Z6": {
         formats: ["4K UHD", "HD"],
-        codecs: ["ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
+        codecs: ["ProRes RAW (External)", "ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
         sensorSizes: {
           "4K UHD": "35.90 x 24.00 mm",
           "HD": "35.90 x 24.00 mm"
@@ -2424,7 +2656,7 @@ export const cameraDatabase = {
       },
       "Z6 II": {
         formats: ["4K UHD", "HD"],
-        codecs: ["ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
+        codecs: ["ProRes RAW (External)", "ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
         sensorSizes: {
           "4K UHD": "35.90 x 24.00 mm",
           "HD": "35.90 x 24.00 mm"
@@ -2446,7 +2678,7 @@ export const cameraDatabase = {
       },
       "Z7": {
         formats: ["4K UHD", "HD"],
-        codecs: ["ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
+        codecs: ["ProRes RAW (External)", "ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
         sensorSizes: {
           "4K UHD": "35.90 x 24.00 mm",
           "HD": "35.90 x 24.00 mm"
@@ -2468,7 +2700,7 @@ export const cameraDatabase = {
       },
       "Z7 II": {
         formats: ["4K UHD", "HD"],
-        codecs: ["ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
+        codecs: ["ProRes RAW (External)", "ProRes 422 HQ", "ProRes 422", "H.265", "H.264"],
         sensorSizes: {
           "4K UHD": "35.90 x 24.00 mm",
           "HD": "35.90 x 24.00 mm"
@@ -2490,7 +2722,7 @@ export const cameraDatabase = {
       },
       "Z9": {
         formats: ["8K", "4K DCI", "4K UHD", "HD"],
-        codecs: ["N-RAW", "ProRes 422 HQ", "H.265", "H.264"],
+        codecs: ["ProRes RAW (External)", "N-RAW", "ProRes 422 HQ", "H.265", "H.264"],
         sensorSizes: {
           "8K": "35.90 x 24.00 mm",
           "4K DCI": "35.90 x 24.00 mm",
@@ -2524,7 +2756,7 @@ export const cameraDatabase = {
       },
       "Z8": {
         formats: ["8K", "4K DCI", "4K UHD", "HD"],
-        codecs: ["N-RAW", "ProRes 422 HQ", "H.265", "H.264"],
+        codecs: ["ProRes RAW (External)", "N-RAW", "ProRes 422 HQ", "H.265", "H.264"],
         sensorSizes: {
           "8K": "35.90 x 24.00 mm",
           "4K DCI": "35.90 x 24.00 mm",
@@ -3881,8 +4113,12 @@ export const cameraColorSpaces = {
     "Pocket Cinema Camera 6K": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3"],
     "Pocket Cinema Camera 6K G2": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3"],
     "Pocket Cinema Camera 4K": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3"],
-    "Studio Camera 4K Plus": ["Rec. 709", "Rec. 2020", "sRGB"]
-  },
+    "Studio Camera 4K Plus": ["Rec. 709", "Rec. 2020", "sRGB"],
+     "PYXIS 6K": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
+     "Cinema Camera 6K": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
+     "PYXIS 12K": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
+     "URSA Cine 12K": ["Blackmagic Film Gen5", "DaVinci Wide Gamut", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"]
+   },
   "Sony": {
     "FX9": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
     "FX6": ["S-Gamut3.Cine", "S-Gamut3", "Rec. 709", "Rec. 2020", "DCI-P3", "ACES"],
@@ -4049,6 +4285,7 @@ const codecFramerateRules = {
   "N-RAW": [...baseFramerates, ...highFramerates],
   "X-OCN": [...baseFramerates, ...highFramerates],
   "WEISSCAM RAW": [...baseFramerates, ...highFramerates],
+  "ProRes RAW (External)": [...baseFramerates, ...highFramerates],
 
   // ProRes – konservativ: XQ/4444 ohne High-FPS, 422/422 HQ mit High-FPS
   "ProRes 4444 XQ": [...baseFramerates],
@@ -4064,11 +4301,15 @@ const codecFramerateRules = {
   // Long-GOP/MP4 – häufig bis 60p
   "H.265": [...baseFramerates, ...highFramerates],
   "H.264": [...baseFramerates, ...highFramerates],
+  "H.264 Proxy": [...baseFramerates, ...highFramerates],
   "XAVC": [...baseFramerates, ...highFramerates],
   "XAVC S": [...baseFramerates, ...highFramerates],
   "XAVC S-I": [...baseFramerates, ...highFramerates],
   "XAVC HS": [...baseFramerates, ...highFramerates],
   "XF-AVC": [...baseFramerates, ...highFramerates],
+  "AVC-Intra": [...baseFramerates, ...highFramerates],
+  "AVC-Intra 100": [...baseFramerates, ...highFramerates],
+  "AVC-Intra 200": [...baseFramerates, ...highFramerates],
   "MP4": [...baseFramerates, ...highFramerates],
   "MOV": [...baseFramerates, ...highFramerates],
   "HD-SDI (YCbCr 4:2:2)": [...baseFramerates, ...highFramerates],

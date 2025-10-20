@@ -44,7 +44,10 @@ import {
   loadShotFromFile, 
   saveShotToFile, 
   autoSaveShotToFile,
-  shotFileExists 
+  shotFileExists,
+  compactShotForIndex,
+  compactProjectsForStorage,
+  trySetLocalStorage 
 } from '../utils/shotFileManager';
 import { maybeAutoBackup } from '../utils/versioningManager';
 import { exportShotToPDF, savePDF } from '../utils/pdfExporter';
@@ -56,8 +59,10 @@ import dummyReference from '../assets/dummy-reference.svg';
 import { useLanguage } from '../contexts/LanguageContext';
 import { FiChevronDown, FiChevronUp, FiPlus, FiTrash } from 'react-icons/fi';
 import InlineSensorPreview from '../components/InlineSensorPreview';
+import ImageAnnotatorModal from '../components/ImageAnnotatorModal';
 // Vollständiger FOV‑Rechner als eingebettete Komponente für Objektiv‑Einstellungen
 import EmbeddedFovCalculator from '../components/EmbeddedFovCalculator';
+import { bridge } from '../utils/cameraControlBridge';
 
 const ShotDetails = () => {
   // Helper: deterministische Platzhalter‑Thumbnails für Referenzen
@@ -101,6 +106,47 @@ const ShotDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  // HDRI Bracket (Beta): read latest camera bracket session from localStorage and sync via event
+  const [latestBracket, setLatestBracket] = useState(null);
+  const [cameraBridgeUrl, setCameraBridgeUrl] = useState((typeof window !== 'undefined' && localStorage.getItem('cameraBridgeUrl')) || 'http://localhost:8080');
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('cameraBracketLatest');
+      setLatestBracket(raw ? JSON.parse(raw) : null);
+    } catch {
+      setLatestBracket(null);
+    }
+    const onUpdated = () => {
+      try {
+        const raw = localStorage.getItem('cameraBracketLatest');
+        setLatestBracket(raw ? JSON.parse(raw) : null);
+      } catch {}
+    };
+    window.addEventListener('camera-bracket-updated', onUpdated);
+    return () => window.removeEventListener('camera-bracket-updated', onUpdated);
+  }, []);
+
+  const handleHdrUpload = (index, s, e) => {
+    const file = e.target?.files?.[0];
+    const sid = latestBracket?.session?.id;
+    if (!file || !sid) return;
+    bridge.uploadBracketImage(sid, s.ev, file)
+      .then((resp) => {
+        const full = resp?.full;
+        if (!full) return;
+        setLatestBracket((prev) => {
+          const arr = (prev?.results || []).slice();
+          arr[index] = { ...arr[index], full };
+          const next = { session: prev?.session, results: arr, timestamp: Date.now() };
+          try { localStorage.setItem('cameraBracketLatest', JSON.stringify(next)); } catch {}
+          return next;
+        });
+      })
+      .catch((err) => console.error('HDR upload in ShotDetails failed:', err));
+  };
+
   const statusLabel = (s) => {
     if (s === 'Abgeschlossen') return t('status.completed');
     if (s === 'In Bearbeitung') return t('status.inProgress');
@@ -144,6 +190,7 @@ const ShotDetails = () => {
   const [isEditing, setIsEditing] = useState(true);
   const [previewImage, setPreviewImage] = useState(null);
   const [references, setReferences] = useState([]);
+const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null, imageUrl: null, title: '', kind: null });
   const [selectedCategory, setSelectedCategory] = useState('set-fotos');
   
   // Camera state
@@ -657,15 +704,23 @@ const ShotDetails = () => {
         
         const updatedProjects = projects.map(project => {
           if (project.id === currentProjectId && project.shots) {
-            const updatedShots = project.shots.map(shot => 
-              shot.id === parseInt(id) ? updatedShot : shot
-            );
+            const updatedShots = project.shots.map(shot => {
+              const isMatch = shot.id === parseInt(id);
+              const merged = isMatch ? { ...shot, ...updatedShot } : shot;
+              return compactShotForIndex(merged);
+            });
             return { ...project, shots: updatedShots };
           }
           return project;
         });
         
-        localStorage.setItem('projects', JSON.stringify(updatedProjects));
+        {
+          const ok = trySetLocalStorage('projects', JSON.stringify(updatedProjects));
+          if (!ok) {
+            const compact = compactProjectsForStorage(updatedProjects);
+            trySetLocalStorage('projects', JSON.stringify(compact));
+          }
+        }
       }
       
       setIsEditing(false);
@@ -1102,38 +1157,10 @@ const ShotDetails = () => {
     autoSaveShotToFile(id, updatedShot);
   };
 
-  // Funktion zur Extraktion der Brennweite aus dem Objektiv-Modell
+  // Vereinheitlicht: nutze zentrale Util zur Brennweitenableitung
   const extractFocalLengthFromLens = (lensModel) => {
-    if (!lensModel) return '';
-    
-    // Regex-Patterns für verschiedene Brennweiten-Formate (in Prioritätsreihenfolge)
-    const patterns = [
-      // Zoom-Objektive: "24-70mm", "16-35mm", "30-72mm", "44-440mm", etc.
-      /(\d+)-(\d+)mm/i,
-      // Einzelbrennweiten mit T-Stops: "25mm T2.1", "50mm T1.4", "40mm T2.3", etc.
-      /(\d+)mm\s+T\d+(?:\.\d+)?/i,
-      // Einzelbrennweiten mit Macro: "65mm Macro", "100mm Macro", etc.
-      /(\d+)mm\s+Macro/i,
-      // Einzelbrennweiten mit speziellen Bezeichnungen: "V-Lite 28mm T2.2 (2x)", etc.
-      /(\d+)mm\s+T\d+(?:\.\d+)?\s*\([^)]+\)/i,
-      // Einfache Einzelbrennweiten: "50mm", "85mm", etc.
-      /(\d+)mm/i
-    ];
-    
-    for (const pattern of patterns) {
-      const match = lensModel.match(pattern);
-      if (match) {
-        if (match[2]) {
-          // Zoom-Objektiv gefunden
-          return `${match[1]}-${match[2]}mm`;
-        } else {
-          // Einzelbrennweite gefunden
-          return `${match[1]}mm`;
-        }
-      }
-    }
-    
-    return '';
+    const val = extractFocalLength(lensModel || '');
+    return val !== null && !Number.isNaN(val) ? `${val}mm` : '';
   };
 
   const handleLensChange = (e) => {
@@ -1165,8 +1192,8 @@ const ShotDetails = () => {
     } else if (lens && selectedLensManufacturer) {
       const fullLensName = getLensFullName(selectedLensManufacturer, lens);
       
-      // Extrahiere automatisch die Brennweite aus dem Objektiv-Namen über Datenbank-Metadaten
-      const autoFocalLength = (getLensMeta(selectedLensManufacturer, lens)?.focal) || '';
+      // Extrahiere automatisch die Brennweite aus dem Objektiv-Namen über zentrale Util
+      const autoFocalLength = extractFocalLength(fullLensName || '') || null;
       
       const updatedShot = (selectedSetupIndex === 0)
         ? {
@@ -1174,7 +1201,7 @@ const ShotDetails = () => {
             cameraSettings: {
               ...editedShot.cameraSettings,
               lens: fullLensName,
-              focalLength: editedShot.cameraSettings.focalLength || autoFocalLength
+              focalLength: editedShot.cameraSettings.focalLength || String(autoFocalLength || '')
             }
           }
         : {
@@ -1187,7 +1214,7 @@ const ShotDetails = () => {
               setup.cameraSettings = {
                 ...(setup.cameraSettings || {}),
                 lens: fullLensName,
-                focalLength: existingFL || autoFocalLength
+                focalLength: existingFL || String(autoFocalLength || '')
               };
               arr[idx] = setup;
               return arr;
@@ -1403,6 +1430,56 @@ const ShotDetails = () => {
     });
   };
 
+  const openAnnotatorForReference = (refId, imageUrl, name) => {
+    setAnnotatorState({ open: true, refId, imageUrl, title: `Annotieren: ${name}`, kind: 'reference' });
+  };
+
+  const applyAnnotationToRef = (dataUrl) => {
+    setReferences(prev => {
+      const updated = prev.map(r => r.id === annotatorState.refId ? { ...r, url: dataUrl } : r);
+      const updatedShot = { ...editedShot, references: updated };
+      setEditedShot(updatedShot);
+      autoSaveShotToFile(id, updatedShot);
+      return updated;
+    });
+    setAnnotatorState({ open: false, refId: null, imageUrl: null, title: '', kind: null });
+  };
+
+  const openAnnotatorForPreview = () => {
+    try {
+      const src = (previewImage || shot?.previewImage) || (() => {
+        try {
+          const projects = JSON.parse(localStorage.getItem('projects') || '[]');
+          const selectedId = localStorage.getItem('selectedProjectId');
+          const filmName = projects.find(p => String(p.id) === String(selectedId))?.name || 'Film';
+          const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+          const variants = [storyboard1, storyboard2, storyboard3, storyboard4];
+          const idx = Math.abs(hashSeed(`${filmName}-${shot?.name || editedShot?.name || 'Shot'}`)) % variants.length;
+          return variants[idx];
+        } catch {
+          return storyboard1;
+        }
+      })();
+      setAnnotatorState({ open: true, refId: null, imageUrl: src, title: `Annotieren: ${shot?.name || editedShot?.name || 'Shot'}`, kind: 'preview' });
+    } catch {
+      setAnnotatorState({ open: true, refId: null, imageUrl: previewImage || shot?.previewImage || storyboard1, title: `Annotieren: ${shot?.name || editedShot?.name || 'Shot'}`, kind: 'preview' });
+    }
+  };
+
+  const applyAnnotationToPreview = (dataUrl) => {
+    setPreviewImage(dataUrl);
+    setEditedShot(prev => {
+      const next = { ...prev, previewImage: dataUrl };
+      try { autoSaveShotToFile(id, next); } catch (err) {}
+      return next;
+    });
+    setAnnotatorState({ open: false, refId: null, imageUrl: null, title: '', kind: null });
+  };
+
+  const closeAnnotator = () => {
+    setAnnotatorState(state => ({ ...state, open: false }));
+  };
+
   // Hilfsfunktion: Modellschlüssel aus vollem Kameranamen ableiten
   const getModelKey = (manufacturer, fullModel) => {
     if (!manufacturer || !fullModel) return fullModel || '';
@@ -1564,10 +1641,11 @@ const ShotDetails = () => {
         )}
         
         {isEditing && (
-          <div className="image-upload">
+          <div className="image-upload" style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
             <label htmlFor="image-upload" className="btn-outline">
               Bild hochladen
             </label>
+            <button type="button" className="btn-annotate" onClick={openAnnotatorForPreview} title="Vorschaubild annotieren">Annotieren</button>
             <input
               id="image-upload"
               type="file"
@@ -2556,6 +2634,58 @@ const ShotDetails = () => {
 
             {/* Kompletter FOV‑Rechner oben ersetzt die Objektiv‑Eingaben (Hersteller, Linse, Brennweite, Blende, Fokus, Hyperfokal). */}
 
+            <div className="form-row">
+              <div className="form-group">
+                <label>{t('lens.manualEntry', 'Manuelle Objektiv‑Eingabe')}</label>
+                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                  {selectedLensManufacturer !== 'Manuell' && (
+                    <button type="button" className="btn btn-secondary" onClick={() => handleLensManufacturerChange({ target: { value: 'Manuell' } })}>
+                      {t('action.manualManufacturer', 'Hersteller manuell')}
+                    </button>
+                  )}
+                  {selectedLens !== 'Manuell' && (
+                    <button type="button" className="btn btn-secondary" onClick={() => handleLensChange({ target: { value: 'Manuell' } })}>
+                      {t('action.manualLens', 'Linse manuell')}
+                    </button>
+                  )}
+                </div>
+
+                {selectedLensManufacturer === 'Manuell' && (
+                  <>
+                  <input
+                    type="text"
+                    name="manualLensManufacturer"
+                    placeholder={t('lens.manufacturer')}
+                    value={currentEditedCameraSettings.manualLensManufacturer || ''}
+                    onChange={handleCameraChange}
+                    style={{ marginTop: '8px' }}
+                  />
+                  <small className="helper-text">Beispiele: „Canon“, „ARRI“, „Cooke“, „Zeiss“.</small>
+                  </>
+                )}
+
+                {(selectedLens === 'Manuell' || selectedLensManufacturer === 'Manuell') && (
+                  <>
+                  <input
+                    type="text"
+                    name="manualLens"
+                    placeholder={t('lens.lens')}
+                    value={currentEditedCameraSettings.manualLens || ''}
+                    onChange={(e) => {
+                      handleCameraChange(e);
+                      const flNum = extractFocalLength(e.target.value);
+                      if (flNum !== null && !Number.isNaN(flNum)) {
+                        handleCameraChange({ target: { name: 'focalLength', value: String(flNum) } });
+                      }
+                    }}
+                    style={{ marginTop: '8px' }}
+                  />
+                  <small className="helper-text">Beispiele: „24–70mm“, „24 bis 70 mm“, „50mm T1.4“, „100mm Macro“.</small>
+                  </>
+                )}
+              </div>
+            </div>
+
           <div className="form-row">
             <div className="form-group">
               <label>{t('lens.lensStabilization')}:</label>
@@ -3243,11 +3373,52 @@ const ShotDetails = () => {
                     ));
                   })()}
                 </div>
+
+                {/* HDRI Aufnahme (Beta): Letzte Belichtungsreihe aus Camera Control */}
+                {((isEditing ? editedShot?.vfxPreparations?.hdris : shot?.vfxPreparations?.hdris)) && (
+                <div className="hdri-beta-block" style={{ marginTop: '10px', borderTop: '1px dashed var(--border-color)', paddingTop: '10px' }}>
+                  <div className="beta-note" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>HDRI – Beta</div>
+                  {latestBracket?.results?.length ? (
+                    <div className="hdri-bracket-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
+                      {latestBracket.results.map((s, idx) => {
+                        const fullUrl = s?.full?.url ? `${cameraBridgeUrl}${s.full.url}` : null;
+                        const mp = s?.full?.megapixels != null ? Number(s.full.megapixels).toFixed(2) : null;
+                        const dim = s?.full ? `${s.full.width}×${s.full.height}` : null;
+                        const expMp = s?.full?.expectedMegapixels != null ? Number(s.full.expectedMegapixels).toFixed(1) : null;
+                        const expDim = s?.full ? `${s.full.expectedWidth}×${s.full.expectedHeight}` : null;
+                        return (
+                          <div key={`br-${idx}`} className="hdri-thumb-item" style={{ background: 'var(--card-bg, #111827)', color: 'var(--card-fg, #e5e7eb)', border: '1px solid #1f2937', borderRadius: 6, padding: 8 }}>
+                            <div className="hdri-thumb" style={{ aspectRatio: '16 / 9', overflow: 'hidden', background: 'var(--card-bg-alt, #0b1220)', border: '1px solid #1f2937', borderRadius: 4 }}>
+                              {s?.thumb ? (
+                                <img src={s.thumb} alt={`EV ${s.ev}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <div className="hdri-thumb-placeholder" style={{ display: 'grid', placeItems: 'center', height: '100%', color: 'var(--text-secondary)' }}>Kein Thumbnail</div>
+                              )}
+                            </div>
+                            <div className="hdri-thumb-caption" style={{ marginTop: 6, fontWeight: 600, color: 'var(--muted, #9ca3af)' }}>EV {s.ev}</div>
+                            <div className="hdri-thumb-meta" style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', marginTop: 4, fontSize: '0.85em' }}>
+                              {mp && dim && (<span className="meta">{mp} MP ({dim})</span>)}
+                              {expMp && expDim && (<span className="meta expected" style={{ opacity: 0.8 }}>Erwartet: {expMp} MP (~{expDim})</span>)}
+                              {fullUrl ? (
+                                <a className="btn-link" href={fullUrl} target="_blank" rel="noreferrer">Öffnen</a>
+                              ) : (
+                                <input type="file" accept="image/*" onChange={(e)=>handleHdrUpload(idx, s, e)} />
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="hdri-beta-empty" style={{ color: 'var(--text-secondary)' }}>Noch keine Belichtungsreihe vorhanden. Starte sie in Camera Control.</div>
+                  )}
+                </div>
+                )}
               </div>
             )}
 
             {/* Aufklappbare Bereiche und Uploads für weitere VFX Tasks */}
-            {editedShot.vfxPreparations?.hdris && (
+            {((isEditing ? editedShot?.vfxPreparations?.hdris : shot?.vfxPreparations?.hdris)) && (
               <div className="vfx-option-group card">
                 <h3>{t('vfx.checklist.hdris')}</h3>
                 <div className="form-row">
@@ -3816,7 +3987,7 @@ const ShotDetails = () => {
                       if (typeof ref === 'string') {
                         tiles.push({ key: `grid-${section.key}-${i}-${ref}`, url: dummyReference, name: ref });
                       } else {
-                        tiles.push({ key: `grid-${section.key}-${i}-${ref.id}`, url: ref.url, name: ref.name });
+                        tiles.push({ key: `grid-${section.key}-${i}-${ref.id}`, url: ref.url, name: ref.name, refId: ref.id });
                       }
                     } else {
                       tiles.push({ key: `grid-${section.key}-dummy-${i}`, url: dummyReference, name: `${section.title} ${i+1}` });
@@ -3834,6 +4005,9 @@ const ShotDetails = () => {
                                 <img src={tile.url} alt={tile.name} className="reference-image" onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = dummyReference; }} />
                                 <div className="reference-info">
                                   <span className="reference-name">{tile.name}</span>
+                                  {isEditing && tile.refId && (
+                                    <button type="button" className="btn-annotate" onClick={() => openAnnotatorForReference(tile.refId, tile.url, tile.name)}>Annotieren</button>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -3847,6 +4021,15 @@ const ShotDetails = () => {
           </div>
         );
       })()}
+
+      {annotatorState.open && (
+        <ImageAnnotatorModal
+          imageUrl={annotatorState.imageUrl}
+          onApply={annotatorState.kind === 'preview' ? applyAnnotationToPreview : applyAnnotationToRef}
+          onClose={closeAnnotator}
+          title={annotatorState.title}
+        />
+      )}
 
       {/* TAKES */}
       <div className="takes card">

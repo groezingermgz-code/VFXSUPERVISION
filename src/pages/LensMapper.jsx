@@ -9,12 +9,14 @@ import {
 import {
   getLensManufacturers,
   getLensesByManufacturer,
+  getLensMeta,
 } from '../data/lensDatabase';
 import {
   parseSensorSize,
   calculateHorizontalFOV,
   calculateVerticalFOV,
   calculateDiagonalFOV,
+  extractFocalLength,
 } from '../utils/fovCalculator';
 import { useLanguage } from '../contexts/LanguageContext';
 import Icon from '../components/Icon';
@@ -60,6 +62,12 @@ const LensMapper = () => {
   const models = useMemo(() => manufacturer ? getModelsByManufacturer(manufacturer) : [], [manufacturer]);
   const formats = useMemo(() => (manufacturer && model) ? getFormatsByModel(manufacturer, model) : [], [manufacturer, model]);
   const lensManufacturers = useMemo(() => getLensManufacturers(), []);
+// Auto-Detect LDS from lens meta
+const isLdsLensSelected = useMemo(() => {
+  if (!lensManufacturer || !selectedLens) return false;
+  const m = getLensMeta(lensManufacturer, selectedLens);
+  return !!(m && m.isLds);
+}, [lensManufacturer, selectedLens]);
 
   const sourceSensorSizeString = useMemo(() => {
     if (!manufacturer || !model || !sourceFormat) return null;
@@ -78,25 +86,6 @@ const LensMapper = () => {
     };
   }, [sourceDims, focal, projectionType]);
 
-  // Helfer: Brennweite aus Objektivbezeichnung ableiten
-  const extractFocalFromLens = (lensModel) => {
-    if (!lensModel) return null;
-    const zoomMatch = lensModel.match(/(\d+)\s*-\s*(\d+)\s*mm/i);
-    if (zoomMatch) {
-      const a = parseFloat(zoomMatch[1]);
-      const b = parseFloat(zoomMatch[2]);
-      if (!isNaN(a) && !isNaN(b)) {
-        // Standard: Mittelwert als Startpunkt
-        return ((a + b) / 2).toFixed(1);
-      }
-    }
-    const singleMatch = lensModel.match(/(\d+)\s*mm/i);
-    if (singleMatch) {
-      const val = parseFloat(singleMatch[1]);
-      if (!isNaN(val)) return val.toString();
-    }
-    return null;
-  };
 
   const handleLensManufacturerChange = (e) => {
     const brand = e.target.value;
@@ -108,7 +97,8 @@ const LensMapper = () => {
   const handleLensChange = (e) => {
     const lens = e.target.value;
     setSelectedLens(lens);
-    const parsed = extractFocalFromLens(lens);
+    const val = extractFocalLength(lens || '');
+    const parsed = val !== null && !Number.isNaN(val) ? String(val) : null;
     if (parsed) setFocalLength(String(parsed));
   };
 
@@ -215,6 +205,11 @@ const LensMapper = () => {
                 <option key={l} value={l}>{l}</option>
               ))}
             </select>
+          </div>
+          <div className="form-group">
+            <label>LDS</label>
+            <input type="checkbox" checked={isLdsLensSelected} readOnly />
+            <small className="helper-text">Automatisch erkannt bei „LDS“ im Namen</small>
           </div>
         </div>
 

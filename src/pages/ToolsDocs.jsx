@@ -63,6 +63,31 @@ const ToolsDocs = () => {
         </ul>
       </Card>
 
+      <Card title={t('docs.ocio.title', 'OCIO/ACES Setup für Nuke')}>
+        <p style={{ margin: '8px 0' }}>Nuke bringt eine ACES 1.2 OCIO‑Config mit. Für ACES 1.3 kannst du eine externe Config einbinden.</p>
+        <h4 style={{ margin: '8px 0' }}>Option A – Nuke‑Standard (ACES 1.2)</h4>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <li>Project Settings → Color Management: <code>OCIO</code></li>
+          <li>Config: <code>ACES 1.2</code> (die Nuke‑Builtin‑Config)</li>
+          <li>Viewer‑Process bei Bedarf manuell auf passende View setzen.</li>
+          <li>Installationspfad (typisch): <code>C:\\Program Files\\Nuke16.0v6\\plugins\\OCIOConfigs\\configs\\aces_1.2\\config.ocio</code></li>
+        </ul>
+        <h4 style={{ margin: '12px 0 8px' }}>Option B – ACES 1.3 extern</h4>
+        <ul style={{ margin: 0, paddingLeft: 18 }}>
+          <li>Foundry‑Configs (Beispiele):
+            <div style={{ marginTop: 4 }}>
+              <code>fn-nuke_cg-config-v1.0.0_aces-v1.3_ocio-v2.1.ocio</code><br/>
+              <code>fn-nuke_studio-config-v1.0.0_aces-v1.3_ocio-v2.1.ocio</code>
+            </div>
+          </li>
+          <li>Config laden (alternativ): <a href="https://github.com/AcademySoftwareFoundation/OpenColorIO-Config-ACES/releases" target="_blank" rel="noreferrer">ASWF OCIO‑Config‑ACES Releases</a></li>
+          <li>Ablage z. B.: <code>C:\\OCIO\\ACES\\v1.3\\</code></li>
+          <li>Umgebungsvariable setzen: <code>setx OCIO "C:\\OCIO\\ACES\\v1.3\\config.ocio"</code> (PowerShell/Cmd)</li>
+          <li>Nuke neu starten → Project Settings: <code>OCIO</code> / <code>custom</code></li>
+        </ul>
+        <p style={{ margin: '8px 0', color: 'var(--text-secondary)' }}>Hinweis: Display/View Namen müssen exakt so eingetragen werden, wie sie Nuke im <code>OCIODisplay</code> anbietet (z. B. <code>Display</code> „sRGB“, <code>View</code> „ACES 1.0 - SDR Video“ in ACES 1.2).</p>
+      </Card>
+
       <Card title={t('docs.troubleshooting.title', 'Troubleshooting')}>
         <ul style={{ margin: 0, paddingLeft: 18 }}>
           <li>{t('docs.ts.invalidJson', 'Fehler „Ungültiges JSON“: eine Array‑Struktur oder ein Objekt mit "items"/"lenses"/"cameras"/"formats" wird erwartet.')}</li>

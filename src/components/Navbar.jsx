@@ -10,6 +10,8 @@ import InstallPWA from './InstallPWA';
 const Navbar = ({ darkMode, toggleDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [toolsOpen, setToolsOpen] = useState(false);
+  const [betaOpen, setBetaOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
   const { t } = useLanguage();
   const { currentUser } = useAuth();
 
@@ -17,7 +19,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
     <nav className="navbar">
       <div className="navbar-header">
         <div className="navbar-title">
-          <h1>VFX Supervision</h1>
+          <h1>SUPErVISION</h1>
           <div className="app-version">{APP_VERSION_LABEL}</div>
         </div>
         <div className="navbar-controls">
@@ -38,26 +40,14 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
         </li>
         <li>
           <Link to="/login" onClick={() => setIsOpen(false)} aria-label={t('nav.login', 'Login')} title={t('nav.login', 'Login')}>
-            <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
+            <span className="nav-icon" aria-hidden><Icon name="key" /></span>
             <span className="nav-label">{currentUser ? `${t('auth.currentUser', 'Angemeldet als')}: ${currentUser.name}` : t('nav.login', 'Login')}</span>
           </Link>
         </li>
         <li>
-          <Link to="/" onClick={() => setIsOpen(false)} aria-label={t('nav.dashboard')} title={t('nav.dashboard')}>
+          <Link to="/" className="dashboard-link" onClick={() => setIsOpen(false)} aria-label={t('nav.dashboard')} title={t('nav.dashboard')}>
             <span className="nav-icon" aria-hidden><Icon name="home" /></span>
             <span className="nav-label">{t('nav.dashboard')}</span>
-          </Link>
-        </li>
-        <li>
-          <Link to="/shots" onClick={() => setIsOpen(false)} aria-label={t('nav.shots')} title={t('nav.shots')}>
-            <span className="nav-icon" aria-hidden><Icon name="film" /></span>
-            <span className="nav-label">{t('nav.shots')}</span>
-          </Link>
-        </li>
-        <li>
-          <Link to="/camera" onClick={() => setIsOpen(false)} aria-label={t('nav.camera')} title={t('nav.camera')}>
-            <span className="nav-icon" aria-hidden><Icon name="camera" /></span>
-            <span className="nav-label">{t('nav.camera')}</span>
           </Link>
         </li>
         <li>
@@ -68,7 +58,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
         </li>
         <li>
           <Link to="/feedback" onClick={() => setIsOpen(false)} aria-label={t('nav.feedback', 'Feedback')} title={t('nav.feedback', 'Feedback')}>
-            <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
+            <span className="nav-icon" aria-hidden><Icon name="message" /></span>
             <span className="nav-label">{t('nav.feedback', 'Feedback')}</span>
           </Link>
         </li>
@@ -79,12 +69,40 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
           </Link>
         </li>
 
-        {/* Users */}
-        <li>
-          <Link to="/users-teams" onClick={() => setIsOpen(false)} aria-label={t('nav.usersTeams', 'Nutzer & Teams')} title={t('nav.usersTeams', 'Nutzer & Teams')}>
-            <span className="nav-icon" aria-hidden><Icon name="folder" /></span>
-            <span className="nav-label">{t('nav.usersTeams', 'Nutzer & Teams')}</span>
-          </Link>
+        {/* Account */}
+        <li className={`nav-tools ${accountOpen ? 'expanded' : 'collapsed'}`}>
+          <button
+            className="nav-tools-title"
+            onClick={() => setAccountOpen(!accountOpen)}
+            aria-label={t('nav.account', 'Account')}
+            title={t('nav.account', 'Account')}
+            aria-expanded={accountOpen}
+            aria-controls="account-submenu"
+          >
+            <span className="nav-icon" aria-hidden><Icon name="key" /></span>
+            <span className="nav-label">{t('nav.account', 'Account')}</span>
+            <span className="nav-toggle-icon" aria-hidden><Icon name={accountOpen ? 'chevronDown' : 'chevronRight'} /></span>
+          </button>
+          <ul id="account-submenu" className="submenu" aria-hidden={!accountOpen} style={{ display: accountOpen ? 'block' : 'none' }}>
+            <li>
+              <Link to="/users-teams" onClick={() => setIsOpen(false)} aria-label={t('nav.usersTeams', 'Nutzer & Teams')} title={t('nav.usersTeams', 'Nutzer & Teams')}>
+                <span className="nav-icon" aria-hidden><Icon name="folder" /></span>
+                <span className="nav-label">{t('nav.usersTeams', 'Nutzer & Teams')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/users" onClick={() => setIsOpen(false)} aria-label={t('nav.users', 'Nutzer')} title={t('nav.users', 'Nutzer')}>
+                <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
+                <span className="nav-label">{t('nav.users', 'Nutzer')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/teams" onClick={() => setIsOpen(false)} aria-label={t('nav.teams', 'Teams')} title={t('nav.teams', 'Teams')}>
+                <span className="nav-icon" aria-hidden><Icon name="folder" /></span>
+                <span className="nav-label">{t('nav.teams', 'Teams')}</span>
+              </Link>
+            </li>
+          </ul>
         </li>
 
         {/* Tools-Menü mit Einträgen */}
@@ -111,10 +129,17 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             </li>
             <li>
               <Link to="/lens-audit" onClick={() => setIsOpen(false)} aria-label={t('nav.lensAudit', 'Objektiv Audit')} title={t('nav.lensAudit', 'Objektiv Audit')}>
-                <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
+                <span className="nav-icon" aria-hidden><Icon name="lens" /></span>
                 <span className="nav-label">{t('nav.lensAudit', 'Objektiv Audit')}</span>
               </Link>
             </li>
+            <li>
+              <Link to="/lds-lenses" onClick={() => setIsOpen(false)} aria-label={t('nav.ldsLenses', 'LDS‑Objektive')} title={t('nav.ldsLenses', 'LDS‑Objektive')}>
+                <span className="nav-icon" aria-hidden><Icon name="lens" /></span>
+                <span className="nav-label">{t('nav.ldsLenses', 'LDS‑Objektive')}</span>
+              </Link>
+            </li>
+
             <li>
               <Link to="/sensor-preview" onClick={() => setIsOpen(false)} aria-label={t('nav.sensorPreview', 'Sensor Vorschau')} title={t('nav.sensorPreview', 'Sensor Vorschau')}>
                 <span className="nav-icon" aria-hidden><Icon name="film" /></span>
@@ -123,7 +148,7 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             </li>
             <li>
               <Link to="/fov-calculator" onClick={() => setIsOpen(false)} aria-label={t('nav.fovCalculator', 'FOV‑Rechner')} title={t('nav.fovCalculator', 'FOV‑Rechner')}>
-                <span className="nav-icon" aria-hidden><Icon name="film" /></span>
+                <span className="nav-icon" aria-hidden><Icon name="angle" /></span>
                 <span className="nav-label">{t('nav.fovCalculator', 'FOV‑Rechner')}</span>
               </Link>
             </li>
@@ -147,20 +172,54 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
             </li>
             <li>
               <Link to="/flicker-controll" onClick={() => setIsOpen(false)} aria-label={t('nav.flickerControll', 'Flicker Control')} title={t('nav.flickerControll', 'Flicker Control')}>
-                <span className="nav-icon" aria-hidden><Icon name="camera" /></span>
+                <span className="nav-icon" aria-hidden><Icon name="zap" /></span>
                 <span className="nav-label">{t('nav.flickerControll', 'Flicker Control')}</span>
               </Link>
             </li>
             <li>
               <Link to="/lighting-tools" onClick={() => setIsOpen(false)} aria-label={t('nav.lightingTools', 'Lighting‑Tools')} title={t('nav.lightingTools', 'Lighting‑Tools')}>
-                <span className="nav-icon" aria-hidden><Icon name="settings" /></span>
+                <span className="nav-icon" aria-hidden><Icon name="sun" /></span>
                 <span className="nav-label">{t('nav.lightingTools', 'Lighting‑Tools')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/camera" onClick={() => setIsOpen(false)} aria-label={t('nav.cameraPresets', 'Camera Presets')} title={t('nav.cameraPresets', 'Camera Presets')}>
+                <span className="nav-icon" aria-hidden><Icon name="camera" /></span>
+                <span className="nav-label">{t('nav.cameraPresets', 'Camera Presets')}</span>
               </Link>
             </li>
             <li>
               <Link to="/tools-docs" onClick={() => setIsOpen(false)} aria-label={t('nav.toolsDocs', 'Dokumentation')} title={t('nav.toolsDocs', 'Dokumentation')}>
                 <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
                 <span className="nav-label">{t('nav.toolsDocs', 'Dokumentation')}</span>
+              </Link>
+            </li>
+          </ul>
+        </li>
+        <li className={`nav-tools ${betaOpen ? 'expanded' : 'collapsed'}`}>
+          <button
+            className="nav-tools-title"
+            onClick={() => setBetaOpen(!betaOpen)}
+            aria-label={t('nav.betaTools', 'Beta Tools')}
+            title={t('nav.betaTools', 'Beta Tools')}
+            aria-expanded={betaOpen}
+            aria-controls="beta-tools-submenu"
+          >
+            <span className="nav-icon" aria-hidden><Icon name="zap" /></span>
+            <span className="nav-label">{t('nav.betaTools', 'Beta Tools')}</span>
+            <span className="nav-toggle-icon" aria-hidden><Icon name={betaOpen ? 'chevronDown' : 'chevronRight'} /></span>
+          </button>
+          <ul id="beta-tools-submenu" className="submenu" aria-hidden={!betaOpen} style={{ display: betaOpen ? 'block' : 'none' }}>
+            <li>
+              <Link to="/camera-control" onClick={() => setIsOpen(false)} aria-label={t('nav.cameraControl', 'Camera Control (Beta)')} title={t('nav.cameraControl', 'Camera Control (Beta)')}>
+                <span className="nav-icon" aria-hidden><Icon name="camera" /></span>
+                <span className="nav-label">{t('nav.cameraControl', 'Camera Control (Beta)')}</span>
+              </Link>
+            </li>
+            <li>
+              <Link to="/color-workflows" onClick={() => setIsOpen(false)} aria-label={t('nav.colorWorkflows', 'ColorWorkflows (Beta)')} title={t('nav.colorWorkflows', 'ColorWorkflows (Beta)')}>
+                <span className="nav-icon" aria-hidden><Icon name="notes" /></span>
+                <span className="nav-label">{t('nav.colorWorkflows', 'ColorWorkflows (Beta)')}</span>
               </Link>
             </li>
           </ul>

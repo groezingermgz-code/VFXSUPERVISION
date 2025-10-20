@@ -198,3 +198,128 @@ export const syncToWebDAV = async ({ baseUrl, username, password, path = '/vfx-s
   }
   return { ok: true };
 };
+
+// OwnCloud Upload (WebDAV Wrapper: serverUrl + /remote.php/dav/files/{username} + path)
+export const syncToOwnCloud = async ({ serverUrl, username, password, path = '/vfx-supervision/snapshot.json' }) => {
+  if (!serverUrl) throw new Error('OwnCloud Server URL fehlt');
+  if (!username) throw new Error('OwnCloud Benutzername fehlt');
+  const baseUrl = serverUrl.replace(/\/$/, '') + '/remote.php/dav/files/' + encodeURIComponent(username);
+  return await syncToWebDAV({ baseUrl, username, password, path });
+};
+
+// Nextcloud Upload (WebDAV Wrapper: serverUrl + /remote.php/dav/files/{username} + path)
+export const syncToNextcloud = async ({ serverUrl, username, password, path = '/vfx-supervision/snapshot.json' }) => {
+  if (!serverUrl) throw new Error('Nextcloud Server URL fehlt');
+  if (!username) throw new Error('Nextcloud Benutzername fehlt');
+  const baseUrl = serverUrl.replace(/\/$/, '') + '/remote.php/dav/files/' + encodeURIComponent(username);
+  return await syncToWebDAV({ baseUrl, username, password, path });
+};
+
+// ——— Download: WebDAV / OwnCloud / Nextcloud ———
+export const downloadFromWebDAV = async ({ baseUrl, username, password, path = '/vfx-supervision/snapshot.json' }) => {
+  if (!baseUrl) throw new Error('WebDAV Base URL fehlt');
+  const url = baseUrl.replace(/\/$/, '') + path;
+  const auth = btoa(`${username || ''}:${password || ''}`);
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: { 'Authorization': `Basic ${auth}` }
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`WebDAV Download fehlgeschlagen: ${res.status} ${text}`);
+  }
+  return await res.text();
+};
+
+export const downloadFromOwnCloud = async ({ serverUrl, username, password, path = '/vfx-supervision/snapshot.json' }) => {
+  if (!serverUrl) throw new Error('OwnCloud Server URL fehlt');
+  if (!username) throw new Error('OwnCloud Benutzername fehlt');
+  const baseUrl = serverUrl.replace(/\/$/, '') + '/remote.php/dav/files/' + encodeURIComponent(username);
+  return await downloadFromWebDAV({ baseUrl, username, password, path });
+};
+
+export const downloadFromNextcloud = async ({ serverUrl, username, password, path = '/vfx-supervision/snapshot.json' }) => {
+  if (!serverUrl) throw new Error('Nextcloud Server URL fehlt');
+  if (!username) throw new Error('Nextcloud Benutzername fehlt');
+  const baseUrl = serverUrl.replace(/\/$/, '') + '/remote.php/dav/files/' + encodeURIComponent(username);
+  return await downloadFromWebDAV({ baseUrl, username, password, path });
+};
+
+// ——— Auto Cloud Sync: Konfiguration & periodischer Trigger ———
+export const getCloudAutoSyncConfig = () => {
+  try {
+    const raw = localStorage.getItem('cloud_auto_sync_config');
+    return raw ? JSON.parse(raw) : { enabled: false };
+  } catch {
+    return { enabled: false };
+  }
+};
+
+export const saveCloudAutoSyncConfig = (cfg) => {
+  try {
+    localStorage.setItem('cloud_auto_sync_config', JSON.stringify(cfg));
+    return { ok: true };
+  } catch (e) {
+    throw new Error('Speichern der Auto‑Sync‑Konfiguration fehlgeschlagen');
+  }
+};
+
+export const clearCloudAutoSyncConfig = () => {
+  try {
+    localStorage.removeItem('cloud_auto_sync_config');
+    localStorage.removeItem('cloud_auto_sync_last_at');
+  } catch {}
+};
+
+export const runCloudAutoSyncOnce = async () => {
+  const cfg = getCloudAutoSyncConfig();
+  if (!cfg || !cfg.enabled) return null;
+  const now = Date.now();
+  const intervalMs = Math.max(5, Number(cfg.intervalMinutes || 30)) * 60 * 1000;
+  const lastRaw = localStorage.getItem('cloud_auto_sync_last_at');
+  const last = lastRaw ? Date.parse(lastRaw) : 0;
+  if (last && isFinite(last) && (now - last) < intervalMs) {
+    return null; // noch nicht fällig
+  }
+  let res = null;
+  const safeCfg = cfg.config || {};
+  try {
+    switch (cfg.provider) {
+      case 'nextcloud':
+        res = await syncToNextcloud(safeCfg);
+        break;
+      case 'owncloud':
+        res = await syncToOwnCloud(safeCfg);
+        break;
+      case 'webdav':
+        res = await syncToWebDAV(safeCfg);
+        break;
+      case 'dropbox':
+        res = await syncToDropbox(safeCfg);
+        break;
+      case 's3':
+        res = await syncToS3Presigned(safeCfg);
+        break;
+      case 'gcs':
+        res = await syncToGCSignedUrl(safeCfg);
+        break;
+      case 'azure-blob':
+        res = await syncToAzureBlobSAS(safeCfg);
+        break;
+      case 'google-drive':
+        res = await syncToGoogleDrive(safeCfg);
+        break;
+      case 'onedrive':
+        res = await syncToOneDrive(safeCfg);
+        break;
+      case 'generic-http':
+        res = await syncToGenericHTTP(safeCfg);
+        break;
+      default:
+        return null;
+    }
+    return res;
+  } finally {
+    try { localStorage.setItem('cloud_auto_sync_last_at', new Date().toISOString()); } catch {}
+  }
+};

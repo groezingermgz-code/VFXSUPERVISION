@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import Icon from '../components/Icon';
 
 const EMAIL_TO = 'Info@dert-automat.com';
 
@@ -21,6 +22,7 @@ const Feedback = () => {
   const [pwaInstalled, setPwaInstalled] = useState('');
   const [botField, setBotField] = useState(''); // Netlify Honeypot
   const [status, setStatus] = useState({ ok: false, error: '' });
+  const [showPwaInfo, setShowPwaInfo] = useState(false);
 
   const submitToNetlify = async (e) => {
     e.preventDefault();
@@ -118,7 +120,25 @@ const Feedback = () => {
               <input id="device" name="device" type="text" value={device} onChange={(e) => setDevice(e.target.value)} placeholder={t('feedback.devicePlaceholder', 'z. B. iPadOS 17, Safari')} />
             </div>
             <div className="form-field">
-              <label htmlFor="pwaInstalled">{t('feedback.pwaInstalledLabel', 'PWA installiert?')}</label>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <label htmlFor="pwaInstalled">{t('feedback.pwaInstalledLabel', 'PWA installiert?')}</label>
+                <button
+                  type="button"
+                  className="btn-icon"
+                  aria-label={t('feedback.pwaInfoAria', 'Was ist eine PWA?')}
+                  title={t('feedback.pwaInfoTitle', 'Was ist eine PWA?')}
+                  onClick={() => setShowPwaInfo(v => !v)}
+                  aria-expanded={showPwaInfo}
+                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24, borderRadius: 6, border: '1px solid var(--border-color)', background: 'var(--button-bg)', color: 'var(--text-secondary)' }}
+                >
+                  <span aria-hidden><Icon name="info" /></span>
+                </button>
+              </div>
+              {showPwaInfo && (
+                <div className="help-text" role="note" style={{ marginTop: 6, fontSize: '0.95em', color: 'var(--text-secondary)', background: 'var(--card-bg)', border: '1px dashed var(--border-color)', borderRadius: 8, padding: 8 }}>
+                  <strong>PWA (Progressive Web App):</strong> Eine Web‑App, die du wie eine App installieren kannst. Sie läuft im eigenen Fenster, hat ein Home‑Screen‑Icon, kann offline arbeiten (Service Worker) und aktualisiert sich automatisch über das Web. Installation: Im Browser „Zum Home‑Bildschirm hinzufügen“ (Safari/Chrome) oder über das „Installieren“‑Icon in der App.
+                </div>
+              )}
               <select id="pwaInstalled" name="pwaInstalled" value={pwaInstalled} onChange={(e) => setPwaInstalled(e.target.value)}>
                 <option value="">{t('common.select', 'Auswählen...')}</option>
                 <option value="yes">{t('common.yes', 'Ja')}</option>

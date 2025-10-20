@@ -249,6 +249,7 @@ const buildLensMeta = () => {
         minMm: parsed.minMm,
         maxMm: parsed.maxMm,
         isZoom: parsed.isZoom,
+        isLds: /\bLDS\b/i.test(lens),
       };
     }
   }
@@ -271,6 +272,11 @@ export const isZoomLens = (manufacturer, lensModel) => {
 export const getFocalStringForLens = (manufacturer, lensModel) => {
   const meta = getLensMeta(manufacturer, lensModel);
   return meta?.focal || '';
+};
+
+export const isLdsLens = (manufacturer, lensModel) => {
+  const meta = getLensMeta(manufacturer, lensModel);
+  return !!(meta && meta.isLds);
 };
 
 // Anamorphe Objektiv-Datenbank

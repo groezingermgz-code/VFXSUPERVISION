@@ -11,68 +11,17 @@ import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import Icon from '../components/Icon';
+import ImageAnnotatorModal from '../components/ImageAnnotatorModal';
+import { extractFocalLength, extractLensManufacturer } from '../utils/fovCalculator';
+import { compactShotForIndex, compactProjectsForStorage, trySetLocalStorage } from '../utils/shotFileManager';
 
-// Funktion zur Extraktion der Brennweite aus dem Objektiv-Modell
+// Vereinheitlicht: nutze zentrale Util
 const extractFocalLengthFromLens = (lensModel) => {
-  if (!lensModel) return '';
-  
-  // Regex-Patterns für verschiedene Brennweiten-Formate (in Prioritätsreihenfolge)
-  const patterns = [
-    // Zoom-Objektive: "24-70mm", "16-35mm", "30-72mm", "44-440mm", etc.
-    /(\d+)-(\d+)mm/i,
-    // Einzelbrennweiten mit T-Stops: "25mm T2.1", "50mm T1.4", "40mm T2.3", etc.
-    /(\d+)mm\s+T\d+(?:\.\d+)?/i,
-    // Einzelbrennweiten mit Macro: "65mm Macro", "100mm Macro", etc.
-    /(\d+)mm\s+Macro/i,
-    // Einzelbrennweiten mit speziellen Bezeichnungen: "V-Lite 28mm T2.2 (2x)", etc.
-    /(\d+)mm\s+T\d+(?:\.\d+)?\s*\([^)]+\)/i,
-    // Einfache Einzelbrennweiten: "50mm", "85mm", etc.
-    /(\d+)mm/i
-  ];
-  
-  for (const pattern of patterns) {
-    const match = lensModel.match(pattern);
-    if (match) {
-      if (match[2]) {
-        // Zoom-Objektiv gefunden
-        return `${match[1]}-${match[2]}mm`;
-      } else {
-        // Einzelbrennweite gefunden
-        return `${match[1]}mm`;
-      }
-    }
-  }
-  
-  return '';
+  const val = extractFocalLength(lensModel || '');
+  return val !== null && !Number.isNaN(val) ? `${val}mm` : '';
 };
 
-// Funktion zur Extraktion des Herstellers aus dem Objektiv-Namen (robust gegen Brennweiten)
-const extractManufacturerFromLens = (lensModel) => {
-  if (!lensModel) return '';
-  const trimmed = lensModel.trim();
-  // Wenn der String mit einer Brennweite beginnt, KEIN Hersteller zurückgeben
-  if (/^(\d+)(-\d+)?mm\b/i.test(trimmed) || /^\d/.test(trimmed)) {
-    return '';
-  }
-  
-  const manufacturers = [
-    'Canon', 'Nikon', 'Sony', 'Zeiss', 'Cooke', 'ARRI', 'Leica',
-    'Sigma', 'Panavision', 'Hawk', 'Angenieux', 'Atlas', 'Fujinon', 'Tokina', 'Voigtländer'
-  ];
-  
-  for (const manufacturer of manufacturers) {
-    if (trimmed.toLowerCase().includes(manufacturer.toLowerCase())) {
-      return manufacturer;
-    }
-  }
-  
-  // Vorsichtiger Fallback: nur alphabetisches erstes Wort ohne "mm" zurückgeben
-  const firstWord = trimmed.split(' ')[0];
-  if (/^[A-Za-zÄÖÜäöü-]+$/.test(firstWord) && !/mm/i.test(firstWord)) {
-    return firstWord;
-  }
-  return '';
-};
+
 
 const ShotList = () => {
   const { t } = useLanguage();
@@ -90,6 +39,19 @@ const ShotList = () => {
 
   // Finde das ausgewählte Projekt
   const selectedProject = projects.find(p => p.id === selectedProjectId) || projects[0];
+
+  const getShotPreviewSrc = (shot) => {
+    if (shot.previewImage) return shot.previewImage;
+    try {
+      const filmName = selectedProject?.name || 'Film';
+      const hashSeed = (s) => [...String(s)].reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+      const variants = [storyboard1, storyboard2, storyboard3, storyboard4];
+      const idx = Math.abs(hashSeed(`${filmName}-${shot.name}`)) % variants.length;
+      return variants[idx];
+    } catch {
+      return storyboard1;
+    }
+  };
   
   // Funktion zum Exportieren des Projekts als PDF
   const handleExportProjectToPDF = async () => {
@@ -116,6 +78,7 @@ const ShotList = () => {
   
   // Initialisiere Shots aus dem ausgewählten Projekt oder mit Standardwerten
   const [shots, setShots] = useState([]);
+const [annotator, setAnnotator] = useState({ open: false, shotId: null, imageUrl: null, title: '' });
 
   const [filter, setFilter] = useState('Alle');
   const [searchTerm, setSearchTerm] = useState('');
@@ -203,7 +166,7 @@ const ShotList = () => {
     };
   }, [selectedProjectId, shots]);
 
-  // Speichere Shots im ausgewählten Projekt
+  // Speichere Shots im ausgewählten Projekt (kompakte Form, um QuotaExceeded zu vermeiden)
   useEffect(() => {
     const savedProjects = localStorage.getItem('projects');
     const currentProjects = savedProjects ? JSON.parse(savedProjects) : [];
@@ -211,12 +174,17 @@ const ShotList = () => {
     if (currentProjects.length > 0 && shots.length > 0) {
       const updatedProjects = currentProjects.map(project => {
         if (project.id === selectedProjectId) {
-          return { ...project, shots: shots };
+          const compactShots = shots.map(compactShotForIndex);
+          return { ...project, shots: compactShots };
         }
         return project;
       });
       setProjects(updatedProjects);
-      localStorage.setItem('projects', JSON.stringify(updatedProjects));
+      const ok = trySetLocalStorage('projects', JSON.stringify(updatedProjects));
+      if (!ok) {
+        const compact = compactProjectsForStorage(updatedProjects);
+        trySetLocalStorage('projects', JSON.stringify(compact));
+      }
     }
   }, [shots, selectedProjectId]);
 
@@ -252,6 +220,7 @@ const ShotList = () => {
         model: '', 
         format: '',
         lens: '', 
+        lensManufacturer: '',
         focalLength: '', 
         aperture: '', 
         iso: '',
@@ -259,7 +228,8 @@ const ShotList = () => {
         hyperfocalDistance: '',
         ndFilter: '',
         shutterAngle: '180°',
-        imageStabilization: 'Aus'
+        imageStabilization: 'Aus',
+        isAnamorphic: false
       },
       cameraMovement: {
         movementType: '',
@@ -340,6 +310,35 @@ const ShotList = () => {
     } catch (e) {}
   };
 
+  // Handler für Shot-Vorschau-Annotationen innerhalb der Komponente
+  const openAnnotatorForShotPreview = (shot) => {
+    const src = getShotPreviewSrc(shot);
+    setAnnotator({ open: true, shotId: shot.id, imageUrl: src, title: `Annotieren: ${shot.name}` });
+  };
+
+  const applyAnnotationToShot = (dataUrl) => {
+    setShots(prev => {
+      const updated = prev.map(s => s.id === annotator.shotId ? { ...s, previewImage: dataUrl } : s);
+      try {
+        const storageKey = `shot_${annotator.shotId}`;
+        const fileKey = `shot-file-${annotator.shotId}`;
+        const existing = localStorage.getItem(storageKey) || localStorage.getItem(fileKey);
+        if (existing) {
+          const parsed = JSON.parse(existing);
+          const merged = { ...parsed, previewImage: dataUrl };
+          localStorage.setItem(storageKey, JSON.stringify(merged));
+          localStorage.setItem(fileKey, JSON.stringify(merged));
+        }
+      } catch (e) {}
+      return updated;
+    });
+    setAnnotator({ open: false, shotId: null, imageUrl: null, title: '' });
+  };
+
+  const closeAnnotatorModal = () => {
+    setAnnotator({ open: false, shotId: null, imageUrl: null, title: '' });
+  };
+
   const filteredShots = shots.filter(shot => {
     const matchesFilter = filter === 'Alle' || shot.status === filter;
     const matchesSearch = shot.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -360,6 +359,9 @@ const ShotList = () => {
         <div className="header-content">
   <h1 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>{t('nav.shots')} <span title="Übersicht aller Shots im Projekt"><Icon name="info" size={16} /></span></h1>
           <p className="subtitle">{filteredShots.length} {t('common.of')} {shots.length} {t('shot.plural')}</p>
+          <p className="subtitle">
+            {t('project.label','Projekt')}: {selectedProject ? `${selectedProject.name}${selectedProject.code ? ' (' + selectedProject.code + ')' : ''}` : t('project.none','Kein Projekt')}
+          </p>
           <p className="subtitle" style={{ opacity: 0.8 }}>
             {currentUser ? `${t('auth.currentUser', 'Angemeldet als')}: ${currentUser.name}` : t('auth.notLoggedIn', 'Nicht angemeldet')}
           </p>
@@ -372,6 +374,15 @@ const ShotList = () => {
           </button>
         </div>
       </div>
+
+      {annotator.open && (
+        <ImageAnnotatorModal
+          imageUrl={annotator.imageUrl}
+          title={annotator.title}
+          onApply={applyAnnotationToShot}
+          onClose={closeAnnotatorModal}
+        />
+      )}
 
       <div className="filters">
         <div className="search-bar">
@@ -407,7 +418,7 @@ const ShotList = () => {
           const autoFocalLength = extractFocalLengthFromLens(shot.cameraSettings?.lens);
           const lensManufacturer = (shot.cameraSettings?.lensManufacturer && shot.cameraSettings.lensManufacturer.trim())
             ? shot.cameraSettings.lensManufacturer
-            : extractManufacturerFromLens(shot.cameraSettings?.lens);
+            : extractLensManufacturer(shot.cameraSettings?.lens, shot.cameraSettings?.manufacturer);
           const displayFocalLength = shot.cameraSettings?.focalLength || autoFocalLength;
           const setupCount = 1 + (shot.additionalCameraSetups?.length || 0);
           const getLensType = (lensModel, isAnamorphic) => {
@@ -488,50 +499,46 @@ const ShotList = () => {
               <div className="shot-details">
                 {shot.createdBy && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('user.createdBy', 'Erstellt von')} <span title="Ersteller des Shots"><Icon name="info" size={14} /></span>:</span>
+                    <span className="detail-label">{t('user.createdBy', 'Erstellt von')}:</span>
                     <span className="detail-value">{shot.createdBy}</span>
                   </div>
                 )}
                 <div className="detail-item">
-                  <span className="detail-label">{t('shot.setupCount')} <span title="Anzahl der Kamera-Setups"><Icon name="info" size={14} /></span>:</span>
+                  <span className="detail-label">{t('shot.setupCount')}:</span>
                   <span className="detail-value">{setupCount}</span>
                 </div>
                 <div className="detail-item">
-                  <span className="detail-label">{t('camera.model')} <span title="Kameramodell des Shots"><Icon name="info" size={14} /></span>:</span>
+                  <span className="detail-label">{t('camera.model')}:</span>
                   <span className="detail-value">{shot.cameraSettings?.model || t('common.notAvailable')}</span>
                 </div>
                 
                 {lensManufacturer && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('lens.manufacturer')} <span title="Objektivhersteller"><Icon name="info" size={14} /></span>:</span>
+                    <span className="detail-label">{t('lens.manufacturer')}:</span>
                     <span className="detail-value">{lensManufacturer}</span>
                   </div>
                 )}
                 
                 <div className="detail-item">
-                  <span className="detail-label">{t('lens.lens')} <span title="Objektivbezeichnung"><Icon name="info" size={14} /></span>:</span>
+                  <span className="detail-label">{t('lens.lens')}:</span>
                   <span className="detail-value">{shot.cameraSettings?.lens || t('common.notAvailable')}</span>
                 </div>
                 
-                {displayFocalLength && (
-                  <div className="detail-item">
-                    <span className="detail-label">{t('lens.focalLength')} <span title="Brennweite des Objektivs"><Icon name="info" size={14} /></span>:</span>
-                    <span className="detail-value">{displayFocalLength}</span>
-                  </div>
-                )}
-                
                 {shot.notes && (
                   <div className="detail-item">
-                    <span className="detail-label">{t('common.notes')} <span title="Zusätzliche Notizen zum Shot"><Icon name="info" size={14} /></span>:</span>
+                    <span className="detail-label">{t('common.notes')}:</span>
                     <span className="detail-value">{shot.notes}</span>
                   </div>
                 )}
               </div>
               
               <div className="shot-card-actions">
-                <Link to={`/shots/${shot.id}`} className="action-btn primary">
+                <Link to={`/shots/${shot.id}`} className="action-btn primary" style={{ minWidth: 140 }}>
                   {t('action.shotDetails')}
                 </Link>
+                <button className="btn-annotate" onClick={() => openAnnotatorForShotPreview(shot)}>
+                  {t('action.annotate', 'Annotieren')}
+                </button>
               </div>
             </div>
           );

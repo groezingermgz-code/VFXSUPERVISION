@@ -165,6 +165,8 @@ const LensEditor = () => {
   };
 
   const rows = viewAll ? collectAllLensAdditions() : additions;
+// Auto-Detect LDS from typed lens name
+const isLdsName = useMemo(() => (lensName || '').toUpperCase().includes('LDS'), [lensName]);
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -190,8 +192,17 @@ const LensEditor = () => {
             <div style={{ fontSize: 12, color: 'var(--muted-color)' }}>
               {lensName ? (hasMm(lensName) ? 'mm‑Angabe erkannt' : 'Hinweis: mm‑Angabe fehlt') : 'Beispiel: 50mm f/1.4'}
             </div>
+            <div style={{ marginTop: 6 }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                LDS
+                <input type="checkbox" checked={isLdsName} readOnly />
+                <span style={{ fontSize: 12, color: 'var(--muted-color)' }}>
+                  {isLdsName ? 'automatisch erkannt' : 'aktiviert bei "LDS" im Namen'}
+                </span>
+              </label>
+            </div>
           </div>
-          <button onClick={addEntry} style={{ height: 32 }} aria-label={t('editor.addEntry', 'Eintrag hinzufügen')} title={t('editor.addEntry', 'Eintrag hinzufügen')}>Hinzufügen</button>
+          <button onClick={addEntry} aria-label={t('editor.addEntry', 'Eintrag hinzufügen')} title={t('editor.addEntry', 'Eintrag hinzufügen')}>Hinzufügen</button>
         </div>
       </div>
 

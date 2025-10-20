@@ -1,4 +1,4 @@
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 
 /**
  * Exportiert einen einzelnen Shot als PDF

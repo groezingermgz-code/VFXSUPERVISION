@@ -136,6 +136,20 @@
   transition: background-color 0.3s;
 }
 
+/* Custom colors for Dashboard and Shot List */
+.navbar-links a.dashboard-link {
+  color: #2563eb; /* blue-600 */
+}
+.dark-mode .navbar-links a.dashboard-link {
+  color: #60a5fa; /* blue-400 */
+}
+.navbar-links a.shots-link {
+  color: #2563eb; /* blue-600 */
+}
+.dark-mode .navbar-links a.shots-link {
+  color: #60a5fa; /* blue-400 */
+}
+
 .dark-mode .navbar-links a {
   color: #e0e0e0;
 }

@@ -3,14 +3,17 @@
   background-color: var(--secondary-color);
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
+  border-radius: var(--btn-radius);
   cursor: pointer;
   font-weight: 600;
   font-size: 16px;
   transition: all 0.2s ease;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -22,14 +25,17 @@
   background-color: #6c757d;
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
+  border-radius: var(--btn-radius);
   cursor: pointer;
   font-weight: 600;
   font-size: 16px;
   transition: all 0.2s ease;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -41,14 +47,17 @@
   background-color: #dc3545;
   color: white;
   border: none;
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
+  border-radius: var(--btn-radius);
   cursor: pointer;
   font-weight: 600;
   font-size: 16px;
   transition: all 0.2s ease;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -60,14 +69,17 @@
   background-color: transparent;
   color: var(--secondary-color);
   border: 2px solid var(--secondary-color);
-  padding: 12px 24px;
-  border-radius: 8px;
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
+  border-radius: var(--btn-radius);
   cursor: pointer;
   font-weight: 600;
   font-size: 16px;
   transition: all 0.2s ease;
   text-decoration: none;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -212,4 +224,46 @@ h3 {
 .dark-mode .form-group select:focus,
 .dark-mode .form-group textarea:focus {
   border-color: var(--secondary-color);
+}
+
+/* Dunklere Variante für Annotieren-Buttons */
+.btn-annotate {
+  background-color: transparent;
+  color: var(--primary-color);
+  border: 2px solid var(--primary-color);
+  padding: 0 var(--btn-padding-x);
+  min-height: var(--btn-height);
+  border-radius: var(--btn-radius);
+  font-weight: 600;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+.btn-annotate:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+@media (max-width: 420px) {
+  .page.login-page .card {
+    padding: 12px;
+    margin-bottom: 12px;
+  }
+  .page.login-page .form-group {
+    margin-bottom: 10px;
+  }
+  .page.login-page .form-row {
+    gap: 6px;
+  }
+  .page.login-page .header h1 {
+    font-size: 1.6rem;
+  }
+  .btn-primary,
+  .btn-secondary,
+  .btn-outline {
+    min-height: 40px;
+    font-size: 15px;
+  }
 }

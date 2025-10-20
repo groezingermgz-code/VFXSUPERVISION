@@ -125,7 +125,7 @@ const Notes = () => {
       <div className="add-note card">
         <h2>{t('shot.newNote')}</h2>
 
-        <DrawingCanvas onSave={(url) => setCanvasImage(url)} width={800} height={400} />
+        <DrawingCanvas onSave={(url) => setCanvasImage(url)} width={800} height={400} actionsPlacement="start" />
         {canvasImage && (
           <div style={{ marginBottom: 12 }}>
             <strong>Skizzen‑Vorschau</strong>
