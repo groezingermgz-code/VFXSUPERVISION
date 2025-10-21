@@ -30,12 +30,42 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
+      - name: Preflight Cloudflare config
+        run: |
+          echo "::group::Cloudflare Config"
+          echo "PROJECT_NAME=$PROJECT_NAME"
+          if [ "$HAS_CF_TOKEN" != "true" ]; then echo "CLOUDFLARE_API_TOKEN missing"; exit 1; fi
+          if [ "$HAS_ACCOUNT_ID" != "true" ]; then echo "CLOUDFLARE_ACCOUNT_ID missing"; exit 1; fi
+          echo "::endgroup::"
+        env:
+          PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }}
+          HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
+
+      - name: Wrangler version
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '3.77.0'
+          command: --version
+
       - name: Cloudflare auth check (wrangler whoami)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '3.77.0'
           command: whoami
+
+      - name: List Pages projects
+        uses: cloudflare/wrangler-action@v3
+        continue-on-error: true
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '3.77.0'
+          command: pages project list
 
       - name: Ensure Pages project exists
         uses: cloudflare/wrangler-action@v3
@@ -43,6 +73,7 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          wranglerVersion: '3.77.0'
           command: pages project create ${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }} --production-branch=main
 
       - name: Deploy to Cloudflare Pages (Wrangler)
@@ -50,5 +81,6 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }}
+          wranglerVersion: '3.77.0'
+          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }} --branch=main
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
