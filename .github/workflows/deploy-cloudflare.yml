@@ -56,6 +56,24 @@ jobs:
           HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
           HAS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
 
+      - name: Cloudflare API auth smoke test
+        run: |
+          set -e
+          echo "::group::Verify API token"
+          VERIFY=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify)
+          echo "$VERIFY"
+          echo "$VERIFY" | grep -q '"success":true' || { echo "Token verification failed. Ensure token is valid and not expired."; exit 1; }
+          echo "::endgroup::"
+
+          echo "::group::Check Pages access"
+          PAGES=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects?per_page=1")
+          echo "$PAGES"
+          echo "$PAGES" | grep -q '"success":true' || { echo "Pages API not accessible for this token/account. Ensure permission 'Cloudflare Pages: Edit' and correct Account ID."; exit 1; }
+          echo "::endgroup::"
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
       - name: Node/npm info
         run: |
           node -v
