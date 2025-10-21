@@ -43,12 +43,12 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages project create ${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }} --production-branch=main
+          command: pages project create ${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }} --production-branch=main
 
       - name: Deploy to Cloudflare Pages (Wrangler)
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }}
+          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
