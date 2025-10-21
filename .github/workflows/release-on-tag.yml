@@ -73,24 +73,32 @@ jobs:
           fi
 
       - name: Setup Java (for Android)
-        if: ${{ hashFiles('bridge/insta360-android/gradlew') != '' }}
+        if: ${{ hashFiles('bridge/insta360-android/build.gradle') != '' }}
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
 
       - name: Setup Android SDK
-        if: ${{ hashFiles('bridge/insta360-android/gradlew') != '' }}
+        if: ${{ hashFiles('bridge/insta360-android/build.gradle') != '' }}
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
           build-tools: 34.0.0
           components: platform-tools
 
-      - name: Build Android APK
+      - name: Build Android APK (wrapper vorhanden)
         if: ${{ hashFiles('bridge/insta360-android/gradlew') != '' }}
         working-directory: bridge/insta360-android
-        run: ./gradlew clean assembleRelease
+        run: ./gradlew clean :app:assembleRelease
+
+      - name: Build Android APK (Gradle-Fallback ohne Wrapper)
+        if: ${{ hashFiles('bridge/insta360-android/gradlew') == '' && hashFiles('bridge/insta360-android/build.gradle') != '' }}
+        uses: gradle/gradle-build-action@v3
+        with:
+          gradle-version: 8.9
+          build-root-directory: bridge/insta360-android
+          arguments: clean :app:assembleRelease
 
       - name: Collect Android APK
         shell: bash
