@@ -5,15 +5,41 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   publish:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout tag commit
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
-      - name: Prepare release notes path
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Package dist
+        shell: bash
+        run: |
+          if [ -d "dist" ]; then
+            zip -r dist.zip dist
+          else
+            echo "No dist dir; skipping zip"
+          fi
+
+      - name: Prepare release notes
         id: notes
         shell: bash
         run: |
@@ -22,10 +48,28 @@ jobs:
           if [ -f "$NOTES_FILE" ]; then
             echo "notes_path=$NOTES_FILE" >> $GITHUB_OUTPUT
           else
-            echo "notes_path=CHANGELOG.md" >> $GITHUB_OUTPUT
+            git fetch --depth=1 origin main || true
+            if git show origin/main:${NOTES_FILE} > release-notes.md 2>/dev/null; then
+              echo "notes_path=release-notes.md" >> $GITHUB_OUTPUT
+            elif git show origin/main:CHANGELOG.md > release-notes.md 2>/dev/null; then
+              echo "notes_path=release-notes.md" >> $GITHUB_OUTPUT
+            else
+              echo "notes_path=" >> $GITHUB_OUTPUT
+            fi
           fi
 
-      - name: Create GitHub Release
+      - name: Check artifact
+        id: artifact
+        shell: bash
+        run: |
+          if [ -f "dist.zip" ]; then
+            echo "has_artifact=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_artifact=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release (with dist.zip)
+        if: ${{ steps.artifact.outputs.has_artifact == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
@@ -33,7 +77,21 @@ jobs:
           body_path: ${{ steps.notes.outputs.notes_path }}
           draft: false
           prerelease: false
+          generate_release_notes: true
           files: |
             dist.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release (no artifact)
+        if: ${{ steps.artifact.outputs.has_artifact != 'true' }}
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          body_path: ${{ steps.notes.outputs.notes_path }}
+          draft: false
+          prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
