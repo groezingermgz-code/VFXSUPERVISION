@@ -16,4 +16,4 @@ jobs:
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
           api-key: ${{ secrets.RENDER_API_KEY }}
-          wait-for-success: true
+          # wait-for-success removed: not supported by v0.0.8
