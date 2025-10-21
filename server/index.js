@@ -11,32 +11,48 @@ import { getUserByEmail, createUser, setUserEmailVerified, setUserName } from '.
 
 const app = express();
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'http://127.0.0.1:5173',
-    'http://localhost:5175',
-    'http://127.0.0.1:5175',
-    'http://localhost:5176',
-    'http://127.0.0.1:5176',
-    'http://localhost:5177',
-    'http://127.0.0.1:5177',
-    'http://localhost:5178',
-    'http://127.0.0.1:5178',
-    'http://localhost:5180',
-    'http://127.0.0.1:5180',
-    'http://192.168.178.71:5175',
-    'http://192.168.178.71:5177',
-    'http://192.168.178.71:5178',
-    'http://192.168.178.71:5180',
-    // Produktion: der-automat.com
-    'https://www.der-automat.com',
-    'http://www.der-automat.com',
-    'https://der-automat.com',
-    'http://der-automat.com',
-  ],
+// Dynamische CORS-Whitelist inkl. Cloudflare Pages (*.pages.dev)
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://localhost:5175',
+  'http://127.0.0.1:5175',
+  'http://localhost:5176',
+  'http://127.0.0.1:5176',
+  'http://localhost:5177',
+  'http://127.0.0.1:5177',
+  'http://localhost:5178',
+  'http://127.0.0.1:5178',
+  'http://localhost:5180',
+  'http://127.0.0.1:5180',
+  'http://192.168.178.71:5175',
+  'http://192.168.178.71:5177',
+  'http://192.168.178.71:5178',
+  'http://192.168.178.71:5180',
+  // Produktion: der-automat.com
+  'https://www.der-automat.com',
+  'http://www.der-automat.com',
+  'https://der-automat.com',
+  'http://der-automat.com',
+];
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    try {
+      const url = new URL(origin);
+      const host = url.hostname;
+      const allow = allowedOrigins.includes(origin) || host.endsWith('pages.dev');
+      return callback(null, allow);
+    } catch (e) {
+      const allow = allowedOrigins.includes(origin) || origin.includes('pages.dev');
+      return callback(null, allow);
+    }
+  },
   credentials: false,
-}));
+};
+
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '1mb' }));
 
 // Simple API info route
