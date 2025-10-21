@@ -5,7 +5,7 @@
 .card.info { background: var(--card-bg-alt, #0b1220); }
 .form-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
 .form-group { display: flex; flex-direction: column; gap: 6px; }
-.form-group input, .form-group select { min-width: 220px; }
+.form-group input[type="text"], .form-group input[type="number"], .form-group input[type="range"], .form-group select { min-width: 220px; }
 .status-row { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .status-dot { width: 10px; height: 10px; border-radius: 50%; background: #6b7280; }
 .status-dot.ok { background: #22c55e; }

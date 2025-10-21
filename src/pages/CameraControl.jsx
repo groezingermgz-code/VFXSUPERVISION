@@ -1,12 +1,18 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useLanguage } from '../contexts/LanguageContext';
 import Icon from '../components/Icon';
 import './CameraControl.css';
 import { bridge } from '../utils/cameraControlBridge';
 import { Presets } from '../utils/cameraPresets';
 
-const defaultBridgeUrl = (typeof window !== 'undefined' && localStorage.getItem('cameraBridgeUrl')) || 'http://localhost:8080';
+const envBridgeUrl = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BRIDGE_BASE_URL) || null;
+const defaultBridgeUrl = envBridgeUrl || (typeof window !== 'undefined' && localStorage.getItem('cameraBridgeUrl')) || 'http://localhost:5174';
 const defaultBridgeToken = (typeof window !== 'undefined' && localStorage.getItem('cameraBridgeToken')) || 'devtoken';
+const defaultAutoMergeAfterBracket = (typeof window !== 'undefined' && localStorage.getItem('cameraAutoMergeAfterBracket')) === '1';
+const defaultAutoMergeThreshold = (typeof window !== 'undefined' && localStorage.getItem('cameraAutoMergeThreshold') != null)
+  ? Number(localStorage.getItem('cameraAutoMergeThreshold')) || 0
+  : 0;
+const defaultAutoMergeExact = (typeof window !== 'undefined' && localStorage.getItem('cameraAutoMergeExact')) === '1';
 
 const CameraControl = () => {
   const { t } = useLanguage();
@@ -40,6 +46,16 @@ const CameraControl = () => {
   const [useManualExposures, setUseManualExposures] = useState(false);
   const [bracketShots, setBracketShots] = useState([]);
   const [bracketSession, setBracketSession] = useState(null);
+  const [autoMergeAfterBracket, setAutoMergeAfterBracket] = useState(defaultAutoMergeAfterBracket);
+  const [autoMergeThreshold, setAutoMergeThreshold] = useState(defaultAutoMergeThreshold);
+  const [autoMergeExact, setAutoMergeExact] = useState(defaultAutoMergeExact);
+  const [isMerging, setIsMerging] = useState(false);
+  const [mergeElapsedSec, setMergeElapsedSec] = useState(0);
+  const [mergeEstimateSec, setMergeEstimateSec] = useState(null);
+  const mergeAbortController = useRef(null);
+  // --- NEW: HDR Merge options/result ---
+  const [hdrMergeOptions, setHdrMergeOptions] = useState({ format: 'exr', method: 'debevec', align: true, tonemap: 'none', gamma: 2.2 });
+  const [hdrMergeResult, setHdrMergeResult] = useState(null);
   const autoExposures = useMemo(() => {
     const nRaw = Number(bracket.stops) || 1;
     const n = Math.max(1, nRaw);
@@ -56,6 +72,18 @@ const CameraControl = () => {
   useEffect(() => {
     try { localStorage.setItem('cameraBridgeToken', bridgeToken); } catch {}
   }, [bridgeToken]);
+
+  useEffect(() => {
+    try { localStorage.setItem('cameraAutoMergeAfterBracket', autoMergeAfterBracket ? '1' : '0'); } catch {}
+  }, [autoMergeAfterBracket]);
+
+  useEffect(() => {
+    try { localStorage.setItem('cameraAutoMergeThreshold', String(autoMergeThreshold || 0)); } catch {}
+  }, [autoMergeThreshold]);
+
+  useEffect(() => {
+    try { localStorage.setItem('cameraAutoMergeExact', autoMergeExact ? '1' : '0'); } catch {}
+  }, [autoMergeExact]);
 
   const connect = async () => {
     setConnecting(true);
@@ -134,10 +162,66 @@ const CameraControl = () => {
         localStorage.setItem('cameraBracketLatest', JSON.stringify(latest));
         window.dispatchEvent(new CustomEvent('camera-bracket-updated'));
       } catch {}
+      const successCount = (shots || []).filter((s) => s?.ok !== false).length;
+       let thresholdOk = true;
+       if (autoMergeThreshold > 0) {
+         thresholdOk = autoMergeExact ? successCount === autoMergeThreshold : successCount >= autoMergeThreshold;
+       }
+       if (autoMergeAfterBracket && sessionId && shots && shots.length > 0 && thresholdOk) {
+         doMergeBracket();
+       }
     } catch (e) { console.error('HDR bracketing failed:', e); }
   };
 
-  const resolutions = ['2880x1440', '1440x720'];
+  // NEW: trigger HDR merge for current session
+   const doMergeBracket = async () => {
+      if (!bracketSession) return;
+      setIsMerging(true);
+      try {
+        const exposures = (bracketShots || []).map((s) => Number(s.ev));
+        const shotCount = exposures.length;
+        let estimate = 2 + shotCount * 3; // 2s Overhead + 3s je Shot
+        if (hdrMergeOptions.align) estimate = Math.round(estimate * 1.5);
+        if (hdrMergeOptions.tonemap && hdrMergeOptions.tonemap !== 'none') estimate = Math.round(estimate * 1.3);
+        setMergeElapsedSec(0);
+        setMergeEstimateSec(estimate);
+        const payload = {
+          session: bracketSession,
+          use_full: true,
+          format: hdrMergeOptions.format,
+          method: hdrMergeOptions.method,
+          align: !!hdrMergeOptions.align,
+          tonemap: hdrMergeOptions.tonemap && hdrMergeOptions.tonemap !== 'none' ? hdrMergeOptions.tonemap : null,
+          gamma: Number(hdrMergeOptions.gamma) || 2.2,
+          exposures
+        };
+        const ctrl = new AbortController();
+        mergeAbortController.current = ctrl;
+        const res = await bridge.mergeBracket(payload, { signal: ctrl.signal });
+        setHdrMergeResult(res || null);
+        setIsMerging(false);
+        mergeAbortController.current = null;
+      } catch (e) {
+        if (e?.name === 'AbortError' || String(e?.message || e).toLowerCase().includes('abort')) {
+          setHdrMergeResult({ ok: false, error: 'Abgebrochen' });
+        } else {
+          console.error('HDR merge failed:', e);
+          setHdrMergeResult({ ok: false, error: e?.message || String(e) });
+        }
+        setIsMerging(false);
+        mergeAbortController.current = null;
+      }
+    };
+ 
+   const cancelMerge = () => {
+     try { mergeAbortController.current?.abort(); } catch {}
+     setIsMerging(false);
+     setMergeEstimateSec(null);
+     setMergeElapsedSec(0);
+     setHdrMergeResult({ ok: false, error: 'Abgebrochen' });
+   };
+ 
+   const resolutions = ['2880x1440', '1440x720'];
 
   const handleUpload = (index, shot, e) => {
     const file = e.target?.files?.[0];
@@ -228,6 +312,21 @@ const CameraControl = () => {
     }
   }, [previewActive, usePolling]);
 
+  useEffect(() => {
+    let timer;
+    if (isMerging) {
+      timer = setInterval(() => {
+        setMergeElapsedSec((s) => s + 1);
+      }, 1000);
+    } else {
+      setMergeElapsedSec(0);
+      setMergeEstimateSec(null);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isMerging]);
+
   return (
     <div className="camera-control">
       <h1 className="page-title">{t('cameraControl.title', 'Camera Control (Beta)')}</h1>
@@ -238,7 +337,7 @@ const CameraControl = () => {
         <div className="form-row">
           <div className="form-group" style={{ flex: 1 }}>
             <label>{t('cameraControl.connection.bridgeUrl', 'Bridge URL')}</label>
-            <input type="text" value={bridgeUrl} onChange={(e) => setBridgeUrl(e.target.value)} placeholder="http://localhost:8080" />
+            <input type="text" value={bridgeUrl} onChange={(e) => setBridgeUrl(e.target.value)} placeholder="http://localhost:5174" />
           </div>
           <div className="form-group" style={{ flex: 1 }}>
             <label>{t('cameraControl.connection.bridgeToken', 'Bridge Token')}</label>
@@ -386,40 +485,154 @@ const CameraControl = () => {
       </div>
 
       <div className="card">
-        <h2>HDR Bracketing</h2>
-        <div className="form-row">
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Stops</label>
-            <input type="range" min="3" max="13" step="2" value={bracket.stops} onChange={(e) => setBracket({ ...bracket, stops: Number(e.target.value) })} />
-            <div className="help-text" style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>Stops: {bracket.stops}</div>
+         <h2>Aufnahme</h2>
+         <div className="form-row">
+           <button className="btn-primary" onClick={startRecord} disabled={!connected}>Aufnahme starten</button>
+           <button className="btn-warning" onClick={stopRecord} disabled={!connected}>Aufnahme stoppen</button>
+           <button className="btn-secondary" onClick={takePhoto} disabled={!connected || mode !== 'photo'}>Foto aufnehmen</button>
+         </div>
+       </div>
+
+       <div className="card">
+            <h3 style={{ margin: '8px 0' }}>HDR Bracketing</h3>
+         <div className="form-row">
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Stops</label>
+             <input type="range" min="3" max="13" step="2" value={bracket.stops} onChange={(e) => setBracket({ ...bracket, stops: Number(e.target.value) })} />
+             <div className="help-text" style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>Stops: {bracket.stops}</div>
+           </div>
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Abstand (EV)</label>
+             <input type="range" min="0.3" max="2" step="0.1" value={bracket.evStep} onChange={(e) => setBracket({ ...bracket, evStep: Number(e.target.value) })} />
+             <div className="help-text" style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>Schrittweite: {Number(bracket.evStep).toFixed(1)} EV</div>
+           </div>
+         </div>
+
+         <div className="form-row">
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Exposures (EV, komma‑separiert)</label>
+             <input type="text" value={bracket.exposures} onChange={(e) => setBracket({ ...bracket, exposures: e.target.value })} placeholder="-2,-1,0,1,2" disabled={!useManualExposures} />
+             <div className="help-text" style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>Automatisch: {autoExposures.map((n) => Number(n.toFixed(2))).join(', ')}</div>
+           </div>
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Delay (ms)</label>
+             <input type="number" value={bracket.delayMs} onChange={(e) => setBracket({ ...bracket, delayMs: Number(e.target.value) })} />
+           </div>
+         </div>
+
+         <div className="form-row">
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Belichtung sperren</label>
+             <input type="checkbox" checked={bracket.lockExposure} onChange={(e) => setBracket({ ...bracket, lockExposure: e.target.checked })} />
+           </div>
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Manuell EV‑Liste</label>
+             <input type="checkbox" checked={useManualExposures} onChange={(e) => setUseManualExposures(e.target.checked)} />
+           </div>
+         </div>
+
+         {/* Moved: Exact N successful shots under Manual EV list */}
+         <div className="form-row">
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Nur genau N erfolgreiche Shots</label>
+             <input type="checkbox" checked={autoMergeExact} onChange={(e) => setAutoMergeExact(e.target.checked)} disabled={!autoMergeAfterBracket || autoMergeThreshold <= 0} />
+           </div>
+           <div className="form-group" style={{ flex: 1 }} />
+         </div>
+
+         <div className="form-row">
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>Auto‑Merge nach Aufnahme</label>
+              <input type="checkbox" checked={autoMergeAfterBracket} onChange={(e) => setAutoMergeAfterBracket(e.target.checked)} />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>Mindestanzahl erfolgreicher Shots</label>
+              <input type="number" min="1" max="99" value={autoMergeThreshold} onChange={(e) => setAutoMergeThreshold(Number(e.target.value) || 0)} disabled={!autoMergeAfterBracket} />
+            </div>
           </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Abstand (EV)</label>
-            <input type="range" min="0.3" max="2" step="0.1" value={bracket.evStep} onChange={(e) => setBracket({ ...bracket, evStep: Number(e.target.value) })} />
-            <div className="help-text" style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>Schrittweite: {Number(bracket.evStep).toFixed(1)} EV</div>
-          </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Exposures (EV, komma‑separiert)</label>
-            <input type="text" value={bracket.exposures} onChange={(e) => setBracket({ ...bracket, exposures: e.target.value })} placeholder="-2,-1,0,1,2" disabled={!useManualExposures} />
-            <div className="help-text" style={{ fontSize: '0.9em', color: '#666', marginTop: 4 }}>Automatisch: {autoExposures.map((n) => Number(n.toFixed(2))).join(', ')}</div>
-          </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Delay (ms)</label>
-            <input type="number" value={bracket.delayMs} onChange={(e) => setBracket({ ...bracket, delayMs: Number(e.target.value) })} />
-          </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Belichtung sperren</label>
-            <input type="checkbox" checked={bracket.lockExposure} onChange={(e) => setBracket({ ...bracket, lockExposure: e.target.checked })} />
-          </div>
-          <div className="form-group" style={{ flex: 1 }}>
-            <label>Manuell EV‑Liste</label>
-            <input type="checkbox" checked={useManualExposures} onChange={(e) => setUseManualExposures(e.target.checked)} />
-          </div>
-          <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-            <button className="btn-primary" onClick={startBracket} disabled={!connected}>{t('cameraControl.hdr.start', 'HDR Bracketing aufnehmen')}</button>
-          </div>
-        </div>
-      </div>
+
+         <div className="form-row">
+           <div className="form-group" style={{ alignSelf: 'flex-end' }}>
+             <button className="btn-primary" onClick={startBracket} disabled={!connected}>{t('cameraControl.hdr.start', 'HDR Bracketing aufnehmen')}</button>
+           </div>
+         </div>
+
+         <div style={{ height: 1, background: '#1f2937', margin: '12px 0', opacity: 0.6 }} />
+
+         <h3 style={{ margin: '8px 0' }}>HDR/EXR Merge</h3>
+         <div className="form-row" style={{ marginTop: 12 }}>
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Ausgabeformat</label>
+             <select value={hdrMergeOptions.format} onChange={(e) => setHdrMergeOptions({ ...hdrMergeOptions, format: e.target.value })}>
+               <option value="exr">OpenEXR (.exr)</option>
+               <option value="hdr">Radiance HDR (.hdr)</option>
+             </select>
+           </div>
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Methode</label>
+             <select value={hdrMergeOptions.method} onChange={(e) => setHdrMergeOptions({ ...hdrMergeOptions, method: e.target.value })}>
+               <option value="debevec">Debevec</option>
+               <option value="robertson">Robertson</option>
+             </select>
+           </div>
+         </div>
+         <div className="form-row">
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Gamma</label>
+             <input type="number" step="0.1" min="0.8" max="3.0" value={hdrMergeOptions.gamma} onChange={(e) => setHdrMergeOptions({ ...hdrMergeOptions, gamma: Number(e.target.value) })} />
+           </div>
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Tonemapping (Preview)</label>
+             <select value={hdrMergeOptions.tonemap} onChange={(e) => setHdrMergeOptions({ ...hdrMergeOptions, tonemap: e.target.value })}>
+               <option value="none">Keins</option>
+               <option value="reinhard">Reinhard</option>
+               <option value="drago">Drago</option>
+               <option value="mantiuk">Mantiuk</option>
+             </select>
+           </div>
+         </div>
+         <div className="form-row">
+           <div className="form-group" style={{ flex: 1 }}>
+             <label>Alignment</label>
+             <input type="checkbox" checked={hdrMergeOptions.align} onChange={(e) => setHdrMergeOptions({ ...hdrMergeOptions, align: e.target.checked })} />
+           </div>
+           <div className="form-group" style={{ flex: 1 }} />
+         </div>
+         <div className="form-row">
+           <div className="form-group" style={{ alignSelf: 'flex-end' }}>
+             <button className="btn-primary" onClick={doMergeBracket} disabled={!connected || !bracketSession || isMerging}>Zusammenführen</button>
+             {isMerging && (
+               <button className="btn-danger" style={{ marginLeft: 8 }} onClick={cancelMerge}>Abbrechen</button>
+             )}
+           </div>
+         </div>
+         {isMerging && (
+           <div className="status-row" style={{ marginTop: 8 }}>
+             <span>
+               Merge läuft… {mergeElapsedSec}s{mergeEstimateSec != null ? ` / ETA ~${Math.max(0, mergeEstimateSec - mergeElapsedSec)}s` : ''}
+             </span>
+           </div>
+         )}
+         {hdrMergeResult && (
+           <div className="status-row" style={{ marginTop: 8 }}>
+             {hdrMergeResult?.output?.url ? (
+               <>
+                 <span>HDR/EXR erstellt: </span>
+                 <a className="btn-link" href={`${bridgeUrl}${hdrMergeResult.output.url}`} target="_blank" rel="noreferrer">Datei öffnen</a>
+                 <span style={{ marginLeft: 8 }}>Format: {hdrMergeResult?.output?.format?.toUpperCase?.() || 'EXR'}</span>
+               </>
+             ) : (
+               <span>{hdrMergeResult?.error === 'Abgebrochen' ? 'Merge abgebrochen' : `Merge fehlgeschlagen${hdrMergeResult?.error ? `: ${hdrMergeResult.error}` : ''}`}</span>
+             )}
+             {hdrMergeResult?.preview?.url && (
+               <span style={{ marginLeft: 16 }}>
+                 Preview:
+                 <a className="btn-link" style={{ marginLeft: 6 }} href={`${bridgeUrl}${hdrMergeResult.preview.url}`} target="_blank" rel="noreferrer">Öffnen</a>
+               </span>
+             )}
+           </div>
+         )}
+       </div>
 
       {/* Letzte Belichtungsreihe */}
       {bracketShots?.length > 0 && (
@@ -463,14 +676,8 @@ const CameraControl = () => {
           </div>
         </div>
       )}
-      <div className="card">
-        <h2>Aufnahme</h2>
-        <div className="form-row">
-          <button className="btn-primary" onClick={startRecord} disabled={!connected}>Aufnahme starten</button>
-          <button className="btn-warning" onClick={stopRecord} disabled={!connected}>Aufnahme stoppen</button>
-          <button className="btn-secondary" onClick={takePhoto} disabled={!connected || mode !== 'photo'}>Foto aufnehmen</button>
-        </div>
-      </div>
+
+
     </div>
   );
 };
