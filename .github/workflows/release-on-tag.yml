@@ -4,6 +4,12 @@ on:
   push:
     tags:
       - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g., v0.4.2)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -13,16 +19,25 @@ jobs:
     name: Publish GitHub Release
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout tag commit
+      - name: Checkout tag commit (push)
+        if: ${{ github.event_name == 'push' }}
         uses: actions/checkout@v4
         with:
           fetch-depth: 1
+
+      - name: Checkout selected tag (manual)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          ref: ${{ inputs.tag }}
 
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version-file: '.nvmrc'
           cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -39,11 +54,33 @@ jobs:
             echo "No dist dir; skipping zip"
           fi
 
+      - name: Package server
+        shell: bash
+        run: |
+          if [ -d "server" ]; then
+            zip -r server.zip server -x 'server/db.json' 'server/**/*.log'
+          else
+            echo "No server dir; skipping zip"
+          fi
+
+      - name: Package Python bridge
+        shell: bash
+        run: |
+          if [ -d "bridge/insta360-python" ]; then
+            zip -r insta360-python.zip bridge/insta360-python -x '**/__pycache__/*' '**/*.pyc' '**/.venv/*' '**/.git/*'
+          else
+            echo "No python bridge dir; skipping zip"
+          fi
+
       - name: Prepare release notes
         id: notes
         shell: bash
         run: |
-          TAG="${{ github.ref_name }}"
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
           NOTES_FILE="docs/releases/${TAG}.md"
           if [ -f "$NOTES_FILE" ]; then
             echo "notes_path=$NOTES_FILE" >> $GITHUB_OUTPUT
@@ -58,37 +95,46 @@ jobs:
             fi
           fi
 
-      - name: Check artifact
-        id: artifact
+      - name: Collect artifacts
+        id: artifacts
         shell: bash
         run: |
-          if [ -f "dist.zip" ]; then
-            echo "has_artifact=true" >> $GITHUB_OUTPUT
+          FILES=""
+          for f in dist.zip server.zip insta360-python.zip; do
+            if [ -f "$f" ]; then
+              FILES="$FILES\n$f"
+            fi
+          done
+          FILES_TRIMMED=$(echo -e "$FILES" | sed '/^$/d')
+          if [ -n "$FILES_TRIMMED" ]; then
+            echo "files<<EOF" >> $GITHUB_OUTPUT
+            echo -e "$FILES_TRIMMED" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+            echo "has_files=true" >> $GITHUB_OUTPUT
           else
-            echo "has_artifact=false" >> $GITHUB_OUTPUT
+            echo "has_files=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create GitHub Release (with dist.zip)
-        if: ${{ steps.artifact.outputs.has_artifact == 'true' }}
+      - name: Create GitHub Release (with assets)
+        if: ${{ steps.artifacts.outputs.has_files == 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           body_path: ${{ steps.notes.outputs.notes_path }}
           draft: false
           prerelease: false
           generate_release_notes: true
-          files: |
-            dist.zip
+          files: ${{ steps.artifacts.outputs.files }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create GitHub Release (no artifact)
-        if: ${{ steps.artifact.outputs.has_artifact != 'true' }}
+      - name: Create GitHub Release (no assets)
+        if: ${{ steps.artifacts.outputs.has_files != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+          name: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
           body_path: ${{ steps.notes.outputs.notes_path }}
           draft: false
           prerelease: false
