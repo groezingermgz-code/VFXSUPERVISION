@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           if [ -d "server" ]; then
-            zip -r server.zip server -x 'server/db.json' 'server/**/*.log'
+            zip -r server.zip server -x 'server/db.json' '*.log' 'server/*.log' 'server/*/*.log' 'server/*/*/*.log'
           else
             echo "No server dir; skipping zip"
           fi
@@ -67,7 +67,7 @@ jobs:
         shell: bash
         run: |
           if [ -d "bridge/insta360-python" ]; then
-            zip -r insta360-python.zip bridge/insta360-python -x '**/__pycache__/*' '**/*.pyc' '**/.venv/*' '**/.git/*'
+            zip -r insta360-python.zip bridge/insta360-python -x '*/__pycache__/*' '*.pyc' '*/.venv/*' '*/.git/*'
           else
             echo "No python bridge dir; skipping zip"
           fi
@@ -95,16 +95,40 @@ jobs:
             fi
           fi
 
+      - name: Check existing release
+        id: existing
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${{ github.ref_name }}"
+          fi
+          API_URL="https://api.github.com/repos/${GITHUB_REPOSITORY}/releases/tags/$TAG"
+          HTTP=$(curl -sS -H "Accept: application/vnd.github+json" -H "Authorization: Bearer $GITHUB_TOKEN" -w "%{http_code}" -o release.json "$API_URL" || echo "000")
+          if [ "$HTTP" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+            if grep -q '"name"[[:space:]]*:[[:space:]]*"dist.zip"' release.json; then echo "has_dist=true" >> $GITHUB_OUTPUT; else echo "has_dist=false" >> $GITHUB_OUTPUT; fi
+            if grep -q '"name"[[:space:]]*:[[:space:]]*"server.zip"' release.json; then echo "has_server=true" >> $GITHUB_OUTPUT; else echo "has_server=false" >> $GITHUB_OUTPUT; fi
+            if grep -q '"name"[[:space:]]*:[[:space:]]*"insta360-python.zip"' release.json; then echo "has_py=true" >> $GITHUB_OUTPUT; else echo "has_py=false" >> $GITHUB_OUTPUT; fi
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "has_dist=false" >> $GITHUB_OUTPUT
+            echo "has_server=false" >> $GITHUB_OUTPUT
+            echo "has_py=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Collect artifacts
         id: artifacts
         shell: bash
         run: |
           FILES=""
-          for f in dist.zip server.zip insta360-python.zip; do
-            if [ -f "$f" ]; then
-              FILES="$FILES\n$f"
-            fi
-          done
+          add_file() { [ -f "$1" ] && FILES="$FILES\n$1"; }
+          if [ "${{ steps.existing.outputs.has_dist }}" != "true" ]; then add_file dist.zip; fi
+          if [ "${{ steps.existing.outputs.has_server }}" != "true" ]; then add_file server.zip; fi
+          if [ "${{ steps.existing.outputs.has_py }}" != "true" ]; then add_file insta360-python.zip; fi
           FILES_TRIMMED=$(echo -e "$FILES" | sed '/^$/d')
           if [ -n "$FILES_TRIMMED" ]; then
             echo "files<<EOF" >> $GITHUB_OUTPUT
@@ -126,6 +150,7 @@ jobs:
           prerelease: false
           generate_release_notes: true
           files: ${{ steps.artifacts.outputs.files }}
+          allowUpdates: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -139,5 +164,6 @@ jobs:
           draft: false
           prerelease: false
           generate_release_notes: true
+          allowUpdates: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
