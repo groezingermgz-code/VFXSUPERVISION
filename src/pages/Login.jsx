@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 const Login = () => {
   const { t } = useLanguage();
   const { currentUser, register, login, resendVerification, setRemember } = useAuth();
+  const uiOpenLogin = (import.meta.env.VITE_OPEN_LOGIN_NOTICE === 'true');
+  const uiDisableReg = (import.meta.env.VITE_DISABLE_REGISTRATION_NOTICE === 'true');
   // Registrieren-States (entkoppelt von Login)
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
@@ -114,47 +116,73 @@ const Login = () => {
         </p>
       </div>
 
-      <div className="card" style={{ maxWidth: 720, margin: '0 auto 16px', background: 'var(--card-bg)', borderLeft: '4px solid var(--color-info, #3498db)' }}>
-        <p style={{ margin: 0, lineHeight: 1.6 }}>
-          <strong>Zugang nur mit Registrierung:</strong> Ohne Anmeldung sind Inhalte (z. B. Notizen) nicht sichtbar.
-          <br />
-          Du hast eine Einladung erhalten? Öffne deinen Einladungslink oder bestätige hier: <Link to="/accept-invite" className="link">Einladung bestätigen</Link>.
-          <br />
-          Noch keine Einladung? Bitte den Administrator um eine Einladung per E‑Mail.
-        </p>
-      </div>
+      {uiOpenLogin ? (
+        <div className="card" style={{ maxWidth: 720, margin: '0 auto 16px', background: 'var(--card-bg)', borderLeft: '4px solid var(--color-info, #3498db)' }}>
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            <strong>Vorüberhender Modus:</strong> Registrierung ist deaktiviert, alle Login‑Versuche werden akzeptiert.
+            <br />
+            Melde dich direkt mit deiner E‑Mail und einem beliebigen Passwort an.
+          </p>
+        </div>
+      ) : (
+        <div className="card" style={{ maxWidth: 720, margin: '0 auto 16px', background: 'var(--card-bg)', borderLeft: '4px solid var(--color-info, #3498db)' }}>
+          <p style={{ margin: 0, lineHeight: 1.6 }}>
+            <strong>Zugang nur mit Registrierung:</strong> Ohne Anmeldung sind Inhalte (z. B. Notizen) nicht sichtbar.
+            <br />
+            Du hast eine Einladung erhalten? Öffne deinen Einladungslink oder bestätige hier: <Link to="/accept-invite" className="link">Einladung bestätigen</Link>.
+            <br />
+            Noch keine Einladung? Bitte den Administrator um eine Einladung per E‑Mail.
+          </p>
+        </div>
+      )}
 
-      <div className="card" style={{ maxWidth: 640, width: '100%', margin: '0 auto' }}>
-        <h2>Registrieren</h2>
-        <form onSubmit={handleRegister}>
-          <div className="form-group" style={{ width: '100%' }}>
-            <label>Name</label>
-            <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)} placeholder={t('auth.enterNamePlaceholder', 'z.B. Max Mustermann')} />
-          </div>
-          <div className="form-group" style={{ width: '100%' }}>
-            <label>E‑Mail</label>
-            <input type="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="max@example.com" />
-          </div>
-          <div className="form-group" style={{ width: '100%' }}>
-            <label>Passwort</label>
-            <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="mind. 8 Zeichen" />
-            <small style={{ display: 'block', marginTop: 6, color: 'var(--text-muted, #666)' }}>
-              {passwordStrengthLabel(regPassword)} — Tipps: mind. 12 Zeichen, Groß- und Kleinbuchstaben,
-              Zahlen und Sonderzeichen nutzen; vermeide leicht erratbare Wörter.
-            </small>
-          </div>
-          <div className="form-group" style={{ width: '100%' }}>
-            <label>Passwort bestätigen</label>
-            <input type="password" value={regConfirmPassword} onChange={(e) => setRegConfirmPassword(e.target.value)} placeholder="nochmal eingeben" />
-          </div>
-          <div className="form-row" style={{ gap: 8, marginTop: 12 }}>
-            <button className="btn-primary" disabled={loading} type="submit">{loading ? 'Bitte warten…' : 'Registrieren'}</button>
-          </div>
-        </form>
-      </div>
+      {uiDisableReg ? (
+        <div className="card" style={{ maxWidth: 640, width: '100%', margin: '0 auto' }}>
+          <h2>Registrieren</h2>
+          <p style={{ margin: 0 }}>
+            Registrierung ist <strong>vorübergehend deaktiviert</strong>. Bitte nutze direkt den Login unten.
+          </p>
+        </div>
+      ) : (
+        <div className="card" style={{ maxWidth: 640, width: '100%', margin: '0 auto' }}>
+          <h2>Registrieren</h2>
+          <form onSubmit={handleRegister}>
+            <div className="form-group" style={{ width: '100%' }}>
+              <label>Name</label>
+              <input type="text" value={regName} onChange={(e) => setRegName(e.target.value)} placeholder={t('auth.enterNamePlaceholder', 'z.B. Max Mustermann')} />
+            </div>
+            <div className="form-group" style={{ width: '100%' }}>
+              <label>E‑Mail</label>
+              <input type="email" value={regEmail} onChange={(e) => setRegEmail(e.target.value)} placeholder="max@example.com" />
+            </div>
+            <div className="form-group" style={{ width: '100%' }}>
+              <label>Passwort</label>
+              <input type="password" value={regPassword} onChange={(e) => setRegPassword(e.target.value)} placeholder="mind. 8 Zeichen" />
+              <small style={{ display: 'block', marginTop: 6, color: 'var(--text-muted, #666)' }}>
+                {passwordStrengthLabel(regPassword)} — Tipps: mind. 12 Zeichen, Groß- und Kleinbuchstaben,
+                Zahlen und Sonderzeichen nutzen; vermeide leicht erratbare Wörter.
+              </small>
+            </div>
+            <div className="form-group" style={{ width: '100%' }}>
+              <label>Passwort bestätigen</label>
+              <input type="password" value={regConfirmPassword} onChange={(e) => setRegConfirmPassword(e.target.value)} placeholder="nochmal eingeben" />
+            </div>
+            <div className="form-row" style={{ gap: 8, marginTop: 12 }}>
+              <button className="btn-primary" disabled={loading} type="submit">{loading ? 'Bitte warten…' : 'Registrieren'}</button>
+            </div>
+          </form>
+        </div>
+      )}
 
       <div className="card" style={{ maxWidth: 640, width: '100%', margin: '12px auto' }}>
         <h2>Anmelden</h2>
+        {uiOpenLogin && (
+          <div className="card" style={{ margin: '0 0 12px', background: 'var(--card-bg)', borderLeft: '4px solid var(--color-warning, #f39c12)' }}>
+            <p style={{ margin: 0, lineHeight: 1.6 }}>
+              Kein Registrieren nötig — trage deine E‑Mail und ein beliebiges Passwort ein.
+            </p>
+          </div>
+        )}
         <form onSubmit={handleLogin}>
           <div className="form-group" style={{ width: '100%' }}>
             <label>E‑Mail</label>
