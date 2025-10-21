@@ -58,15 +58,34 @@ jobs:
 
       - name: Cloudflare API auth smoke test
         run: |
-          set -e
+          set -euo pipefail
+
+          # Sanitize token (remove CR/LF and spaces) to avoid invalid header format
+          TOKEN_TRIMMED=$(printf "%s" "$CF_TOKEN" | tr -d '\r\n ')
+          if [ -z "$TOKEN_TRIMMED" ]; then
+            echo "CLOUDFLARE_API_TOKEN is empty after trimming. Secret likely not set or contains only whitespace.";
+            exit 1;
+          fi
+
           echo "::group::Verify API token"
-          VERIFY=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" https://api.cloudflare.com/client/v4/user/tokens/verify)
+          VERIFY=$(curl -sS --retry 2 --retry-delay 1 \
+            -H "Authorization: Bearer $TOKEN_TRIMMED" \
+            https://api.cloudflare.com/client/v4/user/tokens/verify)
           echo "$VERIFY"
-          echo "$VERIFY" | grep -q '"success":true' || { echo "Token verification failed. Ensure token is valid and not expired."; exit 1; }
-          echo "::endgroup::"
+          if echo "$VERIFY" | grep -q '"success":true'; then
+            echo "::endgroup::"
+          else
+            if echo "$VERIFY" | grep -q '"code":6111'; then
+              echo "Authorization header format invalid. Ensure the secret is an API Token only (no quotes, no spaces, no newlines).";
+              echo "Also ensure you're using an API Token, not the Global API Key.";
+            fi
+            exit 1;
+          fi
 
           echo "::group::Check Pages access"
-          PAGES=$(curl -sS -H "Authorization: Bearer $CF_TOKEN" "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects?per_page=1")
+          PAGES=$(curl -sS --retry 2 --retry-delay 1 \
+            -H "Authorization: Bearer $TOKEN_TRIMMED" \
+            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects?per_page=1")
           echo "$PAGES"
           echo "$PAGES" | grep -q '"success":true' || { echo "Pages API not accessible for this token/account. Ensure permission 'Cloudflare Pages: Edit' and correct Account ID."; exit 1; }
           echo "::endgroup::"
