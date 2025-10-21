@@ -3,6 +3,7 @@ import json
 import time
 import base64
 import os
+import subprocess
 from typing import Optional, List
 
 from fastapi import FastAPI, Request, HTTPException
@@ -369,3 +370,92 @@ async def files_upload(request: Request, token: Optional[str] = None, session: s
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+
+# --- HDR/EXR Merge for a bracket session ---
+from pydantic import BaseModel
+
+class MergeRequest(BaseModel):
+    session: str
+    use_full: Optional[bool] = True
+    format: Optional[str] = "exr"  # 'exr' or 'hdr'
+    method: Optional[str] = "debevec"  # 'debevec' or 'robertson'
+    align: Optional[bool] = True
+    tonemap: Optional[str] = None  # 'reinhard' | 'drago' | 'mantiuk' | None
+    gamma: Optional[float] = 2.2
+    exposures: Optional[List[float]] = None  # optional EV list fallback
+
+@app.post("/photo/bracket/merge")
+async def merge_bracket(req: MergeRequest, request: Request, token: Optional[str] = None):
+    if not _is_authorized(request, token):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    # Resolve session dir
+    session_dir = os.path.join(STATIC_ROOT, 'brackets', str(req.session))
+    if not os.path.isdir(session_dir):
+        raise HTTPException(status_code=404, detail="Session not found")
+
+    # Collect images: prefer full uploads
+    files = []
+    if req.use_full:
+        files = [os.path.join(session_dir, f) for f in os.listdir(session_dir) if f.lower().startswith('ev_') and f.lower().endswith('_full.jpg')]
+    if not files:
+        files = [os.path.join(session_dir, f) for f in os.listdir(session_dir) if f.lower().startswith('ev_') and f.lower().endswith('.jpg')]
+    if not files:
+        raise HTTPException(status_code=400, detail="No bracket images found")
+
+    # Sort by EV parsed from filename to maintain order
+    def parse_ev_from_name(name: str) -> float:
+        try:
+            base = os.path.basename(name)
+            # ev_-1_0_full.jpg or ev_0.jpg
+            s = base.split('.')[0].replace('ev_', '').replace('_full', '')
+            s = s.replace('_', '.')
+            return float(s)
+        except Exception:
+            return 0.0
+    files = sorted(files, key=parse_ev_from_name)
+
+    # Paths for outputs inside session
+    out_hdr = os.path.join(session_dir, f"merged.{('exr' if req.format=='exr' else 'hdr')}")
+    out_ldr = os.path.join(session_dir, "merged_preview.jpg")
+
+    # Build CLI command
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+    hdr_merge_py = os.path.join(repo_root, 'tools', 'hdr_merge.py')
+    cmd = [
+        'python', hdr_merge_py,
+        '--files', *files,
+        '--output', out_hdr,
+        '--method', req.method or 'debevec'
+    ]
+    if req.align:
+        cmd.append('--align')
+    # EV override if provided
+    if req.exposures and len(req.exposures) == len(files):
+        cmd.append('--ev')
+        cmd.extend([str(x) for x in req.exposures])
+    # Tonemap preview optional
+    if req.tonemap:
+        cmd.extend(['--tonemap', req.tonemap, '--ldr-output', out_ldr, '--gamma', str(req.gamma or 2.2)])
+
+    # Run tool
+    try:
+        proc = subprocess.run(cmd, cwd=repo_root, capture_output=True, text=True, timeout=120)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Merge execution failed: {e}")
+    if proc.returncode != 0:
+        err = proc.stderr or proc.stdout
+        raise HTTPException(status_code=500, detail=f"Merge failed: {err}")
+
+    # Prepare response
+    url_hdr = f"/files/brackets/{req.session}/merged.{('exr' if req.format=='exr' else 'hdr')}"
+    resp = {
+        "ok": True,
+        "output": {
+            "url": url_hdr,
+            "format": req.format or 'exr'
+        }
+    }
+    if req.tonemap:
+        resp["preview"] = { "url": f"/files/brackets/{req.session}/merged_preview.jpg", "method": req.tonemap, "gamma": req.gamma or 2.2 }
+    return resp

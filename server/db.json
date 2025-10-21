@@ -3,7 +3,7 @@
     {
       "id": 1760941508573,
       "email": "info@der-automat.com",
-      "name": "Martin",
+      "name": "martin",
       "password_hash": "$2a$12$Bm2ZIquhIfOajqXEO69Hj.qJMzcdOOerrpjdinaQen4wueyhtQEnG",
       "created_at": "2025-10-20T06:25:08.573Z",
       "email_verified": true
@@ -23,6 +23,38 @@
       "password_hash": "$2a$12$5rlVROyJKQcGB6Sw248E1O0WalSWabLvpbhPDS40i4Untjw6m/4fe",
       "created_at": "2025-10-20T08:21:17.705Z",
       "email_verified": false
+    },
+    {
+      "id": 1761038222812,
+      "email": "test@test.com",
+      "name": "test",
+      "password_hash": "$2a$12$PR4EurCuIWi6ehvOW8Hm3.7s8nYt96uSe4EWKTUcIh1qBs//yFnsy",
+      "created_at": "2025-10-21T09:17:02.812Z",
+      "email_verified": true
+    },
+    {
+      "id": 1761039116307,
+      "email": "test@test.de",
+      "name": "test",
+      "password_hash": "$2a$12$1IBo43EcMHrl064NpLeF5O42hJqXVXJvdq/basvgrB62qqpq6VXom",
+      "created_at": "2025-10-21T09:31:56.307Z",
+      "email_verified": true
+    },
+    {
+      "id": 1761039634124,
+      "email": "testuser@test.de",
+      "name": "testuser",
+      "password_hash": "$2a$12$eAmGzViDW9vVX94PKIaFU.vV3BPTdJVmWMS7FnQdPU/Tlvtj2Mo7e",
+      "created_at": "2025-10-21T09:40:34.124Z",
+      "email_verified": true
+    },
+    {
+      "id": 1761040031683,
+      "email": "dummy@local.test",
+      "name": "DummyUser",
+      "password_hash": "$2a$12$uLTjDv.bqoJZrc9TNT2ageq28Slry1SDQE0CVLkSzXB0BWuaDthsG",
+      "created_at": "2025-10-21T09:47:11.682Z",
+      "email_verified": true
     }
   ],
   "cloud_configs": [],

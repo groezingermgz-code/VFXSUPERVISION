@@ -5,6 +5,9 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { authRouter } from './auth.js';
 import { cloudConfigRouter } from './cloudConfig.js';
+// Neu: Imports für DummyUser-Seeding
+import bcrypt from 'bcryptjs';
+import { getUserByEmail, createUser, setUserEmailVerified, setUserName } from './db.js';
 
 const app = express();
 
@@ -56,6 +59,25 @@ app.get('/api', (req, res) => {
 app.get('/api/health', (req, res) => res.json({ ok: true }));
 app.use('/api/auth', authRouter);
 app.use('/api/config', cloudConfigRouter);
+
+// Neu: DummyUser einmalig beim Start sicherstellen
+const DUMMY_EMAIL = process.env.DUMMY_USER_EMAIL || 'dummy@local.test';
+const DUMMY_PASSWORD = process.env.DUMMY_USER_PASSWORD || 'DummyPass123!';
+const DUMMY_NAME = process.env.DUMMY_USER_NAME || 'DummyUser';
+try {
+  const existing = getUserByEmail(DUMMY_EMAIL.toLowerCase());
+  if (!existing) {
+    const password_hash = bcrypt.hashSync(DUMMY_PASSWORD, 12);
+    const user = createUser({ email: DUMMY_EMAIL.toLowerCase(), name: DUMMY_NAME, password_hash, email_verified: true });
+    console.log(`[auth] Dummy user created: ${user.email} (${user.name})`);
+  } else {
+    setUserEmailVerified(existing.id, true);
+    if (DUMMY_NAME) setUserName(existing.id, DUMMY_NAME);
+    console.log(`[auth] Dummy user ensured: ${existing.email}`);
+  }
+} catch (e) {
+  console.warn('[auth] Failed to ensure dummy user:', e?.message || e);
+}
 
 // Serve static if needed in production (optional)
 const __filename = fileURLToPath(import.meta.url);

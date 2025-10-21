@@ -1,7 +1,8 @@
 // Bridge client for Camera Control page
 // Provides HTTP calls to native Android bridge or Python FastAPI
 
-let BASE_URL = (typeof window !== 'undefined' && localStorage.getItem('cameraBridgeUrl')) || 'http://localhost:8080';
+const ENV_BASE = (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_BRIDGE_BASE_URL) || null;
+let BASE_URL = ENV_BASE || (typeof window !== 'undefined' && localStorage.getItem('cameraBridgeUrl')) || 'http://localhost:5174';
 let AUTH_TOKEN = (typeof window !== 'undefined' && localStorage.getItem('cameraBridgeToken')) || 'devtoken';
 
 function authHeaders() {
@@ -107,6 +108,16 @@ export const bridge = {
       body: form,
     });
     if (!res.ok) throw new Error(`Upload failed (${res.status})`);
+    return await res.json();
+  },
+  async mergeBracket(options = {}, opts = {}) {
+    const res = await fetch(`${BASE_URL}/photo/bracket/merge`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeaders() },
+      body: JSON.stringify(options),
+      signal: opts.signal,
+    });
+    if (!res.ok) throw new Error(`Merge failed: ${res.status}`);
     return await res.json();
   }
 };

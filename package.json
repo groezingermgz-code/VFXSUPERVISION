@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "server": "node server/index.js",
+    "bridge": "cd bridge/insta360-python && python -m uvicorn app:app --port 5174 --reload",
     "i18n:audit": "node scripts/i18n-audit.cjs"
   },
   "dependencies": {

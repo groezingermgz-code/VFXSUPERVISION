@@ -42,6 +42,18 @@ export function setUserEmailVerified(user_id, verified = true) {
   return u;
 }
 
+export function setUserName(user_id, name) {
+  db.read();
+  const u = (db.data.users || []).find(x => x.id === user_id);
+  if (u) {
+    const n = typeof name === 'string' ? name.trim() : '';
+    if (n) {
+      u.name = n;
+      write();
+    }
+  }
+  return u;
+}
 export function getUserById(id) {
   db.read();
   return (db.data.users || []).find(u => u.id === id) || null;

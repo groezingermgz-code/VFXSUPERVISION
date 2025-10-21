@@ -8,14 +8,20 @@ const Login = () => {
   const { currentUser, register, login, resendVerification, setRemember } = useAuth();
   const uiOpenLogin = (import.meta.env.VITE_OPEN_LOGIN_NOTICE === 'true');
   const uiDisableReg = (import.meta.env.VITE_DISABLE_REGISTRATION_NOTICE === 'true');
+  // Neu: Dummy‑Login Voreinstellungen
+  const DUMMY_EMAIL = import.meta.env.VITE_DUMMY_EMAIL || 'dummy@local.test';
+  const DUMMY_PASSWORD = import.meta.env.VITE_DUMMY_PASSWORD || 'DummyPass123!';
+  const DUMMY_NAME = import.meta.env.VITE_DUMMY_NAME || 'DummyUser';
+  const enableDummyLogin = (import.meta.env.VITE_ENABLE_DUMMY_LOGIN ?? 'true') !== 'false';
   // Registrieren-States (entkoppelt von Login)
   const [regName, setRegName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
   // Login-States
-  const [loginEmail, setLoginEmail] = useState('');
-  const [loginPassword, setLoginPassword] = useState('');
+  const [loginEmail, setLoginEmail] = useState(DUMMY_EMAIL || '');
+  const [loginPassword, setLoginPassword] = useState(DUMMY_PASSWORD || '');
+  const [loginName, setLoginName] = useState(DUMMY_NAME || '');
   const [rememberMe, setRememberMe] = useState(true);
 
   const [error, setError] = useState(null);
@@ -70,7 +76,7 @@ const Login = () => {
     setLoading(true);
     try {
       setRemember(!!rememberMe);
-      const user = await login(loginEmail, loginPassword);
+      const user = await login(loginEmail, loginPassword, loginName.trim() || undefined);
       if (user) navigate('/shots');
     } catch (err) {
       const msg = err?.message || 'Login fehlgeschlagen';
@@ -184,6 +190,12 @@ const Login = () => {
           </div>
         )}
         <form onSubmit={handleLogin}>
+          {uiOpenLogin && (
+            <div className="form-group" style={{ width: '100%' }}>
+              <label>Name (optional)</label>
+              <input type="text" value={loginName} onChange={(e) => setLoginName(e.target.value)} placeholder="z. B. Max Mustermann" />
+            </div>
+          )}
           <div className="form-group" style={{ width: '100%' }}>
             <label>E‑Mail</label>
             <input type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} placeholder="max@example.com" />
@@ -191,12 +203,6 @@ const Login = () => {
           <div className="form-group" style={{ width: '100%' }}>
             <label>Passwort</label>
             <input type="password" value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} placeholder="mind. 8 Zeichen" />
-          </div>
-          <div className="form-group" style={{ width: '100%' }}>
-            <label>
-              <input type="checkbox" checked={rememberMe} onChange={(e) => setRememberMe(e.target.checked)} style={{ marginRight: 8 }} />
-              Angemeldet bleiben
-            </label>
           </div>
           <div className="form-row" style={{ gap: 8, marginTop: 12 }}>
             <button className="btn-secondary" disabled={loading} type="submit">{loading ? 'Bitte warten…' : 'Login'}</button>
