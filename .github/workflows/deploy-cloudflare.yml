@@ -60,31 +60,46 @@ jobs:
         run: |
           set -euo pipefail
 
-          # Sanitize token (remove CR/LF and spaces) to avoid invalid header format
-          TOKEN_TRIMMED=$(printf "%s" "$CF_TOKEN" | tr -d '\r\n ')
-          if [ -z "$TOKEN_TRIMMED" ]; then
-            echo "CLOUDFLARE_API_TOKEN is empty after trimming. Secret likely not set or contains only whitespace.";
+          RAW_TOKEN="$CF_TOKEN"
+          # Trim CR/LF and surrounding whitespace
+          TRIMMED=$(printf "%s" "$RAW_TOKEN" | tr -d '\r\n' | sed -E 's/^[[:space:]]+|[[:space:]]+$//g')
+          # Detect formatting issues for diagnostics (do not print token)
+          HAS_BEARER_PREFIX=no
+          echo "$TRIMMED" | grep -Eiq '^[[:space:]]*[Bb]earer[[:space:]]+' && HAS_BEARER_PREFIX=yes
+          HAS_QUOTES_OR_BACKTICKS=no
+          echo "$TRIMMED" | grep -Eq '^".*"$|^\'.*\'$|^`.*`$' && HAS_QUOTES_OR_BACKTICKS=yes
+
+          # Sanitize: remove optional Bearer prefix and surrounding quotes/backticks
+          SANITIZED=$(printf "%s" "$TRIMMED" \
+            | sed -E 's/^[[:space:]]*[Bb]earer[[:space:]]+//' \
+            | sed -E 's/^"(.*)"$/\\1/; s/^\047(.*)\047$/\\1/; s/^`(.*)`$/\\1/')
+
+          if [ -z "$SANITIZED" ]; then
+            echo "CLOUDFLARE_API_TOKEN empty after sanitization. Secret may be unset or only formatting characters.";
             exit 1;
           fi
 
+          echo "::notice::Secret had Bearer prefix: $HAS_BEARER_PREFIX; quotes/backticks: $HAS_QUOTES_OR_BACKTICKS"
+          echo "::notice::Token length after sanitize: ${#SANITIZED}"
+
           echo "::group::Verify API token"
           VERIFY=$(curl -sS --retry 2 --retry-delay 1 \
-            -H "Authorization: Bearer $TOKEN_TRIMMED" \
+            -H "Authorization: Bearer $SANITIZED" \
             https://api.cloudflare.com/client/v4/user/tokens/verify)
           echo "$VERIFY"
           if echo "$VERIFY" | grep -q '"success":true'; then
             echo "::endgroup::"
           else
             if echo "$VERIFY" | grep -q '"code":6111'; then
-              echo "Authorization header format invalid. Ensure the secret is an API Token only (no quotes, no spaces, no newlines).";
-              echo "Also ensure you're using an API Token, not the Global API Key.";
+              echo "Authorization header format invalid. Ensure the secret is only the API Token (no quotes/backticks, no 'Bearer ' prefix).";
+              echo "Also ensure this is an API Token, not the Global API Key.";
             fi
             exit 1;
           fi
 
           echo "::group::Check Pages access"
           PAGES=$(curl -sS --retry 2 --retry-delay 1 \
-            -H "Authorization: Bearer $TOKEN_TRIMMED" \
+            -H "Authorization: Bearer $SANITIZED" \
             "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects?per_page=1")
           echo "$PAGES"
           echo "$PAGES" | grep -q '"success":true' || { echo "Pages API not accessible for this token/account. Ensure permission 'Cloudflare Pages: Edit' and correct Account ID."; exit 1; }
