@@ -10,3 +10,11 @@ backup-*.zip
 # Python virtual environments
 .venv/
 bridge/insta360-python/.venv/
+
+# Environment files (do NOT commit secrets)
+.env
+.env.local
+.env.*
+
+# Vite cache
+node_modules/.vite/
