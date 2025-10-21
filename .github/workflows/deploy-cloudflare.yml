@@ -66,8 +66,16 @@ jobs:
           # Detect formatting issues for diagnostics (do not print token)
           HAS_BEARER_PREFIX=no
           echo "$TRIMMED" | grep -Eiq '^[[:space:]]*[Bb]earer[[:space:]]+' && HAS_BEARER_PREFIX=yes
+          # Safe detection of surrounding quotes/backticks without fragile regex quoting
           HAS_QUOTES_OR_BACKTICKS=no
-          echo "$TRIMMED" | grep -Eq '^".*"$|^\'.*\'$|^`.*`$' && HAS_QUOTES_OR_BACKTICKS=yes
+          SQ=$(printf "\\047")
+          BQ=$(printf "\\140")
+          DQ=$(printf '"')
+          first_char="${TRIMMED:0:1}"
+          last_char="${TRIMMED: -1}"
+          if [ "$first_char" = "$last_char" ] && { [ "$first_char" = "$SQ" ] || [ "$first_char" = "$DQ" ] || [ "$first_char" = "$BQ" ]; }; then
+            HAS_QUOTES_OR_BACKTICKS=yes
+          fi
 
           # Sanitize: remove optional Bearer prefix and surrounding quotes/backticks
           SANITIZED=$(printf "%s" "$TRIMMED" \
