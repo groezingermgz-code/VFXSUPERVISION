@@ -38,7 +38,7 @@ jobs:
           if [ "$HAS_ACCOUNT_ID" != "true" ]; then echo "CLOUDFLARE_ACCOUNT_ID missing"; exit 1; fi
           echo "::endgroup::"
         env:
-          PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }}
+          PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }}
           HAS_CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
           HAS_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
 
@@ -74,7 +74,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '3.77.0'
-          command: pages project create ${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }} --production-branch=main
+          command: pages project create ${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }} --production-branch=main
 
       - name: Deploy to Cloudflare Pages (Wrangler)
         uses: cloudflare/wrangler-action@v3
@@ -82,5 +82,5 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: '3.77.0'
-          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'supervision' }} --branch=main
+          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }} --branch=main
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
