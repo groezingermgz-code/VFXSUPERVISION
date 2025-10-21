@@ -62,70 +62,12 @@ jobs:
           npm -v
           npx --version
 
-      - name: Wrangler version
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '3.77.0'
-          command: --version
-
-      - name: Cloudflare whoami (direct npx, verbose)
-        run: npx --no-install wrangler whoami --json --verbose
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Cloudflare auth check (wrangler whoami)
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '3.77.0'
-          command: whoami --json --verbose
-
-      - name: List Pages projects (direct npx, verbose)
-        run: npx --no-install wrangler pages project list --verbose
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: List Pages projects
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '3.77.0'
-          command: pages project list --verbose
-
-      - name: Ensure Pages project exists
-        uses: cloudflare/wrangler-action@v3
-        continue-on-error: true
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '3.77.0'
-          command: pages project create ${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }} --production-branch=main
-
-      - name: Deploy to Cloudflare Pages (direct npx, verbose)
-        id: deploy_direct
-        run: npx --no-install wrangler pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }} --branch=main --verbose
-        continue-on-error: true
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-
-      - name: Deploy to Cloudflare Pages (Wrangler)
-        uses: cloudflare/wrangler-action@v3
-        if: ${{ steps.deploy_direct.outcome != 'success' }}
-        with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          wranglerVersion: '3.77.0'
-          command: pages deploy ./dist --project-name=${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }} --branch=main
+          projectName: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }}
+          directory: ./dist
+          branch: main
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
