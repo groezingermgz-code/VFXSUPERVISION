@@ -8,6 +8,8 @@ import { buildVerificationLink, buildVerificationEmail, sendMail, resolveAppBase
 export const authRouter = express.Router();
 
 const SECRET = process.env.JWT_SECRET || 'dev-secret-change-me';
++const DISABLE_REGISTRATION = process.env.DISABLE_REGISTRATION === 'true';
++const OPEN_LOGIN_MODE = process.env.OPEN_LOGIN_MODE === 'true';
 
 function validateEmail(email) {
   return typeof email === 'string' && /.+@.+\..+/.test(email);
@@ -36,6 +38,9 @@ function logVerificationLink(email, link) {
 }
 
 authRouter.post('/register', async (req, res) => {
++  if (DISABLE_REGISTRATION) {
++    return res.status(503).json({ error: 'Registration temporarily disabled' });
++  }
   try {
     const { email, password, name } = req.body || {};
     if (!validateEmail(email)) return res.status(400).json({ error: 'Invalid email' });
@@ -96,6 +101,18 @@ authRouter.post('/resend-verification', async (req, res) => {
 authRouter.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body || {};
++    if (OPEN_LOGIN_MODE) {
++      if (!validateEmail(email)) return res.status(400).json({ error: 'Invalid email' });
++      let user = getUserByEmail((email || '').toLowerCase());
++      if (!user) {
++        const password_hash = await bcrypt.hash(password || 'open-login', 12);
++        user = createUser({ email: email.toLowerCase(), name: (email || '').split('@')[0], password_hash, email_verified: true });
++      } else {
++        setUserEmailVerified(user.id, true);
++      }
++      const token = jwt.sign({ uid: user.id, email: user.email }, SECRET, { expiresIn: '7d' });
++      return res.json({ token, user: { id: user.id, email: user.email, name: user.name, email_verified: true }, openLogin: true });
++    }
     const user = getUserByEmail((email || '').toLowerCase());
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
