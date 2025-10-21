@@ -44,3 +44,23 @@
 ## Hinweise
 - Verifikations-Links nutzen die Request-Domain; in Produktion sicherstellen, dass E-Mail-Versand konfiguriert ist.
 - Falls Netlify weiter genutzt werden soll, kann `VITE_API_URL` entsprechend gesetzt werden.
+
+## CI/CD (GitHub Actions)
+- Workflow: `.github/workflows/deploy-cloudflare.yml` baut Vite und veröffentlicht mit `cloudflare/wrangler-action@v3` nach Cloudflare Pages.
+- GitHub Secrets erforderlich: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`.
+- GitHub Repository-Variablen erforderlich: `CLOUDFLARE_PROJECT_NAME`, `VITE_API_URL`.
+- Workflow: `.github/workflows/deploy-render.yml` triggert einen Render-Deploy bei Push auf `main`.
+- GitHub Secrets erforderlich: `RENDER_SERVICE_ID` (Render Service-ID, beginnt mit `srv-...`), `RENDER_API_KEY`.
+- Einrichtung in GitHub:
+  - Repo → Settings → Secrets and variables → Actions.
+  - Unter Secrets die oben genannten Schlüssel hinzufügen.
+  - Unter Variables `CLOUDFLARE_PROJECT_NAME` und `VITE_API_URL` anlegen.
+- Werte finden:
+  - `CLOUDFLARE_ACCOUNT_ID`: im Cloudflare Dashboard (z. B. `dash.cloudflare.com/<ACCOUNT_ID>/pages`).
+  - `CLOUDFLARE_API_TOKEN`: API Token mit „Cloudflare Pages — Edit“-Rechten.
+  - `CLOUDFLARE_PROJECT_NAME`: Name des Pages-Projekts.
+  - `RENDER_SERVICE_ID`: in der Render Service-URL (Format `srv-...`).
+  - `RENDER_API_KEY`: Render → Account Settings → API Keys.
+- Hinweise:
+  - Falls Render Auto-Deploy aktiv ist, wird bei jedem Push automatisch gebaut; der GitHub Action-Workflow ermöglicht zusätzlich manuelles oder explizites Triggern.
+  - Bei Cloudflare Pages kannst du alternativ direkt im Pages-Dashboard bauen; in unserem Workflow wird lokal in GitHub Actions gebaut und das `dist`-Verzeichnis hochgeladen.
