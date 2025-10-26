@@ -523,8 +523,8 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
               cameraSettings: {
                 manufacturer: '',
                 model: '',
-                iso: '',
-                isoSelection: '',
+                iso: '400',
+                isoSelection: '400',
                 manualISO: '',
                 format: '',
                 codec: '',
@@ -536,7 +536,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                 lensManufacturer: '',
                 lens: '',
                 focalLength: '',
-                aperture: '',
+                aperture: '4',
                 focusDistance: '3',
                 hyperfocalDistance: '',
                 isAnamorphic: false,
@@ -1563,8 +1563,8 @@ const updatedShot = (selectedSetupIndex === 0)
       cameraSettings: {
         manufacturer: '',
         model: '',
-        iso: '',
-        isoSelection: '',
+        iso: '400',
+        isoSelection: '400',
         manualISO: '',
         format: '',
         codec: '',
@@ -1577,7 +1577,7 @@ const updatedShot = (selectedSetupIndex === 0)
         lensManufacturer: '',
         lens: '',
         focalLength: '',
-        aperture: '',
+        aperture: '4',
         focusDistance: '3',
         hyperfocalDistance: '',
         isAnamorphic: false,
@@ -2074,11 +2074,12 @@ const updatedShot = (selectedSetupIndex === 0)
           <div className="edit-form" style={{ display: isCameraSettingsCollapsed ? 'none' : 'block' }}>
             <div className="form-row">
               <div className="form-group">
-                <label>{t('camera.manufacturer')}:</label>
+                <label style={{ color: '#6cbc75' }}>{t('camera.manufacturer')}:</label>
                 <select 
                   name="manufacturer" 
                   value={selectedManufacturer} 
                   onChange={handleManufacturerChange}
+                  style={{ color: (!selectedManufacturer ? 'red' : undefined) }}
                 >
                   <option value="">{t('camera.selectManufacturer')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2100,11 +2101,12 @@ const updatedShot = (selectedSetupIndex === 0)
                 )}
               </div>
               <div className="form-group">
-                <label>{t('camera.model')}:</label>
+                <label style={{ color: '#6cbc75' }}>{t('camera.model')}:</label>
                 <select 
                   name="model" 
                   value={selectedModel} 
                   onChange={handleModelChange}
+                  style={{ color: (!selectedModel ? 'red' : undefined) }}
                 >
                   <option value="">{t('camera.selectModel')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2129,12 +2131,13 @@ const updatedShot = (selectedSetupIndex === 0)
             
             <div className="form-row">
               <div className="form-group">
-                <label>{t('camera.format')}:</label>
+                <label style={{ color: '#6cbc75' }}>{t('camera.format')}:</label>
                 <select 
                   name="format" 
                   value={currentEditedCameraSettings.format || ''} 
                   onChange={handleCameraChange}
                   disabled={!selectedModel}
+                  style={{ color: (!(currentEditedCameraSettings.format) ? 'red' : undefined) }}
                 >
                   <option value="">{t('camera.selectFormat')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2156,12 +2159,13 @@ const updatedShot = (selectedSetupIndex === 0)
                 )}
               </div>
               <div className="form-group">
-                <label>{t('camera.codec')}:</label>
+                <label style={{ color: '#6cbc75' }}>{t('camera.codec')}:</label>
                 <select 
                   name="codec" 
                   value={currentEditedCameraSettings.codec || ''} 
                   onChange={handleCameraChange}
                   disabled={!selectedModel}
+                  style={{ color: (!(currentEditedCameraSettings.codec) ? 'red' : undefined) }}
                 >
                   <option value="">{t('camera.selectCodec')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2262,8 +2266,9 @@ const updatedShot = (selectedSetupIndex === 0)
                 <label>{t('camera.iso')}:</label>
                 <select 
                   name="isoSelection" 
-                  value={currentEditedCameraSettings.isoSelection || currentEditedCameraSettings.iso || ''} 
+                  value={currentEditedCameraSettings.isoSelection || currentEditedCameraSettings.iso || '400'} 
                   onChange={handleISOSelectChange}
+                  style={{ color: (!((currentEditedCameraSettings.isoSelection || currentEditedCameraSettings.iso))) ? 'red' : undefined }}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="100">100</option>
@@ -2302,9 +2307,10 @@ const updatedShot = (selectedSetupIndex === 0)
                 <label>{t('camera.framerate')}:</label>
                 <select 
                   name="framerate" 
-                  value={currentEditedCameraSettings.framerate || ''} 
+                  value={currentEditedCameraSettings.framerate || '25 fps'} 
                   onChange={handleCameraChange}
                   disabled={!selectedModel || !currentEditedCameraSettings.codec}
+                  style={{ color: (!currentEditedCameraSettings.framerate ? 'red' : undefined) }}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Manuell">{t('common.manual')}</option>

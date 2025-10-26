@@ -38,6 +38,22 @@
 .fov-controls .form-group {
   display: flex;
   flex-direction: column;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.5rem;
+}
+.fov-controls .form-group.calc-required {
+  border: 1px solid rgba(220, 80, 80, 0.35);
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+.form-group.calc-required label {
+  color: rgba(200, 60, 60, 0.85);
+}
+.form-group.calc-required input,
+.form-group.calc-required select,
+.form-group.calc-required textarea {
+  border-color: rgba(220, 80, 80, 0.45);
 }
 .fov-controls label {
   font-weight: 600;

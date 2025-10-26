@@ -146,6 +146,13 @@ const EmbeddedFovCalculator = ({
     }
   }, [settings?.focusDistance]);
 
+  // Standardwert für Blende: 4, wenn nicht gesetzt
+  useEffect(() => {
+    if (!settings?.aperture) {
+      onCameraChangeRef.current?.({ target: { name: 'aperture', value: '4' } });
+    }
+  }, [settings?.aperture]);
+
   const sanitizeDecimal = (v) => {
     v = (v || '').toString();
     v = v.replace(',', '.');
@@ -224,8 +231,8 @@ const EmbeddedFovCalculator = ({
 
           <div className="control-row">
             <div className="form-group">
-              <label>{t('tools.fov.controls.lensManufacturer', 'Lens Manufacturer')}</label>
-              <select value={selectedLensManufacturer || ''} onChange={onLensManufacturerChange}>
+              <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.lensManufacturer', 'Lens Manufacturer')}</label>
+              <select value={selectedLensManufacturer || ''} onChange={onLensManufacturerChange} style={{ color: (!selectedLensManufacturer ? 'red' : undefined) }}>
                 <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
                 {lensManufacturers.map(m => (
                   <option key={m} value={m}>{m}</option>
@@ -235,7 +242,7 @@ const EmbeddedFovCalculator = ({
             </div>
 
             <div className="form-group">
-              <label>{t('tools.fov.controls.lens', 'Lens')}{isAnamorphicEnabled ? ` • ×${Number(anamorphicFactor || 1).toFixed(2)}` : ''}</label>
+              <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.lens', 'Lens')}{isAnamorphicEnabled ? ` • ×${Number(anamorphicFactor || 1).toFixed(2)}` : ''}</label>
               <select
                 value={selectedLens || ''}
                 onChange={(e) => {
@@ -249,6 +256,7 @@ const EmbeddedFovCalculator = ({
                   onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(af) } });
                 }}
                 disabled={!selectedLensManufacturer}
+                style={{ color: (!selectedLens ? 'red' : undefined) }}
               >
                 <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
                 {lenses.map(l => (
@@ -315,7 +323,7 @@ const EmbeddedFovCalculator = ({
 
           <div className="control-row">
             <div className="form-group">
-              <label>{t('tools.fov.controls.focalLengthMm', 'Focal Length (mm)')}</label>
+              <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.focalLength', 'Focal Length (mm)')}</label>
               <input
                 type="number"
                 step="0.1"
@@ -350,6 +358,7 @@ const EmbeddedFovCalculator = ({
                   }
                   onCameraChange({ target: { name: 'focalLength', value: v } });
                 }}
+                style={{ color: (!settings?.focalLength ? 'red' : undefined) }}
               />
             </div>
             <div className="form-group">
@@ -364,7 +373,7 @@ const EmbeddedFovCalculator = ({
 
           <div className="control-row">
             <div className="form-group">
-              <label>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')}</label>
+              <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')}</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -375,10 +384,11 @@ const EmbeddedFovCalculator = ({
                   const v = sanitizeDecimal(e.target.value);
                   onCameraChange({ target: { name: 'aperture', value: v } });
                 }}
+                style={{ color: (!settings?.aperture ? 'red' : undefined) }}
               />
             </div>
             <div className="form-group">
-              <label>{t('tools.fov.controls.focusDistanceM', 'Focus Distance (m)')}</label>
+              <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.focusDistance', 'Focus Distance (m)')}</label>
               <input
                 type="text"
                 inputMode="decimal"
@@ -394,7 +404,7 @@ const EmbeddedFovCalculator = ({
           </div>
           <div className="control-row">
             <div className="form-group" style={{flex: 1}}>
-              <label>{t('tools.fov.controls.focusDistance', 'Focus Distance')}</label>
+              <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.focusDistance', 'Focus Distance')}</label>
               <input
                 type="range"
                 min="0.3"
