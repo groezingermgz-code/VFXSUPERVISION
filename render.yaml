@@ -11,7 +11,7 @@ services:
     healthCheckPath: /api/health
     envVars:
       - key: NODE_VERSION
-        value: 18
+        value: 20
       - key: JWT_SECRET
         sync: false
       - key: DISABLE_REGISTRATION
