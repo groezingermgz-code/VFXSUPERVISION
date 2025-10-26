@@ -64,3 +64,9 @@
 - Hinweise:
   - Falls Render Auto-Deploy aktiv ist, wird bei jedem Push automatisch gebaut; der GitHub Action-Workflow ermöglicht zusätzlich manuelles oder explizites Triggern.
   - Bei Cloudflare Pages kannst du alternativ direkt im Pages-Dashboard bauen; in unserem Workflow wird lokal in GitHub Actions gebaut und das `dist`-Verzeichnis hochgeladen.
+
+## Wichtige Klarstellung: Cloudflare Projekt vs. GitHub Repository
+- `CLOUDFLARE_PROJECT_NAME` bezieht sich auf den Namen des Cloudflare Pages Projekts (z. B. `vfx-supervision`). Dieser Name bestimmt die Pages-Subdomain (`https://vfx-supervision.pages.dev`).
+- Der GitHub-Repository-Slug ist separat (z. B. `groezingermgz-code/vfx-supervision`). Änderungen am Repo-Namen beeinflussen den Pages-Projektnamen nicht automatisch.
+- Prüfe in `.github/workflows/deploy-cloudflare.yml`, dass bei der Übergabe an `cloudflare/pages-action@v1` das korrekte `projectName` gesetzt ist (entweder über die Repo-Variable `CLOUDFLARE_PROJECT_NAME` oder mit einem sinnvollen Fallback).
+- Stelle sicher, dass `VITE_API_URL` in den GitHub Repository-Variablen korrekt auf dein Backend zeigt. Ein falscher Wert kann zu einer weißen Seite führen, wenn Initial-Requests fehlschlagen.

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { useNotify } from './NotificationContext';
 
 const API_BASE = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5174/api' : '/api');
 const TOKEN_KEY = 'auth_token';
@@ -33,6 +34,7 @@ export const AuthProvider = ({ children }) => {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingAuth, setLoadingAuth] = useState(false);
   const [error, setError] = useState(null);
+  const { notifyError, notifyInfo } = useNotify();
 
   useEffect(() => {
     try {
@@ -71,8 +73,9 @@ export const AuthProvider = ({ children }) => {
       const { user } = await res.json();
       setCurrentUser(user);
       return user;
-    } catch {
+    } catch (e) {
       setCurrentUser(null);
+      try { notifyInfo('Sitzung konnte nicht aktualisiert werden', e.message || ''); } catch {}
       return null;
     }
   };
@@ -101,11 +104,11 @@ export const AuthProvider = ({ children }) => {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
-      // Return dev verification link; do not log in
       const verifyLink = data.verifyLink || `${window.location.origin}/verify-email/${data?.token || ''}`;
       return { ok: true, verifyLink, user: data.user };
     } catch (e) {
       setError(e.message);
+      try { notifyError('Registrierung fehlgeschlagen', e.message || ''); } catch {}
       return { ok: false, error: e.message };
     } finally {
       setLoadingAuth(false);
@@ -126,6 +129,7 @@ export const AuthProvider = ({ children }) => {
       return { ok: true, verifyLink: data.verifyLink };
     } catch (e) {
       setError(e.message);
+      try { notifyError('E-Mail erneut senden fehlgeschlagen', e.message || ''); } catch {}
       return { ok: false, error: e.message };
     } finally {
       setLoadingAuth(false);
@@ -133,60 +137,85 @@ export const AuthProvider = ({ children }) => {
   };
 
   const login = async (email, password, name) => {
-    const body = { email, password };
-    if (typeof name === 'string' && name.trim()) body.name = name.trim();
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body)
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Login fehlgeschlagen');
-    setToken(data.token);
-    setCurrentUser(data.user);
-    await fetchCloudConfigAndCache(data.token, data.user);
-    return data.user;
+    try {
+      const body = { email, password };
+      if (typeof name === 'string' && name.trim()) body.name = name.trim();
+      const res = await fetch(`${API_BASE}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Login fehlgeschlagen');
+      setToken(data.token);
+      setCurrentUser(data.user);
+      await fetchCloudConfigAndCache(data.token, data.user);
+      return data.user;
+    } catch (e) {
+      try { notifyError('Login fehlgeschlagen', e.message || ''); } catch {}
+      throw e;
+    }
   };
 
   const verifyEmail = async (tokenParam) => {
-    const res = await fetch(`${API_BASE}/auth/verify/${tokenParam}`, { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Verifizierung fehlgeschlagen');
-    setToken(data.token);
-    setCurrentUser(data.user);
-    await fetchCloudConfigAndCache(data.token, data.user);
-    return data.user;
+    try {
+      const res = await fetch(`${API_BASE}/auth/verify/${tokenParam}`, { headers: { 'Content-Type': 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Verifizierung fehlgeschlagen');
+      setToken(data.token);
+      setCurrentUser(data.user);
+      await fetchCloudConfigAndCache(data.token, data.user);
+      return data.user;
+    } catch (e) {
+      try { notifyError('Verifizierung fehlgeschlagen', e.message || ''); } catch {}
+      throw e;
+    }
   };
 
   const getInvite = async (tokenParam) => {
-    const res = await fetch(`${API_BASE}/auth/invite/${tokenParam}`, { headers: { 'Content-Type': 'application/json' } });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Invite nicht gefunden');
-    return data; // { email, name, accepted }
+    try {
+      const res = await fetch(`${API_BASE}/auth/invite/${tokenParam}`, { headers: { 'Content-Type': 'application/json' } });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Invite nicht gefunden');
+      return data;
+    } catch (e) {
+      try { notifyError('Invite nicht gefunden', e.message || ''); } catch {}
+      throw e;
+    }
   };
   
   const inviteUser = async ({ name, email }) => {
-    const res = await authFetch('/auth/invite', {
-      method: 'POST',
-      body: JSON.stringify({ name, email }),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen');
-    return data; // { invite, link }
+    try {
+      const res = await authFetch('/auth/invite', {
+        method: 'POST',
+        body: JSON.stringify({ name, email }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Einladung fehlgeschlagen');
+      return data;
+    } catch (e) {
+      try { notifyError('Einladung fehlgeschlagen', e.message || ''); } catch {}
+      throw e;
+    }
   };
 
   const acceptInvite = async ({ token: invToken, name, password }) => {
-    const res = await fetch(`${API_BASE}/auth/accept-invite`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ token: invToken, name, password })
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || 'Invite konnte nicht akzeptiert werden');
-    setToken(data.token);
-    setCurrentUser(data.user);
-    await fetchCloudConfigAndCache(data.token, data.user);
-    return data.user;
+    try {
+      const res = await fetch(`${API_BASE}/auth/accept-invite`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: invToken, name, password })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Invite konnte nicht akzeptiert werden');
+      setToken(data.token);
+      setCurrentUser(data.user);
+      await fetchCloudConfigAndCache(data.token, data.user);
+      return data.user;
+    } catch (e) {
+      try { notifyError('Invite akzeptieren fehlgeschlagen', e.message || ''); } catch {}
+      throw e;
+    }
   };
 
   const logout = () => {

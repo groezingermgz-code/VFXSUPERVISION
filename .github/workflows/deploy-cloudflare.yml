@@ -44,6 +44,24 @@ jobs:
         env:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
 
+      - name: Preflight API health check
+        run: |
+          set -euo pipefail
+          if [ -z "$VITE_API_URL" ]; then
+            echo "VITE_API_URL is empty. Set repository variable VITE_API_URL to your backend /api base.";
+            exit 1;
+          fi
+          echo "::group::Ping $VITE_API_URL/health"
+          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 10 "$VITE_API_URL/health" || true)
+          echo "HTTP $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Backend health check failed. Verify that the backend is accessible and VITE_API_URL is correct.";
+            exit 1;
+          fi
+          echo "::endgroup::"
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
       - name: Preflight Cloudflare config
         run: |
           echo "::group::Cloudflare Config"
@@ -95,7 +113,7 @@ jobs:
             -H "Authorization: Bearer $SANITIZED" \
             https://api.cloudflare.com/client/v4/user/tokens/verify)
           echo "$VERIFY"
-          if echo "$VERIFY" | grep -q '"success":true'; then
+          if echo "$VERIFY" | grep -q '"success":[[:space:]]*true'; then
             echo "::endgroup::"
           else
             if echo "$VERIFY" | grep -q '"code":6111'; then
@@ -106,15 +124,40 @@ jobs:
           fi
 
           echo "::group::Check Pages access"
-          PAGES=$(curl -sS --retry 2 --retry-delay 1 \
+          PAGES_STATUS=$(curl -sS -o pages.json --retry 2 --retry-delay 1 \
             -H "Authorization: Bearer $SANITIZED" \
-            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects?per_page=1")
-          echo "$PAGES"
-          echo "$PAGES" | grep -q '"success":true' || { echo "Pages API not accessible for this token/account. Ensure permission 'Cloudflare Pages: Edit' and correct Account ID."; exit 1; }
-          echo "::endgroup::"
+            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects?per_page=1" -w "%{http_code}")
+          echo "HTTP $PAGES_STATUS"
+          cat pages.json
+          if [ "$PAGES_STATUS" = "200" ]; then
+            if grep -q '"success":[[:space:]]*true' pages.json; then
+              echo "::endgroup::"
+            else
+              echo "Pages API responded but success=false; check Account ID and token scopes."; exit 1;
+            fi
+          elif [ "$PAGES_STATUS" = "403" ]; then
+            echo "403 Forbidden: Token lacks Pages access for this account or Account ID mismatch."; exit 1;
+          elif [ "$PAGES_STATUS" = "404" ]; then
+            echo "404 Not Found: Account ID likely invalid or Pages not enabled for this account."; exit 1;
+          else
+            echo "Unexpected status $PAGES_STATUS from Pages API."; exit 1;
+          fi
+
+          echo "::group::Check project visibility"
+          PROJ_STATUS=$(curl -sS -o project.json --retry 2 --retry-delay 1 \
+            -H "Authorization: Bearer $SANITIZED" \
+            "https://api.cloudflare.com/client/v4/accounts/$ACCOUNT_ID/pages/projects/$PROJECT_NAME" -w "%{http_code}")
+          echo "HTTP $PROJ_STATUS"
+          cat project.json
+          if [ "$PROJ_STATUS" = "200" ]; then
+            echo "::endgroup::"
+          else
+            echo "Cannot access project '$PROJECT_NAME' (status $PROJ_STATUS). Verify project exists under this account and name."; exit 1;
+          fi
         env:
           CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          PROJECT_NAME: ${{ vars.CLOUDFLARE_PROJECT_NAME || 'vfx-supervision' }}
 
       - name: Node/npm info
         run: |
