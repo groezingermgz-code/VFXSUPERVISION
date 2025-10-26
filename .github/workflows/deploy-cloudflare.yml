@@ -51,11 +51,16 @@ jobs:
             echo "VITE_API_URL is empty. Set repository variable VITE_API_URL to your backend /api base.";
             exit 1;
           fi
-          echo "::group::Ping $VITE_API_URL/health"
-          STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 10 "$VITE_API_URL/health" || true)
-          echo "HTTP $STATUS"
+          echo "::group::Ping $VITE_API_URL/health (up to 5 attempts)"
+          STATUS="000"
+          for i in $(seq 1 5); do
+            STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$VITE_API_URL/health" || echo "000")
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" = "200" ]; then break; fi
+            sleep 5
+          done
           if [ "$STATUS" != "200" ]; then
-            echo "Backend health check failed. Verify that the backend is accessible and VITE_API_URL is correct.";
+            echo "Backend health check failed after retries. Verify that the backend is accessible and VITE_API_URL is correct.";
             exit 1;
           fi
           echo "::endgroup::"
