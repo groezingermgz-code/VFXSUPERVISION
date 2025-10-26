@@ -341,17 +341,17 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       <div className="settings-card card">
         <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t('settings.appearance')}
-          <span title="Oberfläche und Sprache konfigurieren."><Icon name="info" size={16} /></span>
+          <span title="Configure UI and language."><Icon name="info" size={16} /></span>
         </h2>
         <div className="setting-item">
           <label>
             <input type="checkbox" checked={darkMode} onChange={toggleDarkMode} />
-            Dark Mode <span title="Schaltet die dunkle Oberfläche ein/aus."><Icon name="info" size={14} /></span>
+            Dark Mode <span title="Toggle the dark theme on/off."><Icon name="info" size={14} /></span>
           </label>
         </div>
         <div className="setting-item">
           <label>
-            {t('settings.language')} <span title="Wähle die Anwendungs‑Sprache; betrifft Labels und Texte."><Icon name="info" size={14} /></span>
+            {t('settings.language')} <span title="Choose the application language; affects labels and texts."><Icon name="info" size={14} /></span>
             <select
               style={{ marginLeft: '8px' }}
               value={language}
@@ -369,7 +369,7 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       <div className="settings-card card">
         <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t('settings.offline')}
-          <span title="Sichert Daten lokal für Offline‑Verfügbarkeit; geeignet für Set‑Einsatz."><Icon name="info" size={16} /></span>
+          <span title="Save data locally for offline use; suited for on-set work."><Icon name="info" size={16} /></span>
         </h2>
         <p>{t('settings.offlineDescription')}</p>
         <button
@@ -393,14 +393,14 @@ const Settings = ({ darkMode, toggleDarkMode }) => {
       <div className="settings-card card">
         <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {t('settings.cloudSync.title')}
-          <span title="Synchronisiere Snapshots mit Cloud‑Anbietern (Dropbox, S3, WebDAV, u.a.)."><Icon name="info" size={16} /></span>
+          <span title="Sync snapshots with cloud providers (Dropbox, S3, WebDAV, u.a.)."><Icon name="info" size={16} /></span>
         </h2>
         <p>{t('settings.cloudSync.description')}</p>
         <div className="form-row">
           <div className="form-group">
             <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               {t('settings.cloudSync.providerLabel')}
-              <span title="Wähle den Anbieter für Cloud‑Synchronisierung."><Icon name="info" size={14} /></span>
+              <span title="Select the provider for cloud synchronization."><Icon name="info" size={14} /></span>
             </label>
             <select value={provider} onChange={(e) => setProvider(e.target.value)}>
               <option value="dropbox">Dropbox</option>

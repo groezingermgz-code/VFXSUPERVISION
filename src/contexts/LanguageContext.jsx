@@ -576,6 +576,7 @@ const translations = {
       login: "Login",
       users: "Users",
       teams: "Teams",
+      cameraControl: "Camera Control (Beta)",
     },
     feedback: {
       title: "Feedback",
@@ -1850,7 +1851,7 @@ const translations = {
 };
 
 const LanguageContext = createContext({
-  language: "de",
+  language: "en",
   setLanguage: () => {},
   t: (key) => key,
 });
@@ -1859,9 +1860,9 @@ export const LanguageProvider = ({ children }) => {
   const [language, setLanguage] = useState(() => {
     try {
       const stored = localStorage.getItem("app_language");
-      return stored || "de";
+      return stored || "en";
     } catch {
-      return "de";
+      return "en";
     }
   });
 
@@ -1872,7 +1873,7 @@ export const LanguageProvider = ({ children }) => {
   }, [language]);
 
   const t = useMemo(() => {
-    const dict = translations[language] || translations.de;
+    const dict = translations[language] || translations.en;
     return (key, fallback) => {
       if (!key) return fallback ?? "";
       const parts = key.split(".");

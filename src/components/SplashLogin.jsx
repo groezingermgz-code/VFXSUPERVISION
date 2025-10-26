@@ -79,8 +79,8 @@ const SplashLogin = () => {
             <h1 id="splash-login-title">{t('auth.loginTitle', 'Login')}</h1>
             <p className="subtitle" style={{ marginTop: 4 }}>
               {currentUser
-                ? `${t('auth.currentUser', 'Angemeldet als')}: ${currentUser.name}`
-                : t('auth.notLoggedIn', 'Nicht angemeldet')}
+                ? `${t('auth.currentUser', 'Logged in as')}: ${currentUser.name}`
+                : t('auth.notLoggedIn', 'Not logged in')}
             </p>
           </div>
         </div>
@@ -96,7 +96,7 @@ const SplashLogin = () => {
           <p style={{ margin: 0, lineHeight: 1.5 }}>
             {t(
               'auth.publicDataWarning',
-              'Hinweis: Dies ist eine öffentlich zugängliche Demo. Bitte keine wichtigen oder geschützten Projektdaten hochladen.'
+              'Note: This is a public demo. Please do not upload important or protected project data.'
             )}
           </p>
         </div>
@@ -104,30 +104,30 @@ const SplashLogin = () => {
         <div className="card" style={{ margin: '12px 16px' }}>
           <form onSubmit={handleLogin}>
             <div className="form-group" style={{ width: '100%' }}>
-              <label>{t('auth.enterNameLabel', 'Name eingeben')}</label>
+              <label>{t('auth.enterNameLabel', 'Enter name')}</label>
               <input
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                placeholder={t('auth.enterNamePlaceholder', 'z.B. Max Mustermann')}
+                placeholder={t('auth.enterNamePlaceholder', 'e.g., Jane Doe')}
                 autoFocus
               />
             </div>
             <div className="form-row" style={{ gap: 8, marginTop: 12 }}>
               <button type="submit" className="btn-primary">
-                {t('auth.loginButton', 'Einloggen')}
+                {t('auth.loginButton', 'Log in')}
               </button>
               <button type="button" className="btn-secondary" onClick={handleSkip}>
-                {t('common.cancel', 'Abbrechen')}
+                {t('common.cancel', 'Cancel')}
               </button>
             </div>
           </form>
         </div>
 
         <div className="card" style={{ margin: '0 16px 16px' }}>
-          <h2 style={{ marginTop: 0 }}>{t('auth.existingUsers', 'Vorhandene Nutzer')}</h2>
+          <h2 style={{ marginTop: 0 }}>{t('auth.existingUsers', 'Existing users')}</h2>
           {users.length === 0 ? (
-            <p style={{ opacity: 0.8 }}>{t('auth.noUsersYet', 'Noch keine Nutzer angelegt')}</p>
+            <p style={{ opacity: 0.8 }}>{t('auth.noUsersYet', 'No users yet')}</p>
           ) : (
             <div className="users-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
               {users.map((u) => (

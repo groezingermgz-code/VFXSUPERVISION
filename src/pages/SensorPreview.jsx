@@ -241,15 +241,15 @@ const SensorPreview = () => {
   return (
     <div className="sensor-preview-page">
       <div className="sensor-preview-header">
-        <h2>Sensor Vorschau</h2>
-        <p>Zeigt den gesamten Sensor und den Bereich, den das gewählte Aufnahmeformat abdeckt.</p>
+        <h2>Sensor Preview</h2>
+        <p>Shows the full sensor and the area covered by the selected recording format.</p>
       </div>
 
       <div className="card sensor-preview-controls">
         <div className="control-group">
           <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {t('camera.manufacturer', 'Hersteller')}
-            <span title="Wähle den Kamerahersteller; beeinflusst verfügbare Modelle."><Icon name="info" size={16} /></span>
+            <span title="Choose camera manufacturer; affects available models."><Icon name="info" size={16} /></span>
           </label>
           <select value={manufacturer} onChange={(e) => setManufacturer(e.target.value)}>
             {manufacturers.map((m) => (
@@ -260,7 +260,7 @@ const SensorPreview = () => {
         <div className="control-group">
           <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {t('camera.model', 'Kamera')}
-            <span title="Wähle das Kameramodell; steuert Sensordaten und Formate."><Icon name="info" size={16} /></span>
+            <span title="Choose camera model; sets sensor data and formats."><Icon name="info" size={16} /></span>
           </label>
           <select value={model} onChange={(e) => setModel(e.target.value)}>
             {(models || []).map((mo) => (
@@ -271,7 +271,7 @@ const SensorPreview = () => {
         <div className="control-group">
           <label style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             {t('camera.format', 'Format')}
-            <span title="Aufnahmeformat/Modus; bestimmt Sensorbereich, Pixelauflösung und Seitenverhältnis."><Icon name="info" size={16} /></span>
+            <span title="Recording format/mode; defines sensor area, pixel resolution, and aspect ratio."><Icon name="info" size={16} /></span>
           </label>
           <select value={format} onChange={(e) => setFormat(e.target.value)}>
             {(formats || []).map((f) => (
@@ -341,7 +341,7 @@ const SensorPreview = () => {
             (() => {
               const dec = toDecimalAR(sensorPxDims.width, sensorPxDims.height);
               const fallbackDec = parseARtoDecimal(sensorAspectRatioStringConstant);
-              const arLabel = dec || fallbackDec || 'Nicht verfügbar';
+              const arLabel = dec || fallbackDec || 'Not available';
               const arString = sensorAspectRatioStringConstant && sensorAspectRatioStringConstant !== 'Nicht verfügbar' ? sensorAspectRatioStringConstant : null;
               const label = `Sensor px: ${sensorPxDims.width} x ${sensorPxDims.height} • Bildverhältnis: ${arLabel}${arString ? ` (${arString})` : ''}`;
               return (
@@ -355,7 +355,7 @@ const SensorPreview = () => {
               const fontSize = 12;
               const arDec = toDecimalAR(formatPxDims.width, formatPxDims.height);
               const fallbackArDec = parseARtoDecimal(aspectRatios?.recorded);
-              const arText = arDec || fallbackArDec || 'Nicht verfügbar';
+              const arText = arDec || fallbackArDec || 'Not available';
               const arString = aspectRatios?.recorded && aspectRatios?.recorded !== 'Nicht verfügbar' ? aspectRatios.recorded : null;
               const label = `Format px: ${formatPxDims.width} x ${formatPxDims.height} • Bildverhältnis: ${arText}${arString ? ` (${arString})` : ''}`;
               const est = estimateTextWidth(label, fontSize);
@@ -383,35 +383,35 @@ const SensorPreview = () => {
         <div className="info-row">
           <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Sensor (max):
-            <span title="Größte Sensorfläche des Modells (Breite × Höhe in mm)."><Icon name="info" size={14} /></span>
+            <span title="Largest sensor area of the model (width × height in mm)."><Icon name="info" size={14} /></span>
           </span>
           <span className="info-value">{fullDims ? `${fullDims.width.toFixed(2)} x ${fullDims.height.toFixed(2)} mm` : t('common.notAvailable', 'Nicht angegeben')}</span>
         </div>
         <div className="info-row">
           <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Format Sensorbereich:
-            <span title="Vom gewählten Format abgedeckter Bereich auf dem Sensor (mm)."><Icon name="info" size={14} /></span>
+            <span title="Area on the sensor covered by the selected format (mm)."><Icon name="info" size={14} /></span>
           </span>
           <span className="info-value">{dimsForViz ? `${dimsForViz.width.toFixed(2)} x ${dimsForViz.height.toFixed(2)} mm` : formatSizeString || t('common.notAvailable', 'Nicht angegeben')}</span>
         </div>
         <div className="info-row">
           <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Pixelauflösung:
-            <span title="Breite × Höhe in Pixeln für das gewählte Format."><Icon name="info" size={14} /></span>
+            <span title="Width × height in pixels for the selected format."><Icon name="info" size={14} /></span>
           </span>
           <span className="info-value">{pixelResolution || t('common.notAvailable', 'Nicht angegeben')}</span>
         </div>
         <div className="info-row">
           <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Bildverhältnis (Aufnahme):
-            <span title="Seitenverhältnis des Aufnahmeformats (z. B. 2.39:1)."><Icon name="info" size={14} /></span>
+            <span title="Aspect ratio of the recording format (e.g., 2.39:1)."><Icon name="info" size={14} /></span>
           </span>
           <span className="info-value">{aspectRatios?.recorded || t('common.notAvailable', 'Nicht angegeben')}</span>
         </div>
         <div className="info-row">
           <span className="info-label" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             Bildverhältnis (Sensor):
-            <span title="Seitenverhältnis des maximalen Sensors (z. B. 3:2)."><Icon name="info" size={14} /></span>
+            <span title="Aspect ratio of the full sensor (e.g., 3:2)."><Icon name="info" size={14} /></span>
           </span>
           <span className="info-value">{sensorAspectRatioStringConstant || t('common.notAvailable', 'Nicht angegeben')}</span>
         </div>

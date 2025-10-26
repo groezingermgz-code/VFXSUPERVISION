@@ -40,8 +40,8 @@ const InstallPWA = () => {
   if (installed || !deferredPrompt) return null;
 
   return (
-    <button className="install-button" onClick={handleInstall} title="App installieren">
-      Installieren
+    <button className="install-button" onClick={handleInstall} title="Install app">
+      Install
     </button>
   );
 };

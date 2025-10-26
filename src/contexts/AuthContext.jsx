@@ -75,7 +75,7 @@ export const AuthProvider = ({ children }) => {
       return user;
     } catch (e) {
       setCurrentUser(null);
-      try { notifyInfo('Sitzung konnte nicht aktualisiert werden', e.message || ''); } catch {}
+      try { notifyInfo('Could not refresh session', e.message || ''); } catch {}
       return null;
     }
   };
@@ -103,12 +103,12 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify({ name, email, password }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Registrierung fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || 'Registration failed');
       const verifyLink = data.verifyLink || `${window.location.origin}/verify-email/${data?.token || ''}`;
       return { ok: true, verifyLink, user: data.user };
     } catch (e) {
       setError(e.message);
-      try { notifyError('Registrierung fehlgeschlagen', e.message || ''); } catch {}
+      try { notifyError('Registration failed', e.message || ''); } catch {}
       return { ok: false, error: e.message };
     } finally {
       setLoadingAuth(false);
@@ -146,13 +146,13 @@ export const AuthProvider = ({ children }) => {
         body: JSON.stringify(body)
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Login fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || 'Login failed');
       setToken(data.token);
       setCurrentUser(data.user);
       await fetchCloudConfigAndCache(data.token, data.user);
       return data.user;
     } catch (e) {
-      try { notifyError('Login fehlgeschlagen', e.message || ''); } catch {}
+      try { notifyError('Login failed', e.message || ''); } catch {}
       throw e;
     }
   };
@@ -161,13 +161,13 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_BASE}/auth/verify/${tokenParam}`, { headers: { 'Content-Type': 'application/json' } });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Verifizierung fehlgeschlagen');
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
       setToken(data.token);
       setCurrentUser(data.user);
       await fetchCloudConfigAndCache(data.token, data.user);
       return data.user;
     } catch (e) {
-      try { notifyError('Verifizierung fehlgeschlagen', e.message || ''); } catch {}
+      try { notifyError('Verification failed', e.message || ''); } catch {}
       throw e;
     }
   };
@@ -176,10 +176,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const res = await fetch(`${API_BASE}/auth/invite/${tokenParam}`, { headers: { 'Content-Type': 'application/json' } });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.error || 'Invite nicht gefunden');
+      if (!res.ok) throw new Error(data.error || 'Invite failed');
       return data;
     } catch (e) {
-      try { notifyError('Invite nicht gefunden', e.message || ''); } catch {}
+      try { notifyError('Invite failed', e.message || ''); } catch {}
       throw e;
     }
   };

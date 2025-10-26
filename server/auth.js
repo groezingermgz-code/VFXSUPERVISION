@@ -122,7 +122,7 @@ authRouter.post('/login', async (req, res) => {
     if (!user) return res.status(401).json({ error: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
-    if (!user.email_verified) return res.status(403).json({ error: 'Bitte E‑Mail bestätigen, bevor du dich einloggst.' });
+    if (!user.email_verified) return res.status(403).json({ error: 'Please verify your email before logging in.' });
     const token = jwt.sign({ uid: user.id, email: user.email }, SECRET, { expiresIn: '7d' });
     return res.json({ token, user: { id: user.id, email: user.email, name: user.name, email_verified: !!user.email_verified } });
   } catch (e) {

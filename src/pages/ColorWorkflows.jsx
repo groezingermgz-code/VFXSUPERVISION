@@ -448,7 +448,7 @@ const ColorWorkflows = () => {
       <div className="header">
         <div className="header-content">
           <h1>ColorWorkflows <span style={{ fontSize: '0.7em', color: 'var(--text-secondary)' }}>(Beta)</span></h1>
-          <p className="subtitle">Definiere Farb‑Workflows mit Ein-/Ausgabe‑Farbräumen und exportiere als JSON/CSV.</p>
+          <p className="subtitle">Define color workflows with input/output color spaces and export as JSON/CSV.</p>
         </div>
       </div>
 
@@ -456,7 +456,7 @@ const ColorWorkflows = () => {
       <div className="card" style={{ background: 'var(--card-bg)', marginBottom: 12 }}>
         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 12 }}>
           <div className="form-field">
-            <label htmlFor="wf-program">Programmvorlage</label>
+            <label htmlFor="wf-program">Program template</label>
             <select id="wf-program" value={selectedProgram} onChange={(e) => setSelectedProgram(e.target.value)}>
               {programOptions.map((opt) => (
                 <option key={opt.key} value={opt.key}>{opt.label}</option>
@@ -465,22 +465,22 @@ const ColorWorkflows = () => {
           </div>
           <div className="form-field" style={{ alignSelf: 'end' }}>
             <button type="button" className="btn-secondary" onClick={applyTemplate}>
-              <span className="nav-icon" aria-hidden><Icon name="notes" /></span> Template anwenden
+              <span className="nav-icon" aria-hidden><Icon name="notes" /></span> Apply template
             </button>
           </div>
         </div>
         <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-          Vorlagen basieren auf ACES (IDT → Working → ODT). ODT (z. B. Rec.709/P3‑D65/Rec.2020) bitte bei Bedarf in den Schritten anpassen.
+          Templates are based on ACES (IDT → Working → ODT). Adjust the ODT (e.g., Rec.709/P3‑D65/Rec.2020) within the steps as needed.
         </p>
       </div>
 
       <div className="card" style={{ background: 'var(--card-bg)', marginBottom: 12 }}>
-        <h2 style={{ marginTop: 0 }}>Projekt/Shot Auswahl</h2>
+        <h2 style={{ marginTop: 0 }}>Project/Shot Selection</h2>
         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12 }}>
           <div className="form-field">
-            <label htmlFor="wf-project">Projekt</label>
+            <label htmlFor="wf-project">Project</label>
             <select id="wf-project" value={selectedProjectId || ''} onChange={(e) => setSelectedProjectId(Number(e.target.value))}>
-              {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name || `Projekt ${p.id}`}</option>)}
+              {(projects || []).map(p => <option key={p.id} value={p.id}>{p.name || `Project ${p.id}`}</option>)}
             </select>
           </div>
           <div className="form-field">
@@ -490,18 +490,18 @@ const ColorWorkflows = () => {
             </select>
           </div>
           <div className="form-field">
-            <label htmlFor="wf-odt">Ziel‑Ausgabe (ODT)</label>
-            <input id="wf-odt" list="color-space-presets" type="text" value={targetOdt} onChange={(e) => setTargetOdt(e.target.value)} placeholder="z. B. Rec.709" />
+            <label htmlFor="wf-odt">Target output (ODT)</label>
+            <input id="wf-odt" list="color-space-presets" type="text" value={targetOdt} onChange={(e) => setTargetOdt(e.target.value)} placeholder="e.g., Rec.709" />
           </div>
           <div className="form-field" style={{ alignSelf: 'end' }}>
             <button type="button" className="btn-primary" onClick={generateFromShot}>
-              <span className="nav-icon" aria-hidden><Icon name="play" /></span> Workflow generieren
+              <span className="nav-icon" aria-hidden><Icon name="play" /></span> Generate workflow
             </button>
           </div>
         </div>
         {selectedShotId ? (
           <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-            Quelle: Projekt {selectedProjectId} · Shot {selectedShotId}
+            Source: Project {selectedProjectId} · Shot {selectedShotId}
           </p>
         ) : null}
       </div>
@@ -510,15 +510,15 @@ const ColorWorkflows = () => {
         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
           <div className="form-field">
             <label htmlFor="wf-name">Name</label>
-            <input id="wf-name" type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="z. B. IDT + Grading + ODT" />
+            <input id="wf-name" type="text" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g., IDT + Grading + ODT" />
           </div>
           <div className="form-field">
             <label htmlFor="wf-input">Input Space</label>
-            <input id="wf-input" list="color-space-presets" type="text" value={form.input} onChange={(e) => setForm({ ...form, input: e.target.value })} placeholder="z. B. LogC4" />
+            <input id="wf-input" list="color-space-presets" type="text" value={form.input} onChange={(e) => setForm({ ...form, input: e.target.value })} placeholder="e.g., LogC4" />
           </div>
           <div className="form-field">
             <label htmlFor="wf-output">Output Space</label>
-            <input id="wf-output" list="color-space-presets" type="text" value={form.output} onChange={(e) => setForm({ ...form, output: e.target.value })} placeholder="z. B. Rec.709" />
+            <input id="wf-output" list="color-space-presets" type="text" value={form.output} onChange={(e) => setForm({ ...form, output: e.target.value })} placeholder="e.g., Rec.709" />
           </div>
         </div>
         <datalist id="color-space-presets">
@@ -541,37 +541,37 @@ const ColorWorkflows = () => {
         </datalist>
         <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 10 }}>
           <div className="form-field">
-            <label htmlFor="wf-note">Notiz</label>
-            <input id="wf-note" type="text" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="z. B. LUT, IDT/ODT Hinweise" />
+            <label htmlFor="wf-note">Note</label>
+            <input id="wf-note" type="text" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="e.g., LUT, IDT/ODT notes" />
           </div>
         </div>
 
         {/* Nuke Export Optionen */}
         <div className="card" style={{ background: 'var(--card-bg)', border: '1px dashed var(--border-color)', marginTop: 12 }}>
-          <h3 style={{ marginTop: 0 }}>Nuke Export Optionen</h3>
+          <h3 style={{ marginTop: 0 }}>Nuke Export Options</h3>
           <div className="form-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr auto', gap: 12 }}>
             <div className="form-field">
               <label htmlFor="nuke-ocio-config">OCIO Config</label>
               <select id="nuke-ocio-config" value={nukeOcioConfig} onChange={(e) => setNukeOcioConfig(e.target.value)}>
-                <option value="auto">Auto (Nuke‑Standard)</option>
+                <option value="auto">Auto (Nuke default)</option>
                 <option value="aces_1.2">ACES 1.2 (Nuke builtin)</option>
-                <option value="aces_1.3">ACES 1.3 (extern)</option>
+                <option value="aces_1.3">ACES 1.3 (external)</option>
                 <option value="fn-nuke_cg-1.0.0">Foundry Nuke CG v1.0.0 (ACES 1.3, OCIO v2.1)</option>
                 <option value="fn-nuke_studio-1.0.0">Foundry Nuke Studio v1.0.0 (ACES 1.3, OCIO v2.1)</option>
               </select>
             </div>
             <div className="form-field">
               <label htmlFor="nuke-display">Display</label>
-              <input id="nuke-display" list="ocio-display-presets" type="text" value={nukeOcioDisplay} onChange={(e) => setNukeOcioDisplay(e.target.value)} placeholder="z. B. sRGB" />
+              <input id="nuke-display" list="ocio-display-presets" type="text" value={nukeOcioDisplay} onChange={(e) => setNukeOcioDisplay(e.target.value)} placeholder="e.g., sRGB" />
             </div>
             <div className="form-field">
               <label htmlFor="nuke-view">View</label>
-              <input id="nuke-view" list="ocio-view-presets" type="text" value={nukeOcioView} onChange={(e) => setNukeOcioView(e.target.value)} placeholder="z. B. ACES 1.0 - SDR Video" />
+              <input id="nuke-view" list="ocio-view-presets" type="text" value={nukeOcioView} onChange={(e) => setNukeOcioView(e.target.value)} placeholder="e.g., ACES 1.0 - SDR Video" />
             </div>
             <div className="form-field" style={{ display: 'flex', alignItems: 'end' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <input type="checkbox" checked={nukeIncludeDisplay} onChange={(e) => setNukeIncludeDisplay(e.target.checked)} />
-                OCIODisplay Node hinzufügen
+                Add OCIODisplay node
               </label>
             </div>
           </div>
@@ -585,13 +585,13 @@ const ColorWorkflows = () => {
             <option value="ACES 1.0 - SDR Video" />
           </datalist>
           <p style={{ marginTop: 8, color: 'var(--text-secondary)' }}>
-            Tipp: Bei ACES 1.2 ist oft <code>Display</code> „sRGB“ und <code>View</code> „ACES 1.0 - SDR Video“. Gib exakt die Namen an, die Nuke im <code>OCIODisplay</code>-Node anbietet.
+            Tip: With ACES 1.2, <code>Display</code> is often "sRGB" and <code>View</code> "ACES 1.0 - SDR Video". Enter exactly the names that Nuke offers in the <code>OCIODisplay</code> node.
           </p>
         </div>
 
         <div className="form-row" style={{ display: 'flex', gap: 8, marginTop: 12 }}>
           <button type="button" className="btn-primary" disabled={!canAdd} onClick={addStep}>
-            <span className="nav-icon" aria-hidden><Icon name="plus" /></span> Schritt hinzufügen
+            <span className="nav-icon" aria-hidden><Icon name="plus" /></span> Add step
           </button>
           <button type="button" className="btn-secondary" onClick={exportJSON}>
             <span className="nav-icon" aria-hidden><Icon name="notes" /></span> Export JSON
@@ -606,9 +606,9 @@ const ColorWorkflows = () => {
       </div>
 
       <div className="card" style={{ marginTop: 16, background: 'var(--card-bg)' }}>
-        <h2 style={{ marginTop: 0 }}>Schritte</h2>
+        <h2 style={{ marginTop: 0 }}>Steps</h2>
         {steps.length === 0 ? (
-          <div className="empty" style={{ color: 'var(--text-secondary)' }}>Noch keine Schritte. Füge oben einen Schritt hinzu.</div>
+          <div className="empty" style={{ color: 'var(--text-secondary)' }}>No steps yet. Add a step above.</div>
         ) : (
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {steps.map((s) => (
@@ -622,10 +622,10 @@ const ColorWorkflows = () => {
                 <div><span style={{ color: 'var(--text-secondary)' }}>Input:</span> {s.input}</div>
                 <div><span style={{ color: 'var(--text-secondary)' }}>Output:</span> {s.output}</div>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button className="btn-icon" title="LUT anhängen" aria-label="LUT anhängen" onClick={() => { setLutAttachTarget(s.id); fileInputRef.current?.click(); }} style={{ border: '1px solid var(--border-color)', borderRadius: 6, width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button className="btn-icon" title="Attach LUT" aria-label="Attach LUT" onClick={() => { setLutAttachTarget(s.id); fileInputRef.current?.click(); }} style={{ border: '1px solid var(--border-color)', borderRadius: 6, width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span aria-hidden><Icon name="notes" /></span>
                   </button>
-                  <button className="btn-icon" title="Schritt löschen" aria-label="Schritt löschen" onClick={() => removeStep(s.id)} style={{ border: '1px solid var(--border-color)', borderRadius: 6, width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <button className="btn-icon" title="Delete step" aria-label="Delete step" onClick={() => removeStep(s.id)} style={{ border: '1px solid var(--border-color)', borderRadius: 6, width: 32, height: 32, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                     <span aria-hidden><Icon name="trash" /></span>
                   </button>
                 </div>
@@ -637,7 +637,7 @@ const ColorWorkflows = () => {
 
       <div className="card" style={{ marginTop: 16, background: 'var(--card-bg)', borderLeft: '4px solid var(--color-warning, #f39c12)' }}>
         <p style={{ margin: 0, lineHeight: 1.5 }}>
-          Hinweis: Export nach JSON/CSV ist implementiert. Weitere Formate (z. B. XML, YAML) können wir ergänzen. Für LUT‑Workflows ist ein späterer Import/Export von .cube geplant.
+          Note: Export to JSON/CSV is implemented. Additional formats (e.g., XML, YAML) can be added. For LUT workflows, later import/export of .cube is planned.
         </p>
       </div>
     </div>
