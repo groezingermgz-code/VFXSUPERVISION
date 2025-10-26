@@ -319,15 +319,34 @@ import { extractLensManufacturer } from './utils/fovCalculator.js'
       }
     })();
 
-    ReactDOM.createRoot(document.getElementById('root')).render(
+    const Root = import.meta.env.DEV ? (
+      <App />
+    ) : (
       <React.StrictMode>
         <App />
-      </React.StrictMode>,
-    )
+      </React.StrictMode>
+    );
+    ReactDOM.createRoot(document.getElementById('root')).render(Root)
 
     // Register Service Worker only in production; avoid dev/HMR interference
     if (import.meta.env.PROD && 'serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
+      const isLocalhost = ['localhost', '127.0.0.1'].includes(location.hostname);
+      window.addEventListener('load', async () => {
+        if (isLocalhost) {
+          // In local preview, do NOT register SW; instead, clean up stale caches/registrations
+          try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            regs.forEach((r) => r.unregister());
+            if ('caches' in window) {
+              const keys = await caches.keys();
+              await Promise.all(keys.map((k) => caches.delete(k)));
+            }
+            console.info('Local preview: Unregistered service workers and cleared caches.');
+          } catch (err) {
+            console.warn('Local preview SW cleanup failed:', err);
+          }
+          return;
+        }
         navigator.serviceWorker.register('/sw.js').catch((err) => {
           console.warn('Service Worker registration failed:', err);
         });

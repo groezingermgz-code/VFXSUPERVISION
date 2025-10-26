@@ -6,6 +6,7 @@ import './Navbar.css';
 import { APP_VERSION_LABEL } from '../version';
 import Icon from './Icon';
 import InstallPWA from './InstallPWA';
+import appIcon from '../assets/icon2.png';
 
 const Navbar = ({ darkMode, toggleDarkMode }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -19,6 +20,11 @@ const Navbar = ({ darkMode, toggleDarkMode }) => {
     <nav className="navbar">
       <div className="navbar-header">
         <div className="navbar-title">
+          <img
+            src={appIcon}
+            alt="SUPErVISION Icon"
+            style={{ width: 72, height: 72, objectFit: 'contain', margin: '0 auto 8px' }}
+          />
           <h1>SUPErVISION</h1>
           <div className="app-version">{APP_VERSION_LABEL}</div>
         </div>

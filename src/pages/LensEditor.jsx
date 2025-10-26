@@ -166,7 +166,10 @@ const LensEditor = () => {
 
   const rows = viewAll ? collectAllLensAdditions() : additions;
 // Auto-Detect LDS from typed lens name
-const isLdsName = useMemo(() => (lensName || '').toUpperCase().includes('LDS'), [lensName]);
+const isLdsName = useMemo(() => {
+  const s = (lensName || '').toUpperCase();
+  return /(\bLDS\b|\bLDS-2\b\/I\b|\bXD\b)/.test(s);
+}, [lensName]);
 
   return (
     <div className="page" style={{ padding: 16 }}>
@@ -197,7 +200,7 @@ const isLdsName = useMemo(() => (lensName || '').toUpperCase().includes('LDS'), 
                 LDS
                 <input type="checkbox" checked={isLdsName} readOnly />
                 <span style={{ fontSize: 12, color: 'var(--muted-color)' }}>
-                  {isLdsName ? 'automatisch erkannt' : 'aktiviert bei "LDS" im Namen'}
+                  {isLdsName ? 'automatisch erkannt' : 'aktiviert bei "LDS", "LDS-2", "/i", "XD" im Namen'}
                 </span>
               </label>
             </div>

@@ -63,7 +63,28 @@ const LdsLenses = () => {
                     <li key={`${r.manufacturer}-${r.name}`} style={{ padding: '4px 0', borderBottom: '1px dashed var(--border-color)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span>{r.name}</span>
-                        <span style={{ fontSize: 12, opacity: 0.8 }}>{r.meta?.focal || ''}</span>
+                        <span style={{ fontSize: 12, opacity: 0.8 }}>
+                          {r.meta?.focal || ''}
+                          {r.meta?.metadataInterface && (
+                            <span
+                              style={{
+                                marginLeft: 6,
+                                background: (r.meta.metadataInterface === '/i'
+                                  ? '#cde7ff'
+                                  : r.meta.metadataInterface === 'LDS-2'
+                                    ? '#fff3cd'
+                                    : r.meta.metadataInterface === 'LDS'
+                                      ? '#d4edda'
+                                      : '#e2d6ff'),
+                                color: '#222',
+                                borderRadius: 6,
+                                padding: '0 6px',
+                                lineHeight: '18px'
+                              }}
+                              title={`Interface: ${r.meta.metadataInterface}`}
+                            >{r.meta.metadataInterface}</span>
+                          )}
+                        </span>
                       </div>
                     </li>
                   ))}

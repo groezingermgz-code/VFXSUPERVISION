@@ -68,6 +68,11 @@ const isLdsLensSelected = useMemo(() => {
   const m = getLensMeta(lensManufacturer, selectedLens);
   return !!(m && m.isLds);
 }, [lensManufacturer, selectedLens]);
+// Also expose selected lens meta to show interface
+const selectedLensMeta = useMemo(() => {
+  if (!lensManufacturer || !selectedLens) return null;
+  return getLensMeta(lensManufacturer, selectedLens);
+}, [lensManufacturer, selectedLens]);
 
   const sourceSensorSizeString = useMemo(() => {
     if (!manufacturer || !model || !sourceFormat) return null;
@@ -209,7 +214,28 @@ const isLdsLensSelected = useMemo(() => {
           <div className="form-group">
             <label>LDS</label>
             <input type="checkbox" checked={isLdsLensSelected} readOnly />
-            <small className="helper-text">Automatisch erkannt bei „LDS“ im Namen</small>
+            <small className="helper-text">Automatisch erkannt bei „LDS“, „LDS‑2“, „/i“, „XD“</small>
+            {selectedLensMeta?.metadataInterface && (
+              <div style={{ marginTop: 4 }}>
+                <small className="helper-text">Interface:</small>{' '}
+                <span
+                  style={{
+                    background: (selectedLensMeta.metadataInterface === '/i'
+                      ? '#cde7ff'
+                      : selectedLensMeta.metadataInterface === 'LDS-2'
+                        ? '#fff3cd'
+                        : selectedLensMeta.metadataInterface === 'LDS'
+                          ? '#d4edda'
+                          : '#e2d6ff'),
+                    color: '#222',
+                    borderRadius: 6,
+                    padding: '0 6px',
+                    lineHeight: '18px'
+                  }}
+                  title={`Interface: ${selectedLensMeta.metadataInterface}`}
+                >{selectedLensMeta.metadataInterface}</span>
+              </div>
+            )}
           </div>
         </div>
 

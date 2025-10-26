@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -29,6 +29,24 @@ const Login = () => {
   const [verifyInfo, setVerifyInfo] = useState(null);
   const [resendLoading, setResendLoading] = useState(false);
   const navigate = useNavigate();
+
+  // Lokaler Auth-Bypass: Login-Seite automatisch zum Dashboard umleiten
+  const skipAuth = (() => {
+    try {
+      const envFlag = typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.VITE_SKIP_AUTH_LOCAL === 'true';
+      const host = typeof window !== 'undefined' ? window.location.hostname : '';
+      const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+      return envFlag || isLocalHost;
+    } catch {
+      return false;
+    }
+  })();
+
+  useEffect(() => {
+    if (skipAuth) {
+      navigate('/', { replace: true });
+    }
+  }, [skipAuth, navigate]);
 
   // Passwort-Stärke einschätzen (nur Hinweis, nicht erzwungen)
   const passwordScore = (pwd) => {

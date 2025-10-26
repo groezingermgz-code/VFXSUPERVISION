@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.4.4 — 2025-10-26
+
+- Clip-Benennung vereinheitlicht: Felder `Kameraindex`, `Reel-Nummer`, `Clip-Nummer` für Schema `A001_C001` jetzt für alle Hersteller sichtbar.
+- Feld `Manuelle Clip-ID` hinzugefügt; überschreibt das generierte Schema, kein Auto-Increment.
+- Auto-Increment für `Clip-Nummer` nur bei generierten IDs.
+- Dev: `React.StrictMode` nur in Produktion aktiv, doppelte Logs in Dev entfernt.
+- Dateien: `src/pages/ShotDetails.jsx`, `src/main.jsx`.
+- Version: `0.1.6`.
+
 ## v0.4.3 — 2025-10-26
 
 - Login- und SplashLogin-Oberflächen auf Englisch vereinheitlicht.

@@ -38,7 +38,7 @@ const FovCalculator = () => {
   const [projectionType, setProjectionType] = useState('rectilinear');
   const [focalLength, setFocalLength] = useState('32');
   const [aperture, setAperture] = useState('4');
-  const [focusDistance, setFocusDistance] = useState('5');
+  const [focusDistance, setFocusDistance] = useState('3');
   // Objektiv-Auswahl
   const [lensManufacturer, setLensManufacturer] = useState('');
   const [lensModel, setLensModel] = useState('');
@@ -164,19 +164,36 @@ const FovCalculator = () => {
         <div className="control-row">
           <div className="form-group">
             <label>{t('tools.fov.controls.anamorph', 'Anamorphic')}</label>
-            <input
-              type="checkbox"
-              checked={isAnamorphic}
+            <select
+              value={isAnamorphic ? 'yes' : 'no'}
               onChange={(e) => {
-                const checked = e.target.checked;
-                setIsAnamorphic(checked);
+                const yes = e.target.value === 'yes';
+                setIsAnamorphic(yes);
                 // Beim Umschalten Liste zurücksetzen
                 setLensManufacturer('');
                 setLensModel('');
-                setAnamorphicFactor(checked ? (lensInfo.factor || 1) : 1);
+                setAnamorphicFactor(yes ? (lensInfo.factor || 2) : 1);
               }}
-            />
+            >
+              <option value="no">{t('common.no', 'Nein')}</option>
+              <option value="yes">{t('common.yes', 'Ja')}</option>
+            </select>
           </div>
+          {isAnamorphic && (
+            <div className="form-group">
+              <label>{t('tools.fov.controls.anamorphFactor', 'Squeeze‑Faktor')}</label>
+              <input
+                type="number"
+                step="0.01"
+                min="1"
+                value={String(anamorphicFactor || 1)}
+                onChange={(e) => {
+                  const v = parseFloat(e.target.value);
+                  setAnamorphicFactor(!isNaN(v) && v >= 1 ? v : 1);
+                }}
+              />
+            </div>
+          )}
           <div className="form-group">
             <label>{t('tools.fov.controls.lensManufacturer', 'Lens Manufacturer')}</label>
             <select value={lensManufacturer} onChange={(e) => { setLensManufacturer(e.target.value); setLensModel(''); }}>
@@ -209,9 +226,7 @@ const FovCalculator = () => {
               ))}
             </select>
           </div>
-        </div>
 
-        <div className="control-row">
           <div className="form-group">
             <label>{t('tools.fov.controls.focalLengthMm', 'Focal Length (mm)')} <span title={t('help.focalLength', 'Numerisch, z. B. 50; bei Zooms passende Brennweite wählen')} aria-label={t('help.info', 'Info')} style={{ verticalAlign: 'middle', marginLeft: 6 }}><Icon name="info" size={16} /></span></label>
             <input
@@ -331,7 +346,7 @@ const FovCalculator = () => {
           </div>
           <div className="result-item">
             <span className="label">{t('tools.fov.controls.lensInfo', 'Lens')}</span>
-            <span className="value">{lensInfo.fullName || '—'}</span>
+            <span className="value">{lensInfo.fullName ? (anamorphicFactor > 1 ? `${lensInfo.fullName} (${anamorphicFactor}×)` : lensInfo.fullName) : '—'}</span>
           </div>
           <div className="result-item">
             <span className="label">{t('tools.fov.controls.lensType', 'Lens Type')}</span>
@@ -963,16 +978,9 @@ export default FovCalculator;
             <>
               <rect x={rectX} y={rectY} width={rectW} height={rectH} fill="none" stroke="var(--border-color)" strokeWidth="2" />
               <line x1={rectX} y1={rectY} x2={rectX + rectW} y2={rectY + rectH} stroke="var(--border-color)" strokeDasharray="4 4" />
-              <text x={rectX} y={rectY - 8} fill="var(--text-color)" fontSize="12">{t('tools.fov.threeD.labelSensor', 'Sensor')}: {sensorDims.width} × {sensorDims.height} mm</text>
-              {/* Sensorhöhe innen im Rahmen anzeigen */}
-              <text
-                x={rectX + rectW - 6}
-                y={cy}
-                textAnchor="end"
-                dominantBaseline="middle"
-                fill="var(--text-color)"
-                fontSize="12"
-              >
+              {/* Marker-Pfeil links am Sensorrahmen */}
+              <path d={`M ${rectX - 14} ${cy} L ${rectX - 6} ${cy} M ${rectX - 10} ${cy - 4} L ${rectX - 6} ${cy} L ${rectX - 10} ${cy + 4}`} stroke="var(--border-color)" strokeWidth="2" fill="none" />
+              <text x={rectX - 6} y={cy} textAnchor="end" dominantBaseline="middle" fill="var(--text-color)" fontSize="12">
                 {typeof sensorDims.height === 'number' ? `${sensorDims.height.toFixed(1)} mm` : `${sensorDims.height} mm`}
               </text>
               <text x={rectX} y={rectY + rectH + 16} fill="var(--text-color)" fontSize="12">Crop: {fov?.crop ? `${fov.crop}×` : '—'}</text>

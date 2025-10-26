@@ -224,12 +224,14 @@ const [annotator, setAnnotator] = useState({ open: false, shotId: null, imageUrl
         focalLength: '', 
         aperture: '', 
         iso: '',
-        focusDistance: '',
+        focusDistance: '3',
         hyperfocalDistance: '',
-        ndFilter: '',
+        framerate: '25 fps',
+        ndFilter: 'Kein',
         shutterAngle: '180°',
         imageStabilization: 'Aus',
-        isAnamorphic: false
+        isAnamorphic: false,
+        lensStabilization: 'Aus'
       },
       cameraMovement: {
         movementType: '',

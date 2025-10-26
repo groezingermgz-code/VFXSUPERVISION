@@ -22,7 +22,8 @@ import {
   getAnamorphicLensManufacturers,
   getAnamorphicLensesByManufacturer,
   getLensMeta,
-  isZoomLens
+  isZoomLens,
+  getDefaultAnamorphicFactor
 } from '../data/lensDatabase';
 import { 
   getAllFilters,
@@ -210,9 +211,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   const [isAnamorphicEnabled, setIsAnamorphicEnabled] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [filterToAdd, setFilterToAdd] = useState('');
-  const [ctoToAdd, setCtoToAdd] = useState('');
-  const [ctbToAdd, setCtbToAdd] = useState('');
-  const [greenToAdd, setGreenToAdd] = useState('');
+
   const [selectedSetupIndex, setSelectedSetupIndex] = useState(0);
 
   // Einklapp-/Ausklapp-Status für Bearbeitungsansicht
@@ -235,19 +234,64 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   const addTake = () => {
     const base = getShotBaseName();
     const nextVersion = getNextTakeVersion();
-    const label = `${base}_TAKE ${String(nextVersion).padStart(3, '0')}`;
+    // ARRI Clip-Benennung: wenn Hersteller ARRI und Felder vorhanden, nutze A001_C001 Schema
+    const getActiveEditedCameraSettings = () => {
+      if (selectedSetupIndex === 0) return (editedShot?.cameraSettings || {});
+      const arr = Array.isArray(editedShot?.additionalCameraSetups) ? editedShot.additionalCameraSetups : [];
+      return (arr[selectedSetupIndex - 1]?.cameraSettings) || {};
+    };
+    const activeSettings = getActiveEditedCameraSettings();
+    const manufacturer = (activeSettings?.manufacturer || '').trim();
+    let label = `${base}_TAKE ${String(nextVersion).padStart(3, '0')}`;
+    // Allgemeine Clip-Benennung: manuelle ID hat Priorität, ansonsten [Index][Reel]_C[Clip]
+    const manual = String(activeSettings.manualClipId || '').trim();
+    const camIdxRaw = String(activeSettings.clipCameraIndex || '');
+    const camIdx = camIdxRaw.replace(/[^A-Z_]/g, '').slice(0, 2);
+    const reelRaw = String(activeSettings.clipReelNumber || '');
+    const reelNum = parseInt(reelRaw, 10);
+    const reel = Number.isFinite(reelNum) ? String(reelNum).padStart(3, '0') : '';
+    const clipRaw = String(activeSettings.clipCounter || '');
+    const clipNumInt = parseInt(clipRaw, 10);
+    const clip = Number.isFinite(clipNumInt) ? String(clipNumInt).padStart(3, '0') : '';
+    const simpleId = camIdx && reel && clip ? `${camIdx}${reel}_C${clip}` : '';
+    const usedSimpleId = !manual && !!simpleId;
+    if (manual) {
+      label = manual;
+    } else if (simpleId) {
+      label = simpleId;
+    }
     const newTake = {
       id: Date.now(),
       name: label,
       version: nextVersion,
       note: '',
       changes: '',
-      ratings: ['none', 'none', 'none']
+      ratings: ['none', 'none', 'none'],
+      clipId: label
     };
-    const updatedShot = {
+    // Clip-Counter hochzählen, wenn einfache Benennung genutzt wurde (nicht bei manueller ID)
+    let updatedShot = {
       ...editedShot,
       takes: [...(editedShot?.takes || []), newTake]
     };
+    if (usedSimpleId) {
+      const nextClipCounter = String(((parseInt(activeSettings.clipCounter, 10) || 1) + 1)).padStart(3, '0');
+      if (selectedSetupIndex === 0) {
+        updatedShot = {
+          ...updatedShot,
+          cameraSettings: {
+            ...(editedShot?.cameraSettings || {}),
+            clipCounter: nextClipCounter
+          }
+        };
+      } else {
+        const arr = Array.isArray(editedShot?.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
+        const setup = { ...(arr[selectedSetupIndex - 1] || { cameraSettings: {}, cameraMovement: {} }) };
+        setup.cameraSettings = { ...(setup.cameraSettings || {}), clipCounter: nextClipCounter };
+        arr[selectedSetupIndex - 1] = setup;
+        updatedShot = { ...updatedShot, additionalCameraSetups: arr };
+      }
+    }
     setEditedShot(updatedShot);
     autoSaveShotToFile(id, updatedShot);
   };
@@ -325,7 +369,12 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
         if (extracted && extracted > 0) focal = extracted;
       }
       if (!focal || focal <= 0) return t('common.notAvailable');
-      let af = extractAnamorphicFactor(lensName || '');
+      let af = (() => {
+        const stored = parseFloat(String(currentShotCameraSettings?.anamorphicFactor || ''));
+        if (!isNaN(stored) && stored > 1) return stored;
+        const parsed = extractAnamorphicFactor(lensName || '');
+        return parsed;
+      })();
       if ((currentShotCameraSettings?.isAnamorphic) && (!af || af <= 1)) af = 2;
       const h = calculateHorizontalFOV(focal, sensor.width * (af || 1));
       const v = calculateVerticalFOV(focal, sensor.height);
@@ -381,7 +430,12 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
           if (extracted && extracted > 0) focal = extracted;
         }
         if (!focal || focal <= 0) return t('common.notAvailable');
-        let af = extractAnamorphicFactor(lensName || '');
+        let af = (() => {
+          const stored = parseFloat(String(setup?.anamorphicFactor || ''));
+          if (!isNaN(stored) && stored > 1) return stored;
+          const parsed = extractAnamorphicFactor(lensName || '');
+          return parsed;
+        })();
         if ((setup?.isAnamorphic) && (!af || af <= 1)) af = 2;
         const h = calculateHorizontalFOV(focal, sensor.width * (af || 1));
         const v = calculateVerticalFOV(focal, sensor.height);
@@ -476,21 +530,22 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                 codec: '',
                 colorSpace: '',
                 whiteBalance: '',
-                framerate: '',
+                framerate: '25 fps',
                 shutterAngle: '180°',
                 imageStabilization: 'Aus',
                 lensManufacturer: '',
                 lens: '',
                 focalLength: '',
                 aperture: '',
-                focusDistance: '',
+                focusDistance: '3',
                 hyperfocalDistance: '',
                 isAnamorphic: false,
-                ndFilter: '',
+                anamorphicFactor: '',
+                ndFilter: 'Kein',
                 filters: [],
                 filter: ''
                 ,
-                lensStabilization: ''
+                lensStabilization: 'Aus'
               },
               cameraMovement: {
                 movementType: '',
@@ -1195,31 +1250,45 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
       // Extrahiere automatisch die Brennweite aus dem Objektiv-Namen über zentrale Util
       const autoFocalLength = extractFocalLength(fullLensName || '') || null;
       
-      const updatedShot = (selectedSetupIndex === 0)
-        ? {
-            ...editedShot,
-            cameraSettings: {
-              ...editedShot.cameraSettings,
-              lens: fullLensName,
-              focalLength: editedShot.cameraSettings.focalLength || String(autoFocalLength || '')
-            }
-          }
-        : {
-            ...editedShot,
-            additionalCameraSetups: (() => {
-              const arr = Array.isArray(editedShot.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
-              const idx = selectedSetupIndex - 1;
-              const setup = { ...(arr[idx] || { cameraSettings: {}, cameraMovement: {} }) };
-              const existingFL = (setup.cameraSettings || {}).focalLength;
-              setup.cameraSettings = {
-                ...(setup.cameraSettings || {}),
-                lens: fullLensName,
-                focalLength: existingFL || String(autoFocalLength || '')
-              };
-              arr[idx] = setup;
-              return arr;
-            })()
-          };
+      const autoAnamorphicFactor = (() => {
+        const af = extractAnamorphicFactor(fullLensName);
+        if (af && af > 1) return String(af);
+        if (isAnamorphicEnabled) {
+          const def = getDefaultAnamorphicFactor(selectedLensManufacturer, lens);
+          if (def && def > 1) return String(def);
+          return '2';
+        }
+        return '';
+      })();
+
+const updatedShot = (selectedSetupIndex === 0)
+  ? {
+      ...editedShot,
+      cameraSettings: {
+        ...editedShot.cameraSettings,
+        lens: fullLensName,
+        focalLength: editedShot.cameraSettings.focalLength || String(autoFocalLength || ''),
+        anamorphicFactor: (function(){ const existing = editedShot.cameraSettings.anamorphicFactor; return (existing && existing !== '1' && existing !== 1) ? existing : autoAnamorphicFactor; })()
+      }
+    }
+  : {
+      ...editedShot,
+      additionalCameraSetups: (() => {
+        const arr = Array.isArray(editedShot.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
+        const idx = selectedSetupIndex - 1;
+        const setup = { ...(arr[idx] || { cameraSettings: {}, cameraMovement: {} }) };
+        const existingFL = (setup.cameraSettings || {}).focalLength;
+        const existingAF = (setup.cameraSettings || {}).anamorphicFactor;
+        setup.cameraSettings = {
+          ...(setup.cameraSettings || {}),
+          lens: fullLensName,
+          focalLength: existingFL || String(autoFocalLength || ''),
+          anamorphicFactor: (existingAF && existingAF !== '1' && existingAF !== 1) ? existingAF : autoAnamorphicFactor
+        };
+        arr[idx] = setup;
+        return arr;
+      })()
+    };
       
       setEditedShot(updatedShot);
       autoSaveShotToFile(id, updatedShot);
@@ -1502,19 +1571,20 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
         colorSpace: '',
         whiteBalance: '',
         manualWhiteBalance: '',
-        framerate: '',
+        framerate: '25 fps',
         shutterAngle: '180°',
         imageStabilization: 'Aus',
         lensManufacturer: '',
         lens: '',
         focalLength: '',
         aperture: '',
-        focusDistance: '',
+        focusDistance: '3',
         hyperfocalDistance: '',
         isAnamorphic: false,
-        ndFilter: '',
+        ndFilter: 'Kein',
         filters: [],
-        filter: ''
+        filter: '',
+        lensStabilization: 'Aus'
       },
       cameraMovement: {
         movementType: '',
@@ -2339,6 +2409,65 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                 )}
               </div>
             </div>
+
+            <div className="form-row">
+              <div className="form-group" style={{ width: '100%' }}>
+                <label>Clip-Benennung</label>
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                  <div className="form-group">
+                    <label>Kameraindex</label>
+                    <input
+                      type="text"
+                      name="clipCameraIndex"
+                      placeholder="A"
+                      value={currentEditedCameraSettings.clipCameraIndex || ''}
+                      onChange={handleCameraChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Reel-Nummer</label>
+                    <input
+                      type="number"
+                      name="clipReelNumber"
+                      min="1"
+                      step="1"
+                      placeholder="001"
+                      value={currentEditedCameraSettings.clipReelNumber || ''}
+                      onChange={handleCameraChange}
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Clip-Nummer</label>
+                    <input
+                      type="number"
+                      name="clipCounter"
+                      min="1"
+                      step="1"
+                      placeholder="001"
+                      value={currentEditedCameraSettings.clipCounter || ''}
+                      onChange={handleCameraChange}
+                    />
+                  </div>
+                  <div className="form-group" style={{ minWidth: '240px' }}>
+                    <label>Manuelle Clip-ID</label>
+                    <input
+                      type="text"
+                      name="manualClipId"
+                      placeholder="frei"
+                      value={currentEditedCameraSettings.manualClipId || ''}
+                      onChange={handleCameraChange}
+                    />
+                  </div>
+                </div>
+                <small className="helper-text">
+                  Format: [Camera Index][Reel Number]_C[Clip Number], z. B. A001_C001
+                </small>
+                <small className="helper-text">
+                  Manuelle Clip-ID überschreibt das Format oben.
+                </small>
+              </div>
+            </div>
+
             <InlineSensorPreview settings={currentEditedCameraSettings} title={t('section.sensorPreview') || 'Sensorvorschau'} />
           </div>
         )}
@@ -2384,6 +2513,37 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                           : (setup.lens || t('common.notAvailable'))
                       }</span>
                     </div>
+                    {(() => {
+                      const modelName = (setup.lens === 'Manuell')
+                        ? ''
+                        : ((setup.lensManufacturer && setup.lens)
+                            ? setup.lens.replace(new RegExp(`^${setup.lensManufacturer}\\s+`), '')
+                            : (setup.lens || ''));
+                      const meta = getLensMeta(setup.lensManufacturer, modelName);
+                      return meta?.metadataInterface ? (
+                        <div className="info-item">
+                          <label><strong>{t('lens.interface', 'Interface')}</strong>:</label>
+                          <span className="info-value">
+                            <span
+                              style={{
+                                background: (meta.metadataInterface === '/i'
+                                  ? '#cde7ff'
+                                  : meta.metadataInterface === 'LDS-2'
+                                    ? '#fff3cd'
+                                    : meta.metadataInterface === 'LDS'
+                                      ? '#d4edda'
+                                      : '#e2d6ff'),
+                                color: '#222',
+                                borderRadius: 6,
+                                padding: '0 6px',
+                                lineHeight: '18px'
+                              }}
+                              title={`Interface: ${meta.metadataInterface}`}
+                            >{meta.metadataInterface}</span>
+                          </span>
+                        </div>
+                      ) : null;
+                    })()}
                     <div className="info-item">
                       <label><strong>{t('lens.focalLengthZoom')}</strong>:</label>
                       <span className="info-value">{setup.focalLength || t('common.notAvailable')}</span>
@@ -2490,6 +2650,37 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                     : (currentShotCameraSettings.lens || t('common.notAvailable'))
                 }</span>
               </div>
+              {(() => {
+                const lm = currentShotCameraSettings.lensManufacturer;
+                const ln = currentShotCameraSettings.lens;
+                const modelName = (ln === 'Manuell')
+                  ? ''
+                  : ((lm && ln) ? ln.replace(new RegExp(`^${lm}\\s+`), '') : (ln || ''));
+                const meta = getLensMeta(lm, modelName);
+                return meta?.metadataInterface ? (
+                  <div className="info-item">
+                    <label><strong>{t('lens.interface', 'Interface')}</strong>:</label>
+                    <span className="info-value">
+                      <span
+                        style={{
+                          background: (meta.metadataInterface === '/i'
+                            ? '#cde7ff'
+                            : meta.metadataInterface === 'LDS-2'
+                              ? '#fff3cd'
+                              : meta.metadataInterface === 'LDS'
+                                ? '#d4edda'
+                                : '#e2d6ff'),
+                          color: '#222',
+                          borderRadius: 6,
+                          padding: '0 6px',
+                          lineHeight: '18px'
+                        }}
+                        title={`Interface: ${meta.metadataInterface}`}
+                      >{meta.metadataInterface}</span>
+                    </span>
+                  </div>
+                ) : null;
+              })()}
               <div className="info-item">
                 <label><strong>{t('lens.focalLengthZoom')}</strong>:</label>
                 <span className="info-value">{currentShotCameraSettings.focalLength || t('common.notAvailable')}</span>
@@ -2574,6 +2765,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
           )
         ) : (
           <div className="edit-form" style={{ display: isLensSettingsCollapsed ? 'none' : 'block' }}>
+            {/* Eingebetteter FOV‑Rechner (Add Filters + Lens Stabilization zwischen Focus Distance und Result) */}
             <EmbeddedFovCalculator
               selectedManufacturer={selectedManufacturer}
               selectedModel={selectedModel}
@@ -2590,6 +2782,40 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
               compact={true}
               hideCameraSelectors={true}
               plain={true}
+              slotAfterFocus={(
+                <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <div className="form-group">
+                    <label>{t('lens.addFilter')}:</label>
+                    <select 
+                      name="filters"
+                      value={filterToAdd}
+                      onChange={handleFilterSelectChange}
+                    >
+                      <option value="">{t('common.select')}</option>
+                      {getAllFilters().map(f => (
+                        <option key={f} value={f}>{f}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="form-group" style={{ alignSelf: 'flex-end' }}>
+                    <button type="button" className="btn btn-secondary" onClick={handleAddFilter}>
+                      {t('action.add')}
+                    </button>
+                  </div>
+                  {selectedFilters.length > 0 && (
+                    <div className="form-group" style={{ flexBasis: '100%' }}>
+                      <div className="selected-filters">
+                        {selectedFilters.map(f => (
+                          <span key={f} className="filter-chip">
+                            {f}
+                            <button type="button" className="chip-remove" onClick={() => handleRemoveFilter(f)}>×</button>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
             />
 
             {isZoomLens(selectedLensManufacturer, selectedLens) && (
@@ -2632,173 +2858,17 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
               </div>
             )}
 
+
+
+
             {/* Kompletter FOV‑Rechner oben ersetzt die Objektiv‑Eingaben (Hersteller, Linse, Brennweite, Blende, Fokus, Hyperfokal). */}
 
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('lens.manualEntry', 'Manuelle Objektiv‑Eingabe')}</label>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {selectedLensManufacturer !== 'Manuell' && (
-                    <button type="button" className="btn btn-secondary" onClick={() => handleLensManufacturerChange({ target: { value: 'Manuell' } })}>
-                      {t('action.manualManufacturer', 'Hersteller manuell')}
-                    </button>
-                  )}
-                  {selectedLens !== 'Manuell' && (
-                    <button type="button" className="btn btn-secondary" onClick={() => handleLensChange({ target: { value: 'Manuell' } })}>
-                      {t('action.manualLens', 'Linse manuell')}
-                    </button>
-                  )}
-                </div>
 
-                {selectedLensManufacturer === 'Manuell' && (
-                  <>
-                  <input
-                    type="text"
-                    name="manualLensManufacturer"
-                    placeholder={t('lens.manufacturer')}
-                    value={currentEditedCameraSettings.manualLensManufacturer || ''}
-                    onChange={handleCameraChange}
-                    style={{ marginTop: '8px' }}
-                  />
-                  <small className="helper-text">Beispiele: „Canon“, „ARRI“, „Cooke“, „Zeiss“.</small>
-                  </>
-                )}
 
-                {(selectedLens === 'Manuell' || selectedLensManufacturer === 'Manuell') && (
-                  <>
-                  <input
-                    type="text"
-                    name="manualLens"
-                    placeholder={t('lens.lens')}
-                    value={currentEditedCameraSettings.manualLens || ''}
-                    onChange={(e) => {
-                      handleCameraChange(e);
-                      const flNum = extractFocalLength(e.target.value);
-                      if (flNum !== null && !Number.isNaN(flNum)) {
-                        handleCameraChange({ target: { name: 'focalLength', value: String(flNum) } });
-                      }
-                    }}
-                    style={{ marginTop: '8px' }}
-                  />
-                  <small className="helper-text">Beispiele: „24–70mm“, „24 bis 70 mm“, „50mm T1.4“, „100mm Macro“.</small>
-                  </>
-                )}
-              </div>
-            </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>{t('lens.lensStabilization')}:</label>
-              <select 
-                name="lensStabilization" 
-                  value={currentEditedCameraSettings.lensStabilization || ''}
-                  onChange={handleCameraChange}
-                >
-                  <option value="">{t('common.select')}</option>
-                  <option value="Aus">{t('common.off')}</option>
-                  <option value="An">{t('common.on')}</option>
-                  <option value="Manuell">{t('common.manual')}</option>
-                </select>
-                {currentEditedCameraSettings.lensStabilization === 'Manuell' && (
-                  <input 
-                    type="text"
-                    name="manualLensStabilization"
-                    placeholder={t('lens.lensStabilization')}
-                    value={currentEditedCameraSettings.manualLensStabilization || ''}
-                    onChange={handleCameraChange}
-                    style={{ marginTop: '8px' }}
-                  />
-                )}
-              </div>
-            </div>
 
-            {/* Mehrfach-Filter Auswahl (Objektiv) */}
-            <div className="form-row">
-              <div className="form-group">
-                <label>{t('lens.addFilter')}:</label>
-                <select 
-                  name="filters"
-                  value={filterToAdd}
-                  onChange={handleFilterSelectChange}
-                >
-                  <option value="">{t('common.select')}</option>
-                  {getAllFilters().map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-                <button type="button" className="btn btn-secondary" onClick={handleAddFilter}>
-                  {t('action.add')}
-                </button>
-              </div>
-            </div>
-            {/* Farbfilter-Shortcuts: CTO/CTB/Grün-Magenta */}
-            <div className="form-row">
-              <div className="form-group">
-                <label>CTO:</label>
-                <select 
-                  name="cto"
-                  value={ctoToAdd}
-                  onChange={(e) => {
-                    setCtoToAdd(e.target.value);
-                    addFilter(e.target.value);
-                    setCtoToAdd('');
-                  }}
-                >
-                  <option value="">{t('common.select')}</option>
-                  {getFiltersByCategory('cto').map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>CTB:</label>
-                <select 
-                  name="ctb"
-                  value={ctbToAdd}
-                  onChange={(e) => {
-                    setCtbToAdd(e.target.value);
-                    addFilter(e.target.value);
-                    setCtbToAdd('');
-                  }}
-                >
-                  <option value="">{t('common.select')}</option>
-                  {getFiltersByCategory('ctb').map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="form-group">
-                <label>Grün/Magenta:</label>
-                <select 
-                  name="greenMagenta"
-                  value={greenToAdd}
-                  onChange={(e) => {
-                    setGreenToAdd(e.target.value);
-                    addFilter(e.target.value);
-                    setGreenToAdd('');
-                  }}
-                >
-                  <option value="">{t('common.select')}</option>
-                  {getFiltersByCategory('greenMagenta').map(f => (
-                    <option key={f} value={f}>{f}</option>
-                  ))}
-                </select>
-              </div>
-            </div>
-            {selectedFilters.length > 0 && (
-              <div className="form-group">
-                <div className="selected-filters">
-                  {selectedFilters.map(f => (
-                    <span key={f} className="filter-chip">
-                      {f}
-                      <button type="button" className="chip-remove" onClick={() => handleRemoveFilter(f)}>×</button>
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
+
+
           </div>
         )}
       </div>

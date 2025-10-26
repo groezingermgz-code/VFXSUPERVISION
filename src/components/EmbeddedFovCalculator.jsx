@@ -47,6 +47,7 @@ const EmbeddedFovCalculator = ({
   plain = false,
   hideControls = false,
   diagramOnly = false,
+  slotAfterFocus = null,
 }) => {
   const { t } = useLanguage();
   const [projectionType, setProjectionType] = useState('rectilinear');
@@ -73,9 +74,19 @@ const EmbeddedFovCalculator = ({
     const extracted = extractFocalLength(String(value));
     return extracted || 0;
   };
+  const numericFromAny = (value) => {
+    const s = String(value || '');
+    let cleaned = s.replace(',', '.').replace(/[^0-9.]/g, '');
+    const firstDot = cleaned.indexOf('.');
+    if (firstDot !== -1) {
+      cleaned = cleaned.slice(0, firstDot + 1) + cleaned.slice(firstDot + 1).replace(/\./g, '');
+    }
+    const n = parseFloat(cleaned);
+    return !isNaN(n) && isFinite(n) ? n : 0;
+  };
 
   const focal = useMemo(() => numericFrom(settings?.focalLength), [settings?.focalLength]);
-  const ap = useMemo(() => parseFloat(settings?.aperture) || 0, [settings?.aperture]);
+  const ap = useMemo(() => numericFromAny(settings?.aperture), [settings?.aperture]);
   const fd = useMemo(() => parseFloat(settings?.focusDistance) || 0, [settings?.focusDistance]);
 
   const fov = useMemo(() => {
@@ -108,8 +119,10 @@ const EmbeddedFovCalculator = ({
 
   useEffect(() => {
     const full = lensInfo.fullName || '';
-    const af = extractAnamorphicFactor(full);
-    setAnamorphicFactor(af || (isAnamorphicEnabled ? 2 : 1));
+    const afRaw = extractAnamorphicFactor(full);
+    const af = afRaw || (isAnamorphicEnabled ? 2 : 1);
+    setAnamorphicFactor(af);
+    onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(af) } });
   }, [lensInfo.fullName, isAnamorphicEnabled]);
 
   // Stabilisiere Handler-Referenz, um Endlosschleifen bei Effekt-Updates zu vermeiden
@@ -125,6 +138,13 @@ const EmbeddedFovCalculator = ({
     lastHyperfocalRef.current = value;
     onCameraChangeRef.current?.({ target: { name: 'hyperfocalDistance', value } });
   }, [optics?.H]);
+
+  // Standardwert für Fokusdistanz: 3 m, wenn nicht gesetzt
+  useEffect(() => {
+    if (!settings?.focusDistance) {
+      onCameraChangeRef.current?.({ target: { name: 'focusDistance', value: '3' } });
+    }
+  }, [settings?.focusDistance]);
 
   const sanitizeDecimal = (v) => {
     v = (v || '').toString();
@@ -210,10 +230,12 @@ const EmbeddedFovCalculator = ({
                 {lensManufacturers.map(m => (
                   <option key={m} value={m}>{m}</option>
                 ))}
+                <option value="Manuell">{t('common.manual')}</option>
               </select>
             </div>
+
             <div className="form-group">
-              <label>{t('tools.fov.controls.lens', 'Lens')}</label>
+              <label>{t('tools.fov.controls.lens', 'Lens')}{isAnamorphicEnabled ? ` • ×${Number(anamorphicFactor || 1).toFixed(2)}` : ''}</label>
               <select
                 value={selectedLens || ''}
                 onChange={(e) => {
@@ -221,8 +243,10 @@ const EmbeddedFovCalculator = ({
                   const fullName = getLensFullName(selectedLensManufacturer, e.target.value);
                   const fl = extractFocalLength(fullName);
                   if (fl) onCameraChange({ target: { name: 'focalLength', value: String(fl) } });
-                  const af = extractAnamorphicFactor(fullName);
-                  setAnamorphicFactor(af || (isAnamorphicEnabled ? 2 : 1));
+                  const afRaw = extractAnamorphicFactor(fullName);
+                  const af = afRaw || (isAnamorphicEnabled ? 2 : 1);
+                  setAnamorphicFactor(af);
+                  onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(af) } });
                 }}
                 disabled={!selectedLensManufacturer}
               >
@@ -230,15 +254,62 @@ const EmbeddedFovCalculator = ({
                 {lenses.map(l => (
                   <option key={l} value={l}>{l}</option>
                 ))}
+                <option value="Manuell">{t('common.manual')}</option>
               </select>
             </div>
             <div className="form-group">
               <label>{t('tools.fov.controls.anamorph', 'Anamorphic')}</label>
-              <input
-                type="checkbox"
-                checked={!!isAnamorphicEnabled}
-                onChange={onAnamorphicToggle}
-              />
+              <select
+                value={!!isAnamorphicEnabled ? 'yes' : 'no'}
+                onChange={(e) => {
+                  const yes = e.target.value === 'yes';
+                  onAnamorphicToggle?.({ target: { checked: yes } });
+                }}
+              >
+                <option value="no">{t('common.no', 'Nein')}</option>
+                <option value="yes">{t('common.yes', 'Ja')}</option>
+              </select>
+            </div>
+            {!!isAnamorphicEnabled && (
+              <div className="form-group">
+                <label>{t('tools.fov.controls.anamorphFactor', 'Squeeze‑Faktor')}</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="1"
+                  value={String(anamorphicFactor || 1)}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    const next = (!isNaN(v) && v >= 1) ? v : 1;
+                    setAnamorphicFactor(next);
+                    onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(next) } });
+                  }}
+                />
+              </div>
+            )}
+            {/* Squeeze‑Faktor Block wird weiter oben direkt nach der Lens‑Auswahl eingefügt */}
+            <div className="form-group" style={{ minWidth: 220 }}>
+              <label>{t('lens.lensStabilization')}:</label>
+              <select 
+                name="lensStabilization" 
+                value={settings?.lensStabilization || ''}
+                onChange={onCameraChange}
+              >
+                <option value="">{t('common.select')}</option>
+                <option value="Aus">{t('common.off')}</option>
+                <option value="An">{t('common.on')}</option>
+                <option value="Manuell">{t('common.manual')}</option>
+              </select>
+              {settings?.lensStabilization === 'Manuell' && (
+                <input 
+                  type="text"
+                  name="manualLensStabilization"
+                  placeholder={t('lens.lensStabilization')}
+                  value={settings?.manualLensStabilization || ''}
+                  onChange={onCameraChange}
+                  style={{ marginTop: '8px' }}
+                />
+              )}
             </div>
           </div>
 
@@ -313,7 +384,7 @@ const EmbeddedFovCalculator = ({
                 inputMode="decimal"
                 placeholder="e.g., 5"
                 name="focusDistance"
-                value={settings?.focusDistance || ''}
+                value={settings?.focusDistance ?? '3'}
                 onChange={(e) => {
                   const v = sanitizeDecimal(e.target.value);
                   onCameraChange({ target: { name: 'focusDistance', value: e.target.value } });
@@ -329,12 +400,17 @@ const EmbeddedFovCalculator = ({
                 min="0.3"
                 max="100"
                 step="0.1"
-                value={Number(parseFloat(settings?.focusDistance) || 0)}
+                value={Number(parseFloat(settings?.focusDistance ?? 3) || 3)}
                 onChange={(e) => onCameraChange({ target: { name: 'focusDistance', value: e.target.value } })}
               />
-              <div className="value">{(parseFloat(settings?.focusDistance) || 0).toFixed(2)} m</div>
+              <div className="value">{(parseFloat(settings?.focusDistance ?? 3) || 3).toFixed(2)} m</div>
             </div>
           </div>
+          {slotAfterFocus ? (
+            <div className="control-row">
+              {slotAfterFocus}
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -430,6 +506,8 @@ const FovDiagram3D = ({ fov, sensorDims, optics, focusDistance, plain = false })
   const [dragging, setDragging] = useState(false);
   const lastPos = useRef(null);
   const [zoom, setZoom] = useState(0.32);
+  const [panX, setPanX] = useState(0);
+  const [panY, setPanY] = useState(0);
   const [camX, setCamX] = useState(-0.52);
   const [camY, setCamY] = useState(-0.55);
   const [camZ, setCamZ] = useState(0.03);
@@ -489,6 +567,16 @@ const FovDiagram3D = ({ fov, sensorDims, optics, focusDistance, plain = false })
   const project = (p, w, h) => {
     const cx = w / 2, cy = h / 2;
     const f = w * 0.45 * zoom;
+    if (projection3D === 'isometric') {
+      return [cx + (p[0] * f) + panX, cy - (p[1] * f) + panY];
+    }
+    const z = p[2] + 0.0001;
+    return [cx + (p[0] * f) / z + panX, cy - (p[1] * f) / z + panY];
+  };
+
+  const projectAtZoom = (p, w, h, zScale) => {
+    const cx = w / 2, cy = h / 2;
+    const f = w * 0.45 * zScale;
     if (projection3D === 'isometric') {
       return [cx + (p[0] * f), cy - (p[1] * f)];
     }
@@ -805,6 +893,69 @@ const FovDiagram3D = ({ fov, sensorDims, optics, focusDistance, plain = false })
     return () => mo.disconnect();
   }, []);
 
+  useEffect(() => {
+    const c = canvasRef.current;
+    if (!c || !fov?.h || !fov?.v) return;
+    const w = c.width, h = c.height;
+    const toR = (deg) => (deg || 0) * Math.PI / 180;
+    const hHalfLocal = Math.atan(Math.tan(toR(fov.h / 2)));
+    const vHalfLocal = Math.atan(Math.tan(toR(fov.v / 2)));
+    const rectAt = (z) => {
+      const wP = Math.tan(hHalfLocal) * z;
+      const hP = Math.tan(vHalfLocal) * z;
+      return [
+        [-wP, -hP, z], [wP, -hP, z], [wP, hP, z], [-wP, hP, z],
+      ];
+    };
+    const dNear = 1.0, dFar = 2.2;
+    const near = rectAt(dNear);
+    const far = rectAt(dFar);
+    const apex = [0, 0, 0.2];
+    const bodyZ0 = 0.08, bodyZ1 = 0.18;
+    const bodyHalfW = 0.12, bodyHalfH = 0.09;
+    const bodyNear = [[-bodyHalfW,-bodyHalfH,bodyZ0],[bodyHalfW,-bodyHalfH,bodyZ0],[bodyHalfW,bodyHalfH,bodyZ0],[-bodyHalfW,bodyHalfH,bodyZ0]];
+    const bodyFar = [[-bodyHalfW,-bodyHalfH,bodyZ1],[bodyHalfW,-bodyHalfH,bodyZ1],[bodyHalfW,bodyHalfH,bodyZ1],[-bodyHalfW,bodyHalfH,bodyZ1]];
+    const lensZ = bodyZ1 - 0.01, lensHalfW = 0.08, lensHalfH = 0.06;
+    const lensFace = [[-lensHalfW,-lensHalfH,lensZ],[lensHalfW,-lensHalfH,lensZ],[lensHalfW,lensHalfH,lensZ],[-lensHalfW,lensHalfH,lensZ]];
+    const offset = [camX, camY, camZ];
+    const add = (p) => [p[0] + offset[0], p[1] + offset[1], p[2] + offset[2]];
+    const points = [];
+    const collect = (arr) => { for (const p of arr) points.push(projectAtZoom(applyRot(add(p)), w, h, zoom)); };
+    collect([apex]);
+    collect(near); collect(far);
+    collect(bodyNear); collect(bodyFar);
+    collect(lensFace);
+    if (sensorDims) {
+      const aspect = (sensorDims.width && sensorDims.height) ? (sensorDims.width / sensorDims.height) : 1;
+      const innerW = bodyHalfW * 0.85;
+      const innerH = bodyHalfH * 0.85;
+      let hS = innerH; let wS = hS * aspect;
+      if (wS > innerW) { const scale = innerW / wS; wS = innerW; hS = hS * scale; }
+      const sensorRect = [[-wS,-hS,0.15],[wS,-hS,0.15],[wS,hS,0.15],[-wS,hS,0.15]];
+      collect(sensorRect);
+    }
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+    for (const [px, py] of points) { if (px < minX) minX = px; if (py < minY) minY = py; if (px > maxX) maxX = px; if (py > maxY) maxY = py; }
+    const pad = 24;
+    const curW = Math.max(1, maxX - minX);
+    const curH = Math.max(1, maxY - minY);
+    const fitScaleW = (w - pad) / curW;
+    const fitScaleH = (h - pad) / curH;
+    const fitScale = Math.min(fitScaleW, fitScaleH) * 0.95;
+    const targetZoom = Math.max(0.15, Math.min(1, zoom * fitScale));
+    if (Math.abs(targetZoom - zoom) > 0.02) setZoom(targetZoom);
+
+    // Auto-center with slight left bias so all elements are visible
+    const boxCX = (minX + maxX) / 2;
+    const boxCY = (minY + maxY) / 2;
+    const desiredCX = (w / 2) - 24; // shift a bit to the left
+    const desiredCY = h / 2;
+    const newPanX = desiredCX - boxCX;
+    const newPanY = desiredCY - boxCY;
+    if (Math.abs(newPanX - panX) > 2) setPanX(newPanX);
+    if (Math.abs(newPanY - panY) > 2) setPanY(newPanY);
+  }, [fov, sensorDims, projection3D, yaw, pitch, camX, camY, camZ, panX, panY]);
+
   const toDeg = (rad) => (rad || 0) * 180 / Math.PI;
 
   const onMouseDown = (e) => { setDragging(true); lastPos.current = { x: e.clientX, y: e.clientY }; };
@@ -834,14 +985,16 @@ const FovDiagram3D = ({ fov, sensorDims, optics, focusDistance, plain = false })
         )}
         {!plain && (
           <button type="button" className="btn btn-secondary" onClick={() => {
-            setYaw(defaults.current.yaw);
-            setPitch(defaults.current.pitch);
-            setZoom(defaults.current.zoom);
-            setCamX(defaults.current.camX);
-            setCamY(defaults.current.camY);
-            setCamZ(defaults.current.camZ);
-            setProjection3D(defaults.current.projection3D);
-          }}>{t('tools.fov.threeD.reset', 'Reset')}</button>
+          setYaw(defaults.current.yaw);
+          setPitch(defaults.current.pitch);
+          setZoom(defaults.current.zoom);
+          setPanX(0);
+          setPanY(0);
+          setCamX(defaults.current.camX);
+          setCamY(defaults.current.camY);
+          setCamZ(defaults.current.camZ);
+          setProjection3D(defaults.current.projection3D);
+        }}>{t('tools.fov.threeD.reset', 'Reset')}</button>
         )}
       </div>
       <canvas
@@ -915,7 +1068,10 @@ const FovDiagram = ({ fov, sensorDims, plain = false }) => {
       {sensorDims?.width && sensorDims?.height && (
         <g>
           {label(`${sensorDims.width.toFixed(1)} mm`, centerX - 24, sensorTop - 8, 'var(--text-color)')}
-          {label(`${sensorDims.height.toFixed(1)} mm`, sensorRight + 6, centerY + 4, 'var(--text-color)')}
+          <g>
+            <path d={`M ${sensorLeft - 14} ${centerY} L ${sensorLeft - 6} ${centerY - 6} M ${sensorLeft - 14} ${centerY} L ${sensorLeft - 6} ${centerY + 6}`} stroke="var(--border-color)" strokeWidth="2" fill="none" />
+            <text x={sensorLeft - 6} y={centerY + 4} fill="var(--text-color)" fontSize="12" fontFamily="sans-serif" textAnchor="end">{`${sensorDims.height.toFixed(1)} mm`}</text>
+          </g>
         </g>
       )}
     </svg>

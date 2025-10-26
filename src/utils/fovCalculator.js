@@ -208,14 +208,15 @@ export const calculateDiagonalFOV = (focalLength, sensorWidth, sensorHeight, pro
  */
 export const extractAnamorphicFactor = (lensName) => {
   if (!lensName || typeof lensName !== 'string') return 1;
-  // Suche nach Mustern wie "2x", "1.5x", "1.33x" überall im Namen
-  const match = lensName.match(/(^|\s)(\d+(?:\.\d+)?)x(\b|\s)/i);
-  if (match && match[2]) {
-    const n = parseFloat(match[2]);
+  // Erlaube Muster überall im Namen, inklusive Klammern und "×" Symbol; akzeptiere Komma als Dezimaltrenner
+  const s = lensName.replace(/,/g, '.');
+  const match = s.match(/(\d+(?:\.\d+)?)\s*[x×]/i);
+  if (match && match[1]) {
+    const n = parseFloat(match[1]);
     if (!isNaN(n) && n > 1) return n;
   }
   // Spezielle Kennung A2S → 2x
-  if (/\bA2S\b/i.test(lensName)) return 2;
+  if (/\bA2S\b/i.test(s)) return 2;
   return 1;
 };
 
