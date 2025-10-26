@@ -1,5 +1,13 @@
 # Changelog
 
+## v0.4.3 — 2025-10-26
+
+- Login- und SplashLogin-Oberflächen auf Englisch vereinheitlicht.
+- Auth-Fehlermeldungen vereinheitlicht (Frontend & Server): `src/contexts/AuthContext.jsx`, `server/auth.js`.
+- PWA-Install-Button-Texte auf Englisch (`src/components/InstallPWA.jsx`).
+- Kleinere Textanpassungen: `src/pages/Settings.jsx`, `src/pages/SensorPreview.jsx`, `src/pages/ColorWorkflows.jsx`.
+- Commit: `93bf4d9` (Tag: `v0.4.3`).
+
 ## v0.4.1-auth — 2025-10-21
 
 - Dummy-Login-Buttons entfernt aus `src/pages/Login.jsx`.
@@ -19,5 +27,5 @@
 
 ## Hinweise
 
-- Beide Tags wurden gepusht: `v0.4.0-ui`, `v0.4.1-auth`.
+- Tags: `v0.4.0-ui`, `v0.4.1-auth`, `v0.4.3`.
 - Für Releases auf GitHub können diese Einträge als Release Notes verwendet werden.
