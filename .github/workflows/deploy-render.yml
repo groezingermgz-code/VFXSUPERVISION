@@ -11,9 +11,55 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - name: Print VITE_API_URL (if available)
+        run: |
+          echo "VITE_API_URL=${VITE_API_URL:-}"
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
       - name: Trigger deployment on Render
         uses: johnbeynon/render-deploy-action@v0.0.8
         with:
           service-id: ${{ secrets.RENDER_SERVICE_ID }}
           api-key: ${{ secrets.RENDER_API_KEY }}
           # wait-for-success removed: not supported by v0.0.8
+
+      - name: Smoke test backend health (non-blocking)
+        run: |
+          set -euo pipefail
+          if [ -z "${VITE_API_URL:-}" ]; then
+            echo "VITE_API_URL is empty; skipping health smoke tests.";
+            exit 0;
+          fi
+
+          BASE=$(printf "%s" "$VITE_API_URL" | sed 's#/*$##')
+          if echo "$BASE" | grep -Eq '/api$'; then
+            HEALTH_URL="$BASE/health"
+            AUTH_HEALTH_URL="$BASE/auth/health"
+          else
+            HEALTH_URL="$BASE/api/health"
+            AUTH_HEALTH_URL="$BASE/api/auth/health"
+          fi
+
+          echo "Resolved HEALTH_URL=$HEALTH_URL"
+          echo "Resolved AUTH_HEALTH_URL=$AUTH_HEALTH_URL"
+
+          echo "::group::GET $HEALTH_URL"
+          RESP1=$(curl -sS -w "\nHTTP_STATUS=%{http_code}\n" --connect-timeout 5 --max-time 20 "$HEALTH_URL" || true)
+          echo "$RESP1" | head -n 100
+          STATUS1=$(printf "%s" "$RESP1" | sed -n 's/^HTTP_STATUS=//p')
+          if [ "${STATUS1:-000}" != "200" ]; then
+            echo "::warning::Health endpoint non-200 (status=${STATUS1:-unknown}).";
+          fi
+          echo "::endgroup::"
+
+          echo "::group::GET $AUTH_HEALTH_URL"
+          RESP2=$(curl -sS -w "\nHTTP_STATUS=%{http_code}\n" --connect-timeout 5 --max-time 20 "$AUTH_HEALTH_URL" || true)
+          echo "$RESP2" | head -n 100
+          STATUS2=$(printf "%s" "$RESP2" | sed -n 's/^HTTP_STATUS=//p')
+          if [ "${STATUS2:-000}" != "200" ]; then
+            echo "::warning::Auth health endpoint non-200 (status=${STATUS2:-unknown}).";
+          fi
+          echo "::endgroup::"
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
