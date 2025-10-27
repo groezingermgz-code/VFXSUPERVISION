@@ -38,6 +38,30 @@ export const extractFocalLength = (lensName) => {
 };
 
 /**
+ * Extrahiert den T‑Stop (z. B. „T2.8“ oder Bereich „T2.95‑3.9“) aus einem Objektivnamen.
+ * Gibt die erste gefundene T‑Zahl (als Number) zurück oder null, wenn keiner gefunden wurde.
+ * @param {string} lensName
+ * @returns {number|null}
+ */
+export const extractTStop = (lensName) => {
+  if (!lensName || typeof lensName !== 'string') return null;
+  const s = lensName.replace(/,/g, '.');
+  // Bereich: „T2.95-3.9“ → nehme ersten Wert
+  const rangeMatch = s.match(/T\s*(\d+(?:\.\d+)?)[\s\-–—]+(\d+(?:\.\d+)?)/i);
+  if (rangeMatch && rangeMatch[1]) {
+    const n = parseFloat(rangeMatch[1]);
+    return !isNaN(n) && isFinite(n) ? n : null;
+  }
+  // Einzelwert: „T4“, „T2.1“
+  const singleMatch = s.match(/T\s*(\d+(?:\.\d+)?)(?![\s\-–—]\d)/i);
+  if (singleMatch && singleMatch[1]) {
+    const n = parseFloat(singleMatch[1]);
+    return !isNaN(n) && isFinite(n) ? n : null;
+  }
+  return null;
+};
+
+/**
  * Parst die Sensorgröße aus dem Format "Breite x Höhe mm"
  * @param {string} sensorSize - Sensorgröße im Format "36.0 x 24.0 mm"
  * @returns {object|null} - {width: number, height: number} oder null

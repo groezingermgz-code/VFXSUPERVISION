@@ -16,18 +16,19 @@ import {
   getLensMeta,
   isZoomLens,
 } from '../data/lensDatabase';
-import {
-  parseSensorSize,
-  calculateHorizontalFOV,
-  calculateVerticalFOV,
-  calculateDiagonalFOV,
-  calculateCropFactor,
-  calculateCircleOfConfusion,
-  calculateHyperfocal,
-  calculateDOF,
-  extractAnamorphicFactor,
-  extractFocalLength,
-} from '../utils/fovCalculator';
+  import {
+    parseSensorSize,
+    calculateHorizontalFOV,
+    calculateVerticalFOV,
+    calculateDiagonalFOV,
+    calculateCropFactor,
+    calculateCircleOfConfusion,
+    calculateHyperfocal,
+    calculateDOF,
+    extractAnamorphicFactor,
+    extractFocalLength,
+    extractTStop,
+  } from '../utils/fovCalculator';
 
 const EmbeddedFovCalculator = ({
   selectedManufacturer,
@@ -48,6 +49,7 @@ const EmbeddedFovCalculator = ({
   hideControls = false,
   diagramOnly = false,
   slotAfterFocus = null,
+  hideManualFocalInput = false,
 }) => {
   const { t } = useLanguage();
   const [projectionType, setProjectionType] = useState('rectilinear');
@@ -124,6 +126,17 @@ const EmbeddedFovCalculator = ({
     setAnamorphicFactor(af);
     onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(af) } });
   }, [lensInfo.fullName, isAnamorphicEnabled]);
+
+  // Wenn im Objektivnamen ein T‑Stop vorhanden ist, Blendenwert automatisch übernehmen (ohne "T"‑Präfix)
+  useEffect(() => {
+    const full = lensInfo.fullName || '';
+    const tStop = extractTStop(full);
+    if (tStop && tStop > 0) {
+      const val = String(tStop);
+      // Schreibe numerischen Wert (z. B. "2.8") nach settings.aperture
+      onCameraChangeRef.current?.({ target: { name: 'aperture', value: val } });
+    }
+  }, [lensInfo.fullName]);
 
   // Stabilisiere Handler-Referenz, um Endlosschleifen bei Effekt-Updates zu vermeiden
   const onCameraChangeRef = useRef(onCameraChange);
@@ -296,29 +309,7 @@ const EmbeddedFovCalculator = ({
               </div>
             )}
             {/* Squeeze‑Faktor Block wird weiter oben direkt nach der Lens‑Auswahl eingefügt */}
-            <div className="form-group" style={{ minWidth: 220 }}>
-              <label>{t('lens.lensStabilization')}:</label>
-              <select 
-                name="lensStabilization" 
-                value={settings?.lensStabilization || ''}
-                onChange={onCameraChange}
-              >
-                <option value="">{t('common.select')}</option>
-                <option value="Aus">{t('common.off')}</option>
-                <option value="An">{t('common.on')}</option>
-                <option value="Manuell">{t('common.manual')}</option>
-              </select>
-              {settings?.lensStabilization === 'Manuell' && (
-                <input 
-                  type="text"
-                  name="manualLensStabilization"
-                  placeholder={t('lens.lensStabilization')}
-                  value={settings?.manualLensStabilization || ''}
-                  onChange={onCameraChange}
-                  style={{ marginTop: '8px' }}
-                />
-              )}
-            </div>
+            {/* Lens Stabilization wurde unter Focus Distance verschoben */}
           </div>
 
           <div className="control-row">
@@ -360,18 +351,44 @@ const EmbeddedFovCalculator = ({
                 }}
                 style={{ color: (!settings?.focalLength ? 'red' : undefined) }}
               />
+              {isZoomLens(selectedLensManufacturer, selectedLens) && !hideManualFocalInput && (
+                <div style={{ marginTop: 8 }}>
+                  <label>{t('tools.fov.controls.manualFocalLength', 'Brennweite (manuell)')}</label>
+                  <input
+                    type="number"
+                    name="focalLength"
+                    step="0.1"
+                    placeholder={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      if (!m || m.minMm == null || m.maxMm == null) return t('lens.focalLengthPlaceholderShort', 'z. B. 35');
+                      return `${m.minMm}-${m.maxMm}mm`;
+                    })()}
+                    min={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      return (m && m.minMm != null) ? m.minMm : undefined;
+                    })()}
+                    max={(function(){
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      return (m && m.maxMm != null) ? m.maxMm : undefined;
+                    })()}
+                    value={settings?.focalLength || ''}
+                    onChange={(e) => {
+                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
+                      let v = sanitizeDecimal(e.target.value);
+                      if (m && m.minMm != null && m.maxMm != null) {
+                        const num = parseFloat(v);
+                        if (!isNaN(num)) {
+                          const clamped = Math.max(m.minMm, Math.min(m.maxMm, num));
+                          v = String(clamped);
+                        }
+                      }
+                      onCameraChange({ target: { name: 'focalLength', value: v } });
+                    }}
+                    style={{ marginTop: '4px' }}
+                  />
+                </div>
+              )}
             </div>
-            <div className="form-group">
-              <label>{t('tools.fov.controls.projection', 'Projection')}</label>
-              <select value={projectionType} onChange={(e) => setProjectionType(e.target.value)}>
-                <option value="rectilinear">{t('tools.fov.controls.projectionOptions.rectilinear', 'Rectilinear')}</option>
-                <option value="fisheye-equidistant">{t('tools.fov.controls.projectionOptions.fisheyeEquidistant', 'Fisheye (equidistant)')}</option>
-                <option value="fisheye-stereographic">{t('tools.fov.controls.projectionOptions.fisheyeStereographic', 'Fisheye (stereographic)')}</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="control-row">
             <div className="form-group">
               <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')}</label>
               <input
@@ -379,7 +396,7 @@ const EmbeddedFovCalculator = ({
                 inputMode="decimal"
                 placeholder="e.g., 2.8"
                 name="aperture"
-                value={settings?.aperture || ''}
+                value={sanitizeDecimal(settings?.aperture || '')}
                 onChange={(e) => {
                   const v = sanitizeDecimal(e.target.value);
                   onCameraChange({ target: { name: 'aperture', value: v } });
@@ -401,7 +418,11 @@ const EmbeddedFovCalculator = ({
                 }}
               />
             </div>
+            {/* Projection wurde unter Focus Distance verschoben */}
           </div>
+
+          
+          {/* Manuelle Focus Distance (Slider) oberhalb Projection & Lens Stabilization */}
           <div className="control-row">
             <div className="form-group" style={{flex: 1}}>
               <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.focusDistance', 'Focus Distance')}</label>
@@ -414,6 +435,40 @@ const EmbeddedFovCalculator = ({
                 onChange={(e) => onCameraChange({ target: { name: 'focusDistance', value: e.target.value } })}
               />
               <div className="value">{(parseFloat(settings?.focusDistance ?? 3) || 3).toFixed(2)} m</div>
+            </div>
+          </div>
+          {/* Zusätzliche Steuerungen unterhalb Focus Distance: Projection & Lens Stabilization */}
+          <div className="control-row">
+            <div className="form-group">
+              <label>{t('tools.fov.controls.projection', 'Projection')}</label>
+              <select value={projectionType} onChange={(e) => setProjectionType(e.target.value)}>
+                <option value="rectilinear">{t('tools.fov.controls.projectionOptions.rectilinear', 'Rectilinear')}</option>
+                <option value="fisheye-equidistant">{t('tools.fov.controls.projectionOptions.fisheyeEquidistant', 'Fisheye (equidistant)')}</option>
+                <option value="fisheye-stereographic">{t('tools.fov.controls.projectionOptions.fisheyeStereographic', 'Fisheye (stereographic)')}</option>
+              </select>
+            </div>
+            <div className="form-group" style={{ minWidth: 220 }}>
+              <label>{t('lens.lensStabilization')}:</label>
+              <select 
+                name="lensStabilization" 
+                value={settings?.lensStabilization || 'Aus'}
+                onChange={onCameraChange}
+              >
+                <option value="">{t('common.select')}</option>
+                <option value="Aus">{t('common.off')}</option>
+                <option value="An">{t('common.on')}</option>
+                <option value="Manuell">{t('common.manual')}</option>
+              </select>
+              {settings?.lensStabilization === 'Manuell' && (
+                <input 
+                  type="text"
+                  name="manualLensStabilization"
+                  placeholder={t('lens.lensStabilization')}
+                  value={settings?.manualLensStabilization || ''}
+                  onChange={onCameraChange}
+                  style={{ marginTop: '8px' }}
+                />
+              )}
             </div>
           </div>
           {slotAfterFocus ? (
