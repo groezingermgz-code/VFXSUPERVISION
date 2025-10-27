@@ -162,4 +162,10 @@ app.get('*', (req, res) => {
 const PORT = parseInt(process.env.PORT || '5174', 10);
 app.listen(PORT, () => {
   console.log(`Auth server running on http://localhost:${PORT}`);
+  const isRender = !!process.env.RENDER;
+  const serviceName = process.env.RENDER_SERVICE_NAME || null;
+  const serviceId = process.env.RENDER_SERVICE_ID || null;
+  const instanceId = process.env.RENDER_INSTANCE_ID || null;
+  const externalUrl = process.env.RENDER_EXTERNAL_URL || null;
+  console.log('[platform] Render:', isRender ? 'yes' : 'no', '| serviceName:', serviceName, '| serviceId:', serviceId, '| instanceId:', instanceId, '| externalUrl:', externalUrl);
 });
