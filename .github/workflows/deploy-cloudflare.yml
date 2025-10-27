@@ -47,21 +47,42 @@ jobs:
       - name: Preflight API health check
         run: |
           set -euo pipefail
-          if [ -z "$VITE_API_URL" ]; then
-            echo "VITE_API_URL is empty. Set repository variable VITE_API_URL to your backend /api base.";
+          if [ -z "${VITE_API_URL:-}" ]; then
+            echo "VITE_API_URL is empty. Set repository variable VITE_API_URL to your backend base (preferably ending with /api).";
             exit 1;
           fi
-          echo "::group::Ping $VITE_API_URL/health (up to 5 attempts)"
+
+          BASE=$(printf "%s" "$VITE_API_URL" | sed 's#/*$##')
+          # Determine health URL whether BASE includes /api or not
+          if echo "$BASE" | grep -Eq '/api$'; then
+            HEALTH_URL="$BASE/health"
+          else
+            HEALTH_URL="$BASE/api/health"
+          fi
+
+          echo "::group::Backend warm-up"
+          # Initial warm-up to nudge Render free instances
+          curl -sS -o /dev/null --max-time 10 "$BASE" || true
+          echo "Warm-up hit: $BASE"
+          echo "::endgroup::"
+
+          echo "::group::Ping $HEALTH_URL (up to 12 attempts)"
           STATUS="000"
-          for i in $(seq 1 5); do
-            STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --max-time 15 "$VITE_API_URL/health" || echo "000")
+          for i in $(seq 1 12); do
+            STATUS=$(curl -sS -o /dev/null -w "%{http_code}" --connect-timeout 5 --max-time 20 "$HEALTH_URL" || echo "000")
             echo "Attempt $i: HTTP $STATUS"
             if [ "$STATUS" = "200" ]; then break; fi
-            sleep 5
+            # Render free plan may need more time to spin up; wait progressively
+            sleep 7
           done
           if [ "$STATUS" != "200" ]; then
-            echo "Backend health check failed after retries. Verify that the backend is accessible and VITE_API_URL is correct.";
-            exit 1;
+            echo "Health check failed (status=$STATUS). Inspecting response headers/body preview:"
+            echo "----- curl -I $HEALTH_URL -----"
+            curl -sS -I "$HEALTH_URL" || true
+            echo "----- curl body preview -----"
+            curl -sS "$HEALTH_URL" | head -n 50 || true
+            echo "Hint: Ensure VITE_API_URL points to your Render service base (e.g., https://vfx-supervision-api.onrender.com/api), and the service is reachable."
+            exit 1
           fi
           echo "::endgroup::"
         env:
