@@ -2310,7 +2310,6 @@ const updatedShot = (selectedSetupIndex === 0)
                   value={currentEditedCameraSettings.framerate || '25 fps'} 
                   onChange={handleCameraChange}
                   disabled={!selectedModel || !currentEditedCameraSettings.codec}
-                  style={{ color: (!currentEditedCameraSettings.framerate ? 'red' : undefined) }}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
