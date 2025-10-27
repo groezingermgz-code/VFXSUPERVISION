@@ -41,13 +41,18 @@ const translations = {
       emptyRead: "Keine Takes vorhanden.",
       cameraLabelPrefix: "Kamera",
       clipIdLabel: "Clip-ID",
-      noteLabel: "Note",
-      notePlaceholder: "Kurze Note zum Take",
-      changesLabel: "Changes",
-      changesPlaceholder: "Changes, Abweichungen, Hinweise …",
-      quickRatingAria: "Quick rating",
-      ratingTitlePrefix: "Rating",
-      removeTitle: "Take entfernen"
+      noteLabel: "Notiz",
+      notePlaceholder: "Kurze Notiz zum Take",
+      changesLabel: "Änderungen",
+      changesPlaceholder: "Änderungen, Abweichungen, Hinweise …",
+      quickRatingAria: "Schnellbewertung",
+      ratingTitlePrefix: "Bewertung",
+      removeTitle: "Take entfernen",
+      overridesTitle: "Overrides",
+      overridesEmpty: "Keine Overrides hinzugefügt.",
+      removeOverrideTitle: "Override entfernen",
+      addOverrideLabel: "Override hinzufügen",
+      overrideTypeUnknown: "Override"
     },
     feedback: {
       title: "Feedback",
@@ -155,6 +160,9 @@ const translations = {
       select: "Auswählen...",
       description: "Beschreibung",
       notes: "Notizen",
+      size: "Größe",
+      formats: "Formate",
+      date: "Datum",
       of: "von",
       on: "An",
       off: "Aus",
@@ -180,17 +188,40 @@ const translations = {
       uploadImage: "Bild hochladen"
     },
     clip: {
-      namingLabel: "Clip Naming",
-      cameraIndexLabel: "Camera Index",
+      namingLabel: "Clip‑Benennung",
+      cameraIndexLabel: "Kamera‑Index",
       cameraIndexPlaceholder: "A",
-      reelNumberLabel: "Reel Number",
+      reelNumberLabel: "Reel‑Nummer",
       reelNumberPlaceholder: "001",
-      clipNumberLabel: "Clip Number",
+      clipNumberLabel: "Clip‑Nummer",
       clipNumberPlaceholder: "001",
-      manualIdLabel: "Manual Clip ID",
-      manualIdPlaceholder: "Custom",
-      namingFormatHint: "Format: [Camera Index][Reel Number]_C[Clip Number], e.g., A001_C001",
-      manualOverridesHint: "Manual Clip ID overrides the format above."
+      manualIdLabel: "Manuelle Clip‑ID",
+      manualIdPlaceholder: "Eigene",
+      namingFormatHint:
+        "Format: [Kamera‑Index][Reel‑Nummer]_C[Clip‑Nummer], z. B. A001_C001",
+      manualOverridesHint: "Manuelle Clip‑ID überschreibt das obige Format."
+    },
+    verifyEmail: {
+      title: "E‑Mail bestätigen",
+      pending: "Bitte warten … wir bestätigen deine E‑Mail.",
+      successMessage: "Verifizierung erfolgreich. Du wirst gleich weitergeleitet …",
+      errorMessage:
+        "Verifizierung fehlgeschlagen. Link eventuell ungültig oder bereits verwendet.",
+      helpLine1Prefix: "Du kannst dich ",
+      loginHere: "hier anmelden",
+      helpLine1Suffix: " und die Registrierung erneut starten.",
+      helpLine2Prefix:
+        " Wenn du eine Einladung hast, öffne bitte den Link oder gehe zu ",
+      acceptInvite: "Einladung bestätigen",
+      helpLine2Suffix: ".",
+    },
+    pdf: {
+      title: {
+        vfxDetails: "VFX-Details",
+        measurements: "Messungen",
+        threeDScans: "3D-Scans",
+        referencesByCategory: "Referenzen (Anzahl je Kategorie)",
+      },
     },
     shot: {
       listTitle: "Shot Liste",
@@ -248,6 +279,22 @@ const translations = {
       noUsersYet: "Noch keine Nutzer angelegt",
       publicDataWarning:
         "Hinweis: Dies ist eine öffentlich zugängliche Demo. Bitte keine wichtigen oder geschützten Projektdaten hochladen.",
+    },
+    override: {
+      type: {
+        lens: "Optik",
+        focalLength: "Brennweite",
+        aperture: "Blende",
+        iso: "ISO",
+        format: "Format",
+        codec: "Codec",
+        framerate: "Framerate",
+        shutter: "Shutter‑Winkel",
+        whiteBalance: "Weißabgleich",
+        colorSpace: "Farbraum",
+        notes: "Notizen",
+        other: "Sonstiges",
+      },
     },
     users: {
       title: "Benutzerverzeichnis",
@@ -434,6 +481,34 @@ const translations = {
         distortionGrids: "Distortion Grids gefilmt",
         measurementsTaken: "Maße genommen",
         threeDScans: "3D Scans erstellt",
+      },
+      flags: {
+        trackingMarkers: "Tracking-Marker",
+        greenscreen: "Greenscreen",
+        lightingReference: "Beleuchtungsreferenz",
+        scaleReference: "Größenreferenz",
+        cleanplates: "Cleanplates",
+        hdris: "HDRIs",
+        setReferences: "Set-Referenzen",
+        chromeBall: "Chrome Ball",
+        grayBall: "Gray Ball",
+        colorChecker: "Color Checker",
+        distortionGrids: "Distortion Grids",
+        measurementsTaken: "Messungen vorgenommen",
+        threeDScans: "3D-Scans",
+      },
+      details: {
+        distortionGrids: "Distortion Grids",
+        hdris: "HDRIs",
+        setReferences: "Set-Referenzen",
+        cleanplates: "Cleanplates",
+        chromeBall: "Chrome Ball",
+        grayBall: "Gray Ball",
+        colorChecker: "Color Checker",
+        pattern: "Muster",
+        distances: "Distanzen",
+        coverage: "Coverage",
+        squeeze: "Squeeze",
       },
       distortionNotesPlaceholder: "Zusätzliche Hinweise",
       measurementsNotesPlaceholder: "Zusätzliche Messhinweise",
@@ -737,6 +812,9 @@ const translations = {
       select: "Select...",
       description: "Description",
       notes: "Notes",
+      size: "Size",
+      formats: "Formats",
+      date: "Date",
       of: "of",
       on: "On",
       off: "Off",
@@ -773,6 +851,20 @@ const translations = {
       manualIdPlaceholder: "Custom",
       namingFormatHint: "Format: [Camera Index][Reel Number]_C[Clip Number], e.g., A001_C001",
       manualOverridesHint: "Manual Clip ID overrides the format above."
+    },
+    verifyEmail: {
+      title: "Verify Email",
+      pending: "Please wait… we are verifying your email.",
+      successMessage: "Verification successful. You will be redirected shortly…",
+      errorMessage:
+        "Verification failed. Link may be invalid or already used.",
+      helpLine1Prefix: "You can ",
+      loginHere: "log in here",
+      helpLine1Suffix: " and restart the registration.",
+      helpLine2Prefix:
+        " If you have an invitation, please open the link or go to ",
+      acceptInvite: "Confirm invitation",
+      helpLine2Suffix: ".",
     },
     shot: {
       listTitle: "Shot List",
@@ -868,6 +960,14 @@ const translations = {
       completed: "Completed",
       inProgress: "In Progress",
       pending: "Pending",
+    },
+    pdf: {
+      title: {
+        vfxDetails: "VFX Details",
+        measurements: "Measurements",
+        threeDScans: "3D Scans",
+        referencesByCategory: "References (count per category)",
+      },
     },
     section: {
       cameraSetup: "Camera Setup",
@@ -1016,6 +1116,34 @@ const translations = {
         distortionGrids: "Distortion grids filmed",
         measurementsTaken: "Measurements taken",
         threeDScans: "3D scans created",
+      },
+      flags: {
+        trackingMarkers: "Tracking markers",
+        greenscreen: "Greenscreen",
+        lightingReference: "Lighting reference",
+        scaleReference: "Scale reference",
+        cleanplates: "Cleanplates",
+        hdris: "HDRIs",
+        setReferences: "Set references",
+        chromeBall: "Chrome ball",
+        grayBall: "Gray ball",
+        colorChecker: "ColorChecker",
+        distortionGrids: "Distortion grids",
+        measurementsTaken: "Measurements taken",
+        threeDScans: "3D scans",
+      },
+      details: {
+        distortionGrids: "Distortion Grids",
+        hdris: "HDRIs",
+        setReferences: "Set references",
+        cleanplates: "Cleanplates",
+        chromeBall: "Chrome ball",
+        grayBall: "Gray ball",
+        colorChecker: "ColorChecker",
+        pattern: "Pattern",
+        distances: "Distances",
+        coverage: "Coverage",
+        squeeze: "Squeeze",
       },
       distortionNotesPlaceholder: "Additional notes",
       measurementsNotesPlaceholder: "Additional measurement hints",
@@ -2051,4 +2179,27 @@ export const LanguageProvider = ({ children }) => {
 };
 
 export const useLanguage = () => useContext(LanguageContext);
+// Lightweight translator for non-React modules (utils/services)
+// Resolves dot-path keys from the same translations dictionary using current language from localStorage.
+export const translate = (key, fallback) => {
+  try {
+    const lang = localStorage.getItem("app_language") || "en";
+    const dict = translations[lang] || translations.en;
+    if (!key) return fallback ?? "";
+    const parts = key.split(".");
+    let current = dict;
+    for (const p of parts) {
+      if (current && Object.prototype.hasOwnProperty.call(current, p)) {
+        current = current[p];
+      } else {
+        current = undefined;
+        break;
+      }
+    }
+    if (typeof current === "string") return current;
+    return fallback ?? key;
+  } catch {
+    return fallback ?? key;
+  }
+};
 export default LanguageProvider;

@@ -23,11 +23,11 @@ class CameraBridgeServer(private val ctx: Context) : NanoHTTPD(8080) {
   private var frameExecutor = Executors.newSingleThreadScheduledExecutor()
   private val authToken = "devtoken"
 
-  fun start() {
+  override fun start() {
     start(SOCKET_READ_TIMEOUT, false)
   }
 
-  fun stop() {
+  override fun stop() {
     try { frameExecutor.shutdownNow() } catch (_: Exception) {}
     super.stop()
   }

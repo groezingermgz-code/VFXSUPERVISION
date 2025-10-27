@@ -67,7 +67,7 @@ export const extractTStop = (lensName) => {
  * @returns {object|null} - {width: number, height: number} oder null
  */
 export const parseSensorSize = (sensorSize) => {
-  if (!sensorSize || sensorSize === 'Nicht verfügbar') return null;
+  if (!sensorSize || typeof sensorSize !== 'string') return null;
   
   const match = sensorSize.match(/(\d+\.?\d*)\s*x\s*(\d+\.?\d*)\s*mm/i);
   if (match) {

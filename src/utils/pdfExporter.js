@@ -1,4 +1,5 @@
 import { jsPDF } from 'jspdf';
+import { translate } from '../contexts/LanguageContext';
 
 /**
  * Exportiert einen einzelnen Shot als PDF
@@ -8,14 +9,17 @@ import { jsPDF } from 'jspdf';
  */
 export const exportShotToPDF = (shot, project) => {
   const doc = new jsPDF();
+  const t = (key, fallback) => translate(key, fallback);
+  const NA = t('common.notAvailable', 'Nicht angegeben');
+  const EMPTY_DESC = t('pdf.emptyDescription', 'Keine Beschreibung');
   
   // Titel und Projekt-Informationen
   doc.setFontSize(20);
-  doc.text(`Shot: ${shot.name}`, 20, 20);
+  doc.text(`${t('shot.singular', 'Shot')}: ${shot.name}`, 20, 20);
   
   doc.setFontSize(12);
-  doc.text(`Projekt: ${project.name}`, 20, 30);
-  doc.text(`Datum: ${new Date().toLocaleDateString()}`, 20, 40);
+  doc.text(`${t('dashboard.projectDetails', 'Projekt')}: ${project.name}`, 20, 30);
+  doc.text(`${t('common.date', 'Datum')}: ${new Date().toLocaleDateString()}`, 20, 40);
   
   // Thumbnail rechts oben (falls vorhanden)
   try {
@@ -27,122 +31,122 @@ export const exportShotToPDF = (shot, project) => {
 
   // Shot-Details
   doc.setFontSize(16);
-  doc.text('Shot-Details', 20, 55);
+  doc.text(t('pdf.title.shotDetails', 'Shot-Details'), 20, 55);
   
   doc.setFontSize(10);
   let yPos = 65;
   
   // Allgemeine Shot-Informationen
-  doc.text(`Status: ${shot.status || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-  doc.text(`Beschreibung: ${shot.description || 'Keine Beschreibung'}`, 20, yPos); yPos += 7;
-  doc.text(`Erstellt am: ${shot.dateCreated || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-  doc.text(`Zuletzt aktualisiert: ${shot.lastUpdated || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+  doc.text(`${t('pdf.label.status', 'Status')}: ${shot.status || NA}`, 20, yPos); yPos += 7;
+  doc.text(`${t('common.description', 'Beschreibung')}: ${shot.description || EMPTY_DESC}`, 20, yPos); yPos += 7;
+  doc.text(`${t('pdf.label.createdAt', 'Erstellt am')}: ${shot.dateCreated || NA}`, 20, yPos); yPos += 7;
+  doc.text(`${t('pdf.label.lastUpdated', 'Zuletzt aktualisiert')}: ${shot.lastUpdated || NA}`, 20, yPos); yPos += 7;
   
   // Kamera-Einstellungen
   if (shot.cameraSettings) {
     doc.setFontSize(14);
-    doc.text('Kamera-Einstellungen', 20, yPos); yPos += 10;
+    doc.text(t('section.cameraSettings', 'Kamera-Einstellungen'), 20, yPos); yPos += 10;
     doc.setFontSize(10);
     
     // Kamera-Hersteller und Modell
-    doc.text(`Hersteller: ${shot.cameraSettings.manufacturer || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Modell: ${shot.cameraSettings.model || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Kamera: ${shot.cameraSettings.camera || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.manufacturer', 'Hersteller')}: ${shot.cameraSettings.manufacturer || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.model', 'Modell')}: ${shot.cameraSettings.model || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.model', 'Kamera')}: ${shot.cameraSettings.camera || NA}`, 20, yPos); yPos += 7;
     
     // Kameraformat mit Pixelgrößen und Sensorgröße
     if (shot.cameraSettings.format) {
-      doc.text(`Format: ${shot.cameraSettings.format || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+      doc.text(`${t('camera.format', 'Format')}: ${shot.cameraSettings.format || NA}`, 20, yPos); yPos += 7;
       
       if (shot.cameraSettings.resolution) {
-        doc.text(`Auflösung: ${shot.cameraSettings.resolution || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+        doc.text(`${t('camera.resolution', 'Auflösung')}: ${shot.cameraSettings.resolution || NA}`, 20, yPos); yPos += 7;
       }
       
       if (shot.cameraSettings.sensorSize) {
-        doc.text(`Sensorgröße: ${shot.cameraSettings.sensorSize || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+        doc.text(`${t('tools.fov.controls.sensorSize', 'Sensorgröße')}: ${shot.cameraSettings.sensorSize || NA}`, 20, yPos); yPos += 7;
       }
     }
     
     // Codec und Farbräume
-    doc.text(`Codec: ${shot.cameraSettings.codec || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Farbraum: ${shot.cameraSettings.colorSpace || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.codec', 'Codec')}: ${shot.cameraSettings.codec || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.colorSpace', 'Farbraum')}: ${shot.cameraSettings.colorSpace || NA}`, 20, yPos); yPos += 7;
     
     // Framerate und Shutter
-    doc.text(`Framerate: ${shot.cameraSettings.framerate || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Shutter-Winkel: ${shot.cameraSettings.shutterAngle || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.framerate', 'Framerate')}: ${shot.cameraSettings.framerate || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.shutterAngle', 'Shutter-Winkel')}: ${shot.cameraSettings.shutterAngle || NA}`, 20, yPos); yPos += 7;
     
     // Bildstabilisierung
-    doc.text(`Bildstabilisierung: ${shot.cameraSettings.imageStabilization || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.imageStabilization', 'Bildstabilisierung')}: ${shot.cameraSettings.imageStabilization || NA}`, 20, yPos); yPos += 7;
     
     // Objektiv-Informationen
-    doc.text(`Objektiv-Hersteller: ${shot.cameraSettings.lensManufacturer || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Objektiv: ${shot.cameraSettings.lens || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Brennweite: ${shot.cameraSettings.focalLength || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Blende: ${shot.cameraSettings.aperture || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Fokus-Distanz: ${shot.cameraSettings.focusDistance || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('lens.manufacturer', 'Objektiv-Hersteller')}: ${shot.cameraSettings.lensManufacturer || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('lens.lens', 'Objektiv')}: ${shot.cameraSettings.lens || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('lens.focalLength', 'Brennweite')}: ${shot.cameraSettings.focalLength || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('lens.aperture', 'Blende')}: ${shot.cameraSettings.aperture || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('lens.focusDistance', 'Fokus-Distanz')}: ${shot.cameraSettings.focusDistance || NA}`, 20, yPos); yPos += 7;
     
     // Belichtung
-    doc.text(`ISO: ${shot.cameraSettings.iso || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Verschlusszeit: ${shot.cameraSettings.shutterSpeed || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Weißabgleich: ${shot.cameraSettings.whiteBalance || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`ISO: ${shot.cameraSettings.iso || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.shutter', 'Verschlusszeit')}: ${shot.cameraSettings.shutterSpeed || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('camera.wb', 'Weißabgleich')}: ${shot.cameraSettings.whiteBalance || NA}`, 20, yPos); yPos += 7;
     
     if (shot.cameraSettings.whiteBalance === 'Manuell' && shot.cameraSettings.manualWhiteBalance) {
-      doc.text(`Manueller Weißabgleich: ${shot.cameraSettings.manualWhiteBalance}K`, 20, yPos); yPos += 7;
+      doc.text(`${t('common.manual', 'Manuell')} ${t('camera.wb', 'Weißabgleich')}: ${shot.cameraSettings.manualWhiteBalance}K`, 20, yPos); yPos += 7;
     }
     
     // Filter
-    doc.text(`Filter: ${shot.cameraSettings.filter || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('lens.filter', 'Filter')}: ${shot.cameraSettings.filter || NA}`, 20, yPos); yPos += 7;
     
     // Sichtfeld (FOV)
     if (shot.cameraSettings.fov) {
-      doc.text(`Sichtfeld (FOV): ${shot.cameraSettings.fov || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+      doc.text(`${t('tools.fov.header', 'Sichtfeld (FOV)')}: ${shot.cameraSettings.fov || NA}`, 20, yPos); yPos += 7;
     }
   }
   
   // Kamerabewegung
   if (shot.cameraMovement) {
     doc.setFontSize(14);
-    doc.text('Kamerabewegung', 20, yPos); yPos += 10;
+    doc.text(t('section.cameraMovement', 'Kamerabewegung'), 20, yPos); yPos += 10;
     doc.setFontSize(10);
     
-    doc.text(`Bewegungstyp: ${shot.cameraMovement.movementType || 'Nicht definiert'}`, 20, yPos); yPos += 7;
-    doc.text(`Equipment: ${shot.cameraMovement.equipment || 'Nicht definiert'}`, 20, yPos); yPos += 7;
+    doc.text(`${t('movement.type', 'Bewegungstyp')}: ${shot.cameraMovement.movementType || NA}`, 20, yPos); yPos += 7;
+    doc.text(`${t('movement.mount', 'Equipment')}: ${shot.cameraMovement.equipment || NA}`, 20, yPos); yPos += 7;
     
     if (shot.cameraMovement.description) {
-      doc.text(`Beschreibung: ${shot.cameraMovement.description}`, 20, yPos); yPos += 7;
+      doc.text(`${t('common.description', 'Beschreibung')}: ${shot.cameraMovement.description}`, 20, yPos); yPos += 7;
     }
   }
   
   // VFX-Aufgaben
   if (shot.vfxPreparations) {
     doc.setFontSize(14);
-    doc.text('VFX-Aufgaben', 20, yPos); yPos += 10;
+    doc.text(t('section.vfxTasks', 'VFX-Aufgaben'), 20, yPos); yPos += 10;
     doc.setFontSize(10);
     
     if (shot.vfxPreparations.trackingMarkers) {
-      doc.text('Tracking-Marker: Ja', 20, yPos); yPos += 7;
+      doc.text(t('vfx.checklist.measurementsTaken', 'Tracking-Marker: Ja'), 20, yPos); yPos += 7;
     }
     
     if (shot.vfxPreparations.greenscreen) {
-      doc.text('Greenscreen: Ja', 20, yPos); yPos += 7;
+      doc.text(t('vfx.checklist.cleanplates', 'Greenscreen: Ja'), 20, yPos); yPos += 7;
     }
     
     if (shot.vfxPreparations.lightingReference) {
-      doc.text('Beleuchtungsreferenz: Ja', 20, yPos); yPos += 7;
+      doc.text(t('vfx.checklist.setReferences', 'Beleuchtungsreferenz: Ja'), 20, yPos); yPos += 7;
     }
     
     if (shot.vfxPreparations.scaleReference) {
-      doc.text('Größenreferenz: Ja', 20, yPos); yPos += 7;
+      doc.text(t('vfx.checklist.measurementsTaken', 'Größenreferenz: Ja'), 20, yPos); yPos += 7;
     }
     
     if (shot.vfxPreparations.notes) {
-      doc.text(`VFX-Notizen: ${shot.vfxPreparations.notes}`, 20, yPos); yPos += 7;
+      doc.text(`${t('vfx.supervisor', 'VFX-Notizen')}: ${shot.vfxPreparations.notes}`, 20, yPos); yPos += 7;
     }
   }
   
   // Notizen
   if (shot.notes && shot.notes.length > 0) {
     doc.setFontSize(14);
-    doc.text('Notizen', 20, yPos); yPos += 10;
+    doc.text(t('common.notes', 'Notizen'), 20, yPos); yPos += 10;
     doc.setFontSize(10);
     
     shot.notes.forEach(note => {
@@ -165,29 +169,32 @@ export const exportShotToPDF = (shot, project) => {
  */
 export const exportProjectToPDF = (project, shots) => {
   const doc = new jsPDF();
+  const t = (key, fallback) => translate(key, fallback);
+  const NA = t('common.notAvailable', 'Nicht angegeben');
+  const EMPTY_DESC = t('pdf.emptyDescription', 'Keine Beschreibung');
 
   // Titel- und Projekt-Übersichtsseite
   doc.setFontSize(20);
-  doc.text(`Projekt: ${project.name}`, 20, 20);
+  doc.text(`${t('dashboard.projectDetails', 'Projekt')}: ${project.name}`, 20, 20);
 
   doc.setFontSize(12);
-  doc.text(`Datum: ${new Date().toLocaleDateString()}`, 20, 30);
-  doc.text(`Anzahl Shots: ${shots.length}`, 20, 40);
+  doc.text(`${t('common.date', 'Datum')}: ${new Date().toLocaleDateString()}`, 20, 30);
+  doc.text(`${t('pdf.label.shotCount', 'Anzahl Shots')}: ${shots.length}`, 20, 40);
 
   if (project.description) {
-    doc.text(`Beschreibung: ${project.description}`, 20, 50);
+    doc.text(`${t('common.description', 'Beschreibung')}: ${project.description}`, 20, 50);
   }
 
   // Shot-Übersicht
   doc.setFontSize(16);
-  doc.text('Shot-Übersicht', 20, 65);
+  doc.text(t('pdf.title.shotOverview', 'Shot-Übersicht'), 20, 65);
   let yPos = 75;
 
   shots.forEach((shot, index) => {
     if (yPos > 250) { doc.addPage(); yPos = 20; }
 
     doc.setFontSize(14);
-    doc.text(`Shot ${index + 1}: ${shot.name}`, 20, yPos); yPos += 10;
+    doc.text(`${t('shot.singular', 'Shot')} ${index + 1}: ${shot.name}`, 20, yPos); yPos += 10;
 
     // Thumbnail in Übersicht (rechts)
     try {
@@ -198,16 +205,16 @@ export const exportProjectToPDF = (project, shots) => {
     } catch (e) {}
 
     doc.setFontSize(10);
-    doc.text(`Status: ${shot.status || 'Nicht definiert'}`, 30, yPos); yPos += 7;
-    doc.text(`Beschreibung: ${shot.description || 'Keine Beschreibung'}`, 30, yPos); yPos += 7;
+    doc.text(`${t('pdf.label.status', 'Status')}: ${shot.status || NA}`, 30, yPos); yPos += 7;
+    doc.text(`${t('common.description', 'Beschreibung')}: ${shot.description || EMPTY_DESC}`, 30, yPos); yPos += 7;
 
     if (shot.cameraSettings) {
-      doc.text(`Kamera: ${shot.cameraSettings.camera || 'Nicht definiert'}`, 30, yPos); yPos += 7;
+      doc.text(`${t('camera.model', 'Kamera')}: ${shot.cameraSettings.camera || NA}`, 30, yPos); yPos += 7;
       if (shot.cameraSettings.format) {
-        doc.text(`Format: ${shot.cameraSettings.format || 'Nicht definiert'}`, 30, yPos); yPos += 7;
+        doc.text(`${t('camera.format', 'Format')}: ${shot.cameraSettings.format || NA}`, 30, yPos); yPos += 7;
       }
-      doc.text(`Objektiv: ${shot.cameraSettings.lens || 'Nicht definiert'}`, 30, yPos); yPos += 7;
-      doc.text(`Brennweite: ${shot.cameraSettings.focalLength || 'Nicht definiert'}`, 30, yPos); yPos += 7;
+      doc.text(`${t('lens.lens', 'Objektiv')}: ${shot.cameraSettings.lens || NA}`, 30, yPos); yPos += 7;
+      doc.text(`${t('lens.focalLength', 'Brennweite')}: ${shot.cameraSettings.focalLength || NA}`, 30, yPos); yPos += 7;
     }
 
     yPos += 5;
@@ -270,51 +277,51 @@ export const exportProjectToPDF = (project, shots) => {
       addLine(`Objektiv: ${cs.lens || 'Nicht definiert'}`);
       addLine(`Brennweite: ${cs.focalLength || 'Nicht definiert'}`);
       addLine(`Blende: ${cs.aperture || 'Nicht definiert'}`);
-      addLine(`Fokus-Distanz: ${cs.focusDistance || 'Nicht definiert'}`);
-      addLine(`ISO: ${cs.iso || 'Nicht definiert'}`);
-      addLine(`Verschlusszeit: ${cs.shutterSpeed || 'Nicht definiert'}`);
-      addLine(`Weißabgleich: ${cs.whiteBalance || 'Nicht definiert'}`);
-      if (cs.whiteBalance === 'Manuell' && cs.manualWhiteBalance) addLine(`Manueller Weißabgleich: ${cs.manualWhiteBalance}K`);
-      addLine(`Filter: ${cs.filter || 'Nicht definiert'}`);
-      if (cs.fov) addLine(`Sichtfeld (FOV): ${cs.fov}`);
+      addLine(`${t('lens.focusDistance', 'Fokus-Distanz')}: ${cs.focusDistance || NA}`);
+      addLine(`${t('camera.iso', 'ISO')}: ${cs.iso || NA}`);
+      addLine(`${t('camera.shutter', 'Verschlusszeit')}: ${cs.shutterSpeed || NA}`);
+      addLine(`${t('camera.wb', 'Weißabgleich')}: ${cs.whiteBalance || NA}`);
+      if (cs.whiteBalance === t('common.manual', 'Manuell') && cs.manualWhiteBalance) addLine(`${t('common.manual', 'Manuell')} ${t('camera.wb', 'Weißabgleich')}: ${cs.manualWhiteBalance}K`);
+      addLine(`${t('lens.filter', 'Filter')}: ${cs.filter || NA}`);
+      if (cs.fov) addLine(`${t('tools.fov.header', 'Sichtfeld (FOV)')}: ${cs.fov}`);
     }
 
     // Kamerabewegung
     if (shot.cameraMovement) {
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(14);
-      doc.text('Kamerabewegung', 20, y); y += 10; doc.setFontSize(10);
+      doc.text(t('section.cameraMovement', 'Kamerabewegung'), 20, y); y += 10; doc.setFontSize(10);
       const cm = shot.cameraMovement;
-      addLine(`Bewegungstyp: ${cm.movementType || 'Nicht definiert'}`);
-      addLine(`Equipment: ${cm.equipment || 'Nicht definiert'}`);
-      if (cm.description) addLine(`Beschreibung: ${cm.description}`);
+      addLine(`${t('movement.type', 'Bewegungstyp')}: ${cm.movementType || NA}`);
+      addLine(`${t('movement.mount', 'Equipment')}: ${cm.equipment || NA}`);
+      if (cm.description) addLine(`${t('common.description', 'Beschreibung')}: ${cm.description}`);
     }
 
     // VFX-Aufgaben (Flags)
     if (shot.vfxPreparations) {
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(14);
-      doc.text('VFX-Aufgaben', 20, y); y += 10; doc.setFontSize(10);
+      doc.text(t('section.vfxTasks', 'VFX-Aufgaben'), 20, y); y += 10; doc.setFontSize(10);
       const vfx = shot.vfxPreparations || {};
-      if (vfx.trackingMarkers) addLine('Tracking-Marker: Ja');
-      if (vfx.greenscreen) addLine('Greenscreen: Ja');
-      if (vfx.lightingReference) addLine('Beleuchtungsreferenz: Ja');
-      if (vfx.scaleReference) addLine('Größenreferenz: Ja');
-      if (vfx.cleanplates) addLine('Cleanplates: Ja');
-      if (vfx.hdris) addLine('HDRIs: Ja');
-      if (vfx.setReferences) addLine('Set-Referenzen: Ja');
-      if (vfx.chromeBall) addLine('Chrome Ball: Ja');
-      if (vfx.grayBall) addLine('Gray Ball: Ja');
-      if (vfx.colorChecker) addLine('Color Checker: Ja');
-      if (vfx.distortionGrids) addLine('Distortion Grids: Ja');
-      if (vfx.measurementsTaken) addLine('Messungen vorgenommen: Ja');
-      if (vfx.threeDScans) addLine('3D-Scans: Ja');
-      if (vfx.notes) addLine(`VFX-Notizen: ${vfx.notes}`);
+      if (vfx.trackingMarkers) addLine(`${t('vfx.flags.trackingMarkers', 'Tracking-Marker')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.greenscreen) addLine(`${t('vfx.flags.greenscreen', 'Greenscreen')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.lightingReference) addLine(`${t('vfx.flags.lightingReference', 'Beleuchtungsreferenz')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.scaleReference) addLine(`${t('vfx.flags.scaleReference', 'Größenreferenz')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.cleanplates) addLine(`${t('vfx.flags.cleanplates', 'Cleanplates')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.hdris) addLine(`${t('vfx.flags.hdris', 'HDRIs')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.setReferences) addLine(`${t('vfx.flags.setReferences', 'Set-Referenzen')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.chromeBall) addLine(`${t('vfx.flags.chromeBall', 'Chrome Ball')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.grayBall) addLine(`${t('vfx.flags.grayBall', 'Gray Ball')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.colorChecker) addLine(`${t('vfx.flags.colorChecker', 'Color Checker')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.distortionGrids) addLine(`${t('vfx.flags.distortionGrids', 'Distortion Grids')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.measurementsTaken) addLine(`${t('vfx.flags.measurementsTaken', 'Messungen vorgenommen')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.threeDScans) addLine(`${t('vfx.flags.threeDScans', '3D-Scans')}: ${t('common.yes', 'Ja')}`);
+      if (vfx.notes) addLine(`${t('vfx.supervisor', 'VFX-Notizen')}: ${vfx.notes}`);
 
       // VFX-Details (falls vorhanden)
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(14);
-      doc.text('VFX-Details', 20, y); y += 10; doc.setFontSize(10);
+      doc.text(t('pdf.title.vfxDetails', 'VFX-Details'), 20, y); y += 10; doc.setFontSize(10);
 
       const addDetailBlock = (title, lines = []) => {
         if (!lines.length) return;
@@ -325,50 +332,50 @@ export const exportProjectToPDF = (project, shots) => {
       };
 
       const dgd = vfx.distortionGridsDetails || {};
-      addDetailBlock('Distortion Grids', [
-        dgd.patternType && `Muster: ${dgd.patternType}`,
-        dgd.distances && `Distanzen: ${dgd.distances}`,
-        dgd.focalLengths && `Brennweiten: ${dgd.focalLengths}`,
-        dgd.coverage && `Coverage: ${dgd.coverage}`,
-        dgd.anamorphicSqueeze && `Squeeze: ${dgd.anamorphicSqueeze}`,
-        dgd.date && `Datum: ${dgd.date}`,
-        dgd.notes && `Notizen: ${dgd.notes}`,
+      addDetailBlock(t('vfx.details.distortionGrids', 'Distortion Grids'), [
+        dgd.patternType && `${t('vfx.details.pattern', 'Muster')}: ${dgd.patternType}`,
+        dgd.distances && `${t('vfx.details.distances', 'Distanzen')}: ${dgd.distances}`,
+        dgd.focalLengths && `${t('lens.focalLength', 'Brennweiten')}: ${dgd.focalLengths}`,
+        dgd.coverage && `${t('vfx.details.coverage', 'Coverage')}: ${dgd.coverage}`,
+        dgd.anamorphicSqueeze && `${t('vfx.details.squeeze', 'Squeeze')}: ${dgd.anamorphicSqueeze}`,
+        dgd.date && `${t('common.date', 'Datum')}: ${dgd.date}`,
+        dgd.notes && `${t('common.notes', 'Notizen')}: ${dgd.notes}`,
       ].filter(Boolean));
 
       const hd = vfx.hdrisDetails || {};
-      addDetailBlock('HDRIs', [ hd.notes && `Notizen: ${hd.notes}` ].filter(Boolean));
+      addDetailBlock(t('vfx.details.hdris', 'HDRIs'), [ hd.notes && `${t('common.notes', 'Notizen')}: ${hd.notes}` ].filter(Boolean));
 
       const sr = vfx.setReferencesDetails || {};
-      addDetailBlock('Set-Referenzen', [ sr.notes && `Notizen: ${sr.notes}` ].filter(Boolean));
+      addDetailBlock(t('vfx.details.setReferences', 'Set-Referenzen'), [ sr.notes && `${t('common.notes', 'Notizen')}: ${sr.notes}` ].filter(Boolean));
 
       const cp = vfx.cleanplatesDetails || {};
-      addDetailBlock('Cleanplates', [ cp.notes && `Notizen: ${cp.notes}` ].filter(Boolean));
+      addDetailBlock(t('vfx.details.cleanplates', 'Cleanplates'), [ cp.notes && `${t('common.notes', 'Notizen')}: ${cp.notes}` ].filter(Boolean));
 
       const cb = vfx.chromeBallDetails || {};
-      addDetailBlock('Chrome Ball', [
-        cb.size && `Größe: ${cb.size}`,
-        cb.notes && `Notizen: ${cb.notes}`,
+      addDetailBlock(t('vfx.details.chromeBall', 'Chrome Ball'), [
+        cb.size && `${t('common.size', 'Größe')}: ${cb.size}`,
+        cb.notes && `${t('common.notes', 'Notizen')}: ${cb.notes}`,
       ].filter(Boolean));
 
       const gb = vfx.grayBallDetails || {};
-      addDetailBlock('Gray Ball', [
-        gb.size && `Größe: ${gb.size}`,
-        gb.notes && `Notizen: ${gb.notes}`,
+      addDetailBlock(t('vfx.details.grayBall', 'Gray Ball'), [
+        gb.size && `${t('common.size', 'Größe')}: ${gb.size}`,
+        gb.notes && `${t('common.notes', 'Notizen')}: ${gb.notes}`,
       ].filter(Boolean));
 
       const cc = vfx.colorCheckerDetails || {};
-      addDetailBlock('Color Checker', [
-        cc.wb && `Weißabgleich: ${cc.wb}`,
-        cc.notes && `Notizen: ${cc.notes}`,
+      addDetailBlock(t('vfx.details.colorChecker', 'Color Checker'), [
+        cc.wb && `${t('camera.wb', 'Weißabgleich')}: ${cc.wb}`,
+        cc.notes && `${t('common.notes', 'Notizen')}: ${cc.notes}`,
       ].filter(Boolean));
 
       const md = vfx.measurementsDetails || {};
-      addDetailBlock('Messungen', [ md.notes && `Notizen: ${md.notes}` ].filter(Boolean));
+      addDetailBlock(t('pdf.title.measurements', 'Messungen'), [ md.notes && `${t('common.notes', 'Notizen')}: ${md.notes}` ].filter(Boolean));
 
       const td = vfx.threeDScansDetails || {};
-      addDetailBlock('3D-Scans', [
-        td.notes && `Notizen: ${td.notes}`,
-        Array.isArray(td.formats) && td.formats.length && `Formate: ${td.formats.join(', ')}`,
+      addDetailBlock(t('pdf.title.threeDScans', '3D-Scans'), [
+        td.notes && `${t('common.notes', 'Notizen')}: ${td.notes}`,
+        Array.isArray(td.formats) && td.formats.length && `${t('common.formats', 'Formate')}: ${td.formats.join(', ')}`,
       ].filter(Boolean));
     }
 
@@ -376,7 +383,7 @@ export const exportProjectToPDF = (project, shots) => {
     if (shot.notes) {
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(14);
-      doc.text('Notizen', 20, y); y += 10; doc.setFontSize(10);
+      doc.text(t('common.notes', 'Notizen'), 20, y); y += 10; doc.setFontSize(10);
       if (Array.isArray(shot.notes)) {
         shot.notes.forEach(note => {
           const text = typeof note === 'string' ? note : (note?.text || '');
@@ -391,7 +398,7 @@ export const exportProjectToPDF = (project, shots) => {
     if (Array.isArray(shot.references) && shot.references.length) {
       if (y > 260) { doc.addPage(); y = 20; }
       doc.setFontSize(14);
-      doc.text('Referenzen (Anzahl je Kategorie)', 20, y); y += 10; doc.setFontSize(10);
+      doc.text(t('pdf.title.referencesByCategory', 'Referenzen (Anzahl je Kategorie)'), 20, y); y += 10; doc.setFontSize(10);
       const byCat = {};
       shot.references.forEach((r) => { byCat[r.category] = (byCat[r.category] || 0) + 1; });
       Object.entries(byCat).forEach(([cat, count]) => addLine(`${cat}: ${count}`));
