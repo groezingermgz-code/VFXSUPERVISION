@@ -152,7 +152,7 @@ const selectedLensMeta = useMemo(() => {
             <li><strong>HFOV (mit Original‑BW)</strong>: Horizontales Sichtfeld auf jedem Format, wenn die ursprüngliche Brennweite beibehalten wird – hilfreich zum Vergleich.</li>
           </ul>
 
-          <div className="info-section-title">Hinweise</div>
+          <div className="info-section-title">{t('common.notes', 'Hinweise')}</div>
           <ul className="info-list">
             <li>Der <em>Projektionstyp</em> (Rectilinear/Fisheye) wird beibehalten und beeinflusst die Äquivalenz.</li>
             <li>Die Äquivalenz wird per <em>numerischer Lösung</em> (binäre Suche) bis auf ~0.1 mm Genauigkeit berechnet.</li>

@@ -141,7 +141,7 @@ const SensorAudit = () => {
               <th style={{ textAlign: 'left', padding: 8 }}>mm (berechnet)</th>
               <th style={{ textAlign: 'left', padding: 8 }}>mm (erwartet)</th>
               <th style={{ textAlign: 'left', padding: 8 }}>Sensor (mm)</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Hinweise</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{t('common.notes', 'Hinweise')}</th>
             </tr>
           </thead>
           <tbody>

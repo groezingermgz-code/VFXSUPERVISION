@@ -234,66 +234,114 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   const addTake = () => {
     const base = getShotBaseName();
     const nextVersion = getNextTakeVersion();
-    // ARRI Clip-Benennung: wenn Hersteller ARRI und Felder vorhanden, nutze A001_C001 Schema
     const getActiveEditedCameraSettings = () => {
       if (selectedSetupIndex === 0) return (editedShot?.cameraSettings || {});
       const arr = Array.isArray(editedShot?.additionalCameraSetups) ? editedShot.additionalCameraSetups : [];
       return (arr[selectedSetupIndex - 1]?.cameraSettings) || {};
     };
     const activeSettings = getActiveEditedCameraSettings();
-    const manufacturer = (activeSettings?.manufacturer || '').trim();
-    let label = `${base}_TAKE ${String(nextVersion).padStart(3, '0')}`;
-    // Allgemeine Clip-Benennung: manuelle ID hat Priorität, ansonsten [Index][Reel]_C[Clip]
+    // Take-Benennung stets separat vom Clip: SH_XYZ_TAKE 001
+    const takeName = `${base}_TAKE ${String(nextVersion).padStart(3, '0')}`;
+    // Clip-Benennung: manuelle ID hat Priorität, ansonsten "A 001_C001" Schema
     const manual = String(activeSettings.manualClipId || '').trim();
     const camIdxRaw = String(activeSettings.clipCameraIndex || '');
-    const camIdx = camIdxRaw.replace(/[^A-Z_]/g, '').slice(0, 2);
+    const camIdx = camIdxRaw.replace(/[^A-Z]/g, '').slice(0, 1); // Genau ein Buchstabe A-Z
     const reelRaw = String(activeSettings.clipReelNumber || '');
     const reelNum = parseInt(reelRaw, 10);
     const reel = Number.isFinite(reelNum) ? String(reelNum).padStart(3, '0') : '';
     const clipRaw = String(activeSettings.clipCounter || '');
     const clipNumInt = parseInt(clipRaw, 10);
     const clip = Number.isFinite(clipNumInt) ? String(clipNumInt).padStart(3, '0') : '';
-    const simpleId = camIdx && reel && clip ? `${camIdx}${reel}_C${clip}` : '';
-    const usedSimpleId = !manual && !!simpleId;
-    if (manual) {
-      label = manual;
-    } else if (simpleId) {
-      label = simpleId;
-    }
+    const simpleId = camIdx && reel && clip ? `${camIdx}${reel}-C${clip}` : '';
+    const clipId = manual || simpleId || '';
+    // Snapshot: Clip-IDs pro Setup (A, B, …) zum Zeitpunkt der Take-Erstellung
+    const setupSettingsArray = [
+      (editedShot?.cameraSettings || {}),
+      ...((Array.isArray(editedShot?.additionalCameraSetups)
+        ? editedShot.additionalCameraSetups.map(s => s?.cameraSettings || {})
+        : []))
+    ];
+    const setupClipIds = setupSettingsArray.map(cs => formatClipIdFromSettings(cs));
+
     const newTake = {
       id: Date.now(),
-      name: label,
+      name: takeName,
       version: nextVersion,
       note: '',
       changes: '',
       ratings: ['none', 'none', 'none'],
-      clipId: label
+      clipId,
+      setupClipIds
     };
-    // Clip-Counter hochzählen, wenn einfache Benennung genutzt wurde (nicht bei manueller ID)
+    // Clip-Counter für alle Setups erhöhen (A und B/C separat, aber synchron pro neuem Take)
     let updatedShot = {
       ...editedShot,
       takes: [...(editedShot?.takes || []), newTake]
     };
-    if (usedSimpleId) {
-      const nextClipCounter = String(((parseInt(activeSettings.clipCounter, 10) || 1) + 1)).padStart(3, '0');
-      if (selectedSetupIndex === 0) {
-        updatedShot = {
-          ...updatedShot,
-          cameraSettings: {
-            ...(editedShot?.cameraSettings || {}),
-            clipCounter: nextClipCounter
-          }
-        };
-      } else {
-        const arr = Array.isArray(editedShot?.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
-        const setup = { ...(arr[selectedSetupIndex - 1] || { cameraSettings: {}, cameraMovement: {} }) };
-        setup.cameraSettings = { ...(setup.cameraSettings || {}), clipCounter: nextClipCounter };
-        arr[selectedSetupIndex - 1] = setup;
-        updatedShot = { ...updatedShot, additionalCameraSetups: arr };
+    // Hauptsetup (A) hochzählen
+    const currentMain = (editedShot?.cameraSettings || {});
+    const nextMainCounter = String(((parseInt(currentMain.clipCounter, 10) || 1) + 1)).padStart(3, '0');
+    updatedShot = {
+      ...updatedShot,
+      cameraSettings: {
+        ...currentMain,
+        clipCounter: nextMainCounter
       }
-    }
+    };
+    // Zusätzliche Setups (B/C/…) jeweils hochzählen
+    const arr = Array.isArray(editedShot?.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
+    const nextArr = arr.map((setup) => {
+      const cs = setup?.cameraSettings || {};
+      const nextCounter = String(((parseInt(cs.clipCounter, 10) || 1) + 1)).padStart(3, '0');
+      return {
+        ...setup,
+        cameraSettings: {
+          ...cs,
+          clipCounter: nextCounter
+        }
+      };
+    });
+    updatedShot = { ...updatedShot, additionalCameraSetups: nextArr };
     setEditedShot(updatedShot);
     autoSaveShotToFile(id, updatedShot);
+  };
+  // Hilfsfunktion: Clip-ID aus Kamera-Settings formatieren (A001-C001)
+  const formatClipIdFromSettings = (settings) => {
+    try {
+      const camIdxRaw = String(settings?.clipCameraIndex || '');
+      const camIdx = camIdxRaw.replace(/[^A-Z]/g, '').slice(0, 1);
+      const reelRaw = String(settings?.clipReelNumber || '');
+      const reelNum = parseInt(reelRaw, 10);
+      const reel = Number.isFinite(reelNum) ? String(reelNum).padStart(3, '0') : '';
+      const clipRaw = String(settings?.clipCounter || '');
+      const clipNumInt = parseInt(clipRaw, 10);
+      const clip = Number.isFinite(clipNumInt) ? String(clipNumInt).padStart(3, '0') : '';
+      const simpleId = camIdx && reel && clip ? `${camIdx}${reel}-C${clip}` : '';
+      return simpleId || '-';
+    } catch {
+      return '-';
+    }
+  };
+  // Kompakte Zusammenfassung der Einstellungen pro Setup
+  const formatCompactSettings = (settings) => {
+    try {
+      const model = String(settings?.model || '').trim();
+      const format = String(settings?.format || '').trim();
+      const codec = String(settings?.codec || '').trim();
+      const fr = String(settings?.framerate || '').trim();
+      const lens = String(settings?.lens || '').trim();
+      const focal = String(settings?.focalLength || '').trim();
+      const parts = [];
+      if (model) parts.push(model);
+      if (format) parts.push(format);
+      if (codec) parts.push(codec);
+      if (fr) parts.push(fr);
+      const lensPart = [lens, focal].filter(Boolean).join(' ');
+      if (lensPart) parts.push(lensPart);
+      return parts.join(' • ');
+    } catch {
+      return '';
+    }
   };
   const updateTakeNote = (takeId, value) => {
     const updatedTakes = (editedShot?.takes || []).map(t => t.id === takeId ? { ...t, note: value } : t);
@@ -543,9 +591,13 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                 anamorphicFactor: '',
                 ndFilter: 'Kein',
                 filters: [],
-                filter: ''
-                ,
-                lensStabilization: 'Aus'
+                filter: '',
+                lensStabilization: 'Aus',
+                // Clip-Benennung Defaults
+                clipCameraIndex: 'A',
+                clipReelNumber: '001',
+                clipCounter: '001',
+                manualClipId: ''
               },
               cameraMovement: {
                 movementType: '',
@@ -639,17 +691,45 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
           notes: ''
         };
 
+        // Clip-Benennung für Haupt- und Zusatz-Setups normalisieren
+        const normalizedCameraSettings = {
+          ...(shotData.cameraSettings || {}),
+          clipCameraIndex: String(((shotData.cameraSettings || {}).clipCameraIndex || 'A')).toUpperCase().replace(/[^A-Z]/g, '').slice(0,1),
+          clipReelNumber: String(((shotData.cameraSettings || {}).clipReelNumber || '001')).replace(/\D/g, '').padStart(3, '0'),
+          clipCounter: String(((shotData.cameraSettings || {}).clipCounter || '001')).replace(/\D/g, '').padStart(3, '0'),
+          manualClipId: String(((shotData.cameraSettings || {}).manualClipId || '')).trim()
+        };
+
+        const baseReel = normalizedCameraSettings.clipReelNumber || '001';
+        const normalizedAdditionalSetups = Array.isArray(shotData.additionalCameraSetups)
+          ? shotData.additionalCameraSetups.map((setup, idx) => {
+              const cs = { ...(setup?.cameraSettings || {}) };
+              const defaultIndex = String.fromCharCode('A'.charCodeAt(0) + (idx + 1)); // B, C, ...
+              const normalizedSetupSettings = {
+                ...cs,
+                clipCameraIndex: String(cs.clipCameraIndex || defaultIndex).toUpperCase().replace(/[^A-Z]/g, '').slice(0,1),
+                clipReelNumber: String(cs.clipReelNumber || baseReel || '001').replace(/\D/g, '').padStart(3, '0'),
+                clipCounter: String(cs.clipCounter || '001').replace(/\D/g, '').padStart(3, '0'),
+                manualClipId: String(cs.manualClipId || '').trim()
+              };
+              return {
+                ...setup,
+                cameraSettings: normalizedSetupSettings,
+                cameraMovement: { ...(setup?.cameraMovement || {}) }
+              };
+            })
+          : [];
+
         const normalizedShotData = {
           ...shotData,
           references: Array.isArray(shotData.references) ? shotData.references : [],
           takes: Array.isArray(shotData.takes) ? shotData.takes : [],
+          cameraSettings: normalizedCameraSettings,
           cameraMovement: {
             ...cameraMovementDefaults,
             ...(shotData.cameraMovement || {})
           },
-          additionalCameraSetups: Array.isArray(shotData.additionalCameraSetups)
-            ? shotData.additionalCameraSetups
-            : []
+          additionalCameraSetups: normalizedAdditionalSetups
         };
 
         setShot(normalizedShotData);
@@ -824,6 +904,13 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
 
   const handleCameraChange = (e) => {
     const { name, value } = e.target;
+    let sanitizedValue = value;
+    if (name === 'clipReelNumber' || name === 'clipCounter') {
+      const digits = String(value).replace(/\D/g, '').slice(0, 3);
+      sanitizedValue = digits.padStart(3, '0');
+    } else if (name === 'clipCameraIndex') {
+      sanitizedValue = String(value).replace(/[^A-Za-z]/g, '').toUpperCase().slice(0, 1);
+    }
     // Dynamische Ableitung der Framerates bei Codec-Änderung
     let derivedFramerates = null;
     if (name === 'codec') {
@@ -838,11 +925,11 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
         const reconciledFr = (name === 'codec' && Array.isArray(derivedFramerates))
           ? (derivedFramerates.includes(currentFr) ? currentFr : '')
           : currentFr;
-        const updatedSettings = { ...prev.cameraSettings, [name]: value };
+        const updatedSettings = { ...prev.cameraSettings, [name]: sanitizedValue };
         if (name === 'codec') {
           updatedSettings.framerate = reconciledFr;
         } else if (name === 'framerate') {
-          updatedSettings.framerate = value;
+          updatedSettings.framerate = sanitizedValue;
         }
         return { ...prev, cameraSettings: updatedSettings };
       }
@@ -853,11 +940,11 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
       const reconciledSetupFr = (name === 'codec' && Array.isArray(derivedFramerates))
         ? (derivedFramerates.includes(setupFr) ? setupFr : '')
         : setupFr;
-      const updatedSetupSettings = { ...(setup.cameraSettings || {}), [name]: value };
+      const updatedSetupSettings = { ...(setup.cameraSettings || {}), [name]: sanitizedValue };
       if (name === 'codec') {
         updatedSetupSettings.framerate = reconciledSetupFr;
       } else if (name === 'framerate') {
-        updatedSetupSettings.framerate = value;
+        updatedSetupSettings.framerate = sanitizedValue;
       }
       setup.cameraSettings = updatedSetupSettings;
       additional[idx] = setup;
@@ -1500,7 +1587,7 @@ const updatedShot = (selectedSetupIndex === 0)
   };
 
   const openAnnotatorForReference = (refId, imageUrl, name) => {
-    setAnnotatorState({ open: true, refId, imageUrl, title: `Annotieren: ${name}`, kind: 'reference' });
+    setAnnotatorState({ open: true, refId, imageUrl, title: `${t('action.annotate', 'Annotieren')}: ${name}`, kind: 'reference' });
   };
 
   const applyAnnotationToRef = (dataUrl) => {
@@ -1529,9 +1616,9 @@ const updatedShot = (selectedSetupIndex === 0)
           return storyboard1;
         }
       })();
-      setAnnotatorState({ open: true, refId: null, imageUrl: src, title: `Annotieren: ${shot?.name || editedShot?.name || 'Shot'}`, kind: 'preview' });
+      setAnnotatorState({ open: true, refId: null, imageUrl: src, title: `${t('action.annotate', 'Annotieren')}: ${shot?.name || editedShot?.name || 'Shot'}`, kind: 'preview' });
     } catch {
-      setAnnotatorState({ open: true, refId: null, imageUrl: previewImage || shot?.previewImage || storyboard1, title: `Annotieren: ${shot?.name || editedShot?.name || 'Shot'}`, kind: 'preview' });
+      setAnnotatorState({ open: true, refId: null, imageUrl: previewImage || shot?.previewImage || storyboard1, title: `${t('action.annotate', 'Annotieren')}: ${shot?.name || editedShot?.name || 'Shot'}`, kind: 'preview' });
     }
   };
 
@@ -1559,6 +1646,11 @@ const updatedShot = (selectedSetupIndex === 0)
 
   // Neues Kamera-Setup hinzufügen (B, C, ...)
   const handleAddCameraSetup = () => {
+    // Kameraindex automatisch setzen: A=Hauptsetup, B=erstes Zusatzsetup, C=zweites, ...
+    const nextSetupNumber = ((editedShot?.additionalCameraSetups?.length || 0) + 1); // 1=B, 2=C, ...
+    const defaultClipIndex = String.fromCharCode('A'.charCodeAt(0) + nextSetupNumber);
+    const mainReel = String(editedShot?.cameraSettings?.clipReelNumber || '').trim();
+    const defaultReel = mainReel || '001';
     const defaultSetup = {
       cameraSettings: {
         manufacturer: '',
@@ -1584,7 +1676,11 @@ const updatedShot = (selectedSetupIndex === 0)
         ndFilter: 'Kein',
         filters: [],
         filter: '',
-        lensStabilization: 'Aus'
+        lensStabilization: 'Aus',
+        clipCameraIndex: defaultClipIndex,
+        clipReelNumber: defaultReel,
+        clipCounter: '001',
+        manualClipId: ''
       },
       cameraMovement: {
         movementType: '',
@@ -1712,10 +1808,10 @@ const updatedShot = (selectedSetupIndex === 0)
         
         {isEditing && (
           <div className="image-upload" style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-            <label htmlFor="image-upload" className="btn-outline">
-              Bild hochladen
-            </label>
-            <button type="button" className="btn-annotate" onClick={openAnnotatorForPreview} title="Vorschaubild annotieren">Annotieren</button>
+            <button type="button" className="btn-outline" onClick={() => document.getElementById('image-upload')?.click()}>
+              {t('action.uploadImage', 'Bild hochladen')}
+            </button>
+            <button type="button" className="btn-annotate" onClick={openAnnotatorForPreview} title={t('action.annotate', 'Annotieren')}>{t('action.annotate', 'Annotieren')}</button>
             <input
               id="image-upload"
               type="file"
@@ -1788,7 +1884,7 @@ const updatedShot = (selectedSetupIndex === 0)
           ))}
           {isEditing && (
             <button type="button" className="btn btn-secondary" onClick={handleAddCameraSetup}>
-              Setup hinzufügen
+              {t('action.addSetup')}
             </button>
           )}
         </div>
@@ -2335,7 +2431,7 @@ const updatedShot = (selectedSetupIndex === 0)
                 <label>{t('camera.shutterAngle')}:</label>
                 <select 
                   name="shutterAngle" 
-                  value={currentEditedCameraSettings.shutterAngle || ''} 
+                  value={currentEditedCameraSettings.shutterAngle || '180°'} 
                   onChange={handleCameraChange}
                 >
                   <option value="">{t('common.select')}</option>
@@ -2361,7 +2457,7 @@ const updatedShot = (selectedSetupIndex === 0)
                 <label>{t('camera.imageStabilization')}:</label>
                 <select 
                   name="imageStabilization" 
-                  value={currentEditedCameraSettings.imageStabilization || ''} 
+                  value={currentEditedCameraSettings.imageStabilization || 'Aus'} 
                   onChange={handleCameraChange}
                 >
                   <option value="">{t('common.select')}</option>
@@ -2417,59 +2513,57 @@ const updatedShot = (selectedSetupIndex === 0)
 
             <div className="form-row">
               <div className="form-group" style={{ width: '100%' }}>
-                <label>Clip-Benennung</label>
+                <label>{t('clip.namingLabel', 'Clip-Benennung')}</label>
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
                   <div className="form-group">
-                    <label>Kameraindex</label>
+                    <label>{t('clip.cameraIndexLabel', 'Kameraindex')}</label>
                     <input
                       type="text"
                       name="clipCameraIndex"
-                      placeholder="A"
+                      placeholder={t('clip.cameraIndexPlaceholder', 'A')}
                       value={currentEditedCameraSettings.clipCameraIndex || ''}
                       onChange={handleCameraChange}
                     />
                   </div>
                   <div className="form-group">
-                    <label>Reel-Nummer</label>
+                    <label>{t('clip.reelNumberLabel', 'Reel-Nummer')}</label>
                     <input
-                      type="number"
+                      type="text"
                       name="clipReelNumber"
-                      min="1"
-                      step="1"
-                      placeholder="001"
+                      inputMode="numeric"
+                      pattern="\\d{3}"
+                      maxLength={3}
+                      placeholder={t('clip.reelNumberPlaceholder', '001')}
                       value={currentEditedCameraSettings.clipReelNumber || ''}
                       onChange={handleCameraChange}
                     />
                   </div>
                   <div className="form-group">
-                    <label>Clip-Nummer</label>
+                    <label>{t('clip.clipNumberLabel', 'Clip-Nummer')}</label>
                     <input
-                      type="number"
+                      type="text"
                       name="clipCounter"
-                      min="1"
-                      step="1"
-                      placeholder="001"
+                      inputMode="numeric"
+                      pattern="\\d{3}"
+                      maxLength={3}
+                      placeholder={t('clip.clipNumberPlaceholder', '001')}
                       value={currentEditedCameraSettings.clipCounter || ''}
                       onChange={handleCameraChange}
                     />
                   </div>
                   <div className="form-group" style={{ minWidth: '240px' }}>
-                    <label>Manuelle Clip-ID</label>
+                    <label>{t('clip.manualIdLabel', 'Manuelle Clip-ID')}</label>
                     <input
                       type="text"
                       name="manualClipId"
-                      placeholder="frei"
+                      placeholder={t('clip.manualIdPlaceholder', 'frei')}
                       value={currentEditedCameraSettings.manualClipId || ''}
                       onChange={handleCameraChange}
                     />
                   </div>
                 </div>
-                <small className="helper-text">
-                  Format: [Camera Index][Reel Number]_C[Clip Number], z. B. A001_C001
-                </small>
-                <small className="helper-text">
-                  Manuelle Clip-ID überschreibt das Format oben.
-                </small>
+                <small className="helper-text">{t('clip.namingFormatHint', 'Format: [Camera Index][Reel Number]_C[Clip Number], z. B. A001_C001')}</small>
+                <small className="helper-text">{t('clip.manualOverridesHint', 'Manuelle Clip-ID überschreibt das Format oben.')}</small>
               </div>
             </div>
 
@@ -2787,6 +2881,7 @@ const updatedShot = (selectedSetupIndex === 0)
               compact={true}
               hideCameraSelectors={true}
               plain={true}
+              hideManualFocalInput={false}
               slotAfterFocus={(
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <div className="form-group">
@@ -2823,45 +2918,6 @@ const updatedShot = (selectedSetupIndex === 0)
               )}
             />
 
-            {isZoomLens(selectedLensManufacturer, selectedLens) && (
-              <div className="form-row">
-                <div className="form-group">
-                  <label>Brennweite (manuell)</label>
-                  <input
-                    type="number"
-                    name="focalLength"
-                    step="0.1"
-                    placeholder={(function(){
-                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
-                      if (!m || m.minMm == null || m.maxMm == null) return 'z. B. 35';
-                      return `${m.minMm}-${m.maxMm}mm`;
-                    })()}
-                    min={(function(){
-                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
-                      return (m && m.minMm != null) ? m.minMm : undefined;
-                    })()}
-                    max={(function(){
-                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
-                      return (m && m.maxMm != null) ? m.maxMm : undefined;
-                    })()}
-                    value={currentEditedCameraSettings?.focalLength || ''}
-                    onChange={(e) => {
-                      const m = getLensMeta(selectedLensManufacturer, selectedLens);
-                      let v = e.target.value;
-                      if (m && m.minMm != null && m.maxMm != null) {
-                        const num = parseFloat(v);
-                        if (!isNaN(num)) {
-                          const clamped = Math.max(m.minMm, Math.min(m.maxMm, num));
-                          e.target.value = String(clamped);
-                        }
-                      }
-                      handleCameraChange(e);
-                    }}
-                  />
-                  <small className="helper-text">Zoom-Objektiv: Nur Werte innerhalb des Bereichs zulässig.</small>
-                </div>
-              </div>
-            )}
 
 
 
@@ -3399,7 +3455,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   <div className="form-group" style={{ width: '100%' }}>
                     <label>{t('common.notes')}:</label>
                     <textarea
-                      placeholder="Zusätzliche Hinweise zu den Distortion-Grids"
+                placeholder={t('vfx.distortionNotesPlaceholder', 'Zusätzliche Hinweise zu den Distortion-Grids')}
                       value={editedShot.vfxPreparations?.distortionGridsDetails?.notes || ''}
                       onChange={(e) => handleVFXDetailChange('distortionGridsDetails', 'notes', e.target.value)}
                     />
@@ -3881,7 +3937,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   <div className="form-group" style={{ width: '100%' }}>
                     <label>{t('common.notes')}:</label>
                     <textarea
-                      placeholder="Zusätzliche Messhinweise"
+                placeholder={t('vfx.measurementsNotesPlaceholder', 'Zusätzliche Messhinweise')}
                       value={editedShot.vfxPreparations?.measurementsDetails?.notes || ''}
                       onChange={(e) => handleVFXDetailChange('measurementsDetails', 'notes', e.target.value)}
                     />
@@ -4081,7 +4137,7 @@ const updatedShot = (selectedSetupIndex === 0)
                                 <div className="reference-info">
                                   <span className="reference-name">{tile.name}</span>
                                   {isEditing && tile.refId && (
-                                    <button type="button" className="btn-annotate" onClick={() => openAnnotatorForReference(tile.refId, tile.url, tile.name)}>Annotieren</button>
+                                    <button type="button" className="btn-annotate" onClick={() => openAnnotatorForReference(tile.refId, tile.url, tile.name)}>{t('action.annotate', 'Annotieren')}</button>
                                   )}
                                 </div>
                               </div>
@@ -4109,57 +4165,92 @@ const updatedShot = (selectedSetupIndex === 0)
       {/* TAKES */}
       <div className="takes card">
         <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2>TAKES</h2>
+          <h2>{t('takes.title', 'TAKES')}</h2>
           {isEditing && (
-            <button type="button" className="btn btn-secondary" onClick={addTake} title="Take hinzufügen">
-              <FiPlus style={{ marginRight: 6 }} /> Take hinzufügen
+            <button type="button" className="btn btn-secondary" onClick={addTake} title={t('takes.add', 'Take hinzufügen')}>
+              <FiPlus style={{ marginRight: 6 }} /> {t('takes.add', 'Take hinzufügen')}
             </button>
           )}
         </div>
         {isEditing ? (
           <div className="takes-edit-list">
             {(editedShot?.takes || []).length === 0 ? (
-              <div className="info-item"><label><strong>Hinweis</strong>:</label><span className="info-value">Noch keine Takes hinzugefügt.</span></div>
+              <div className="info-item"><label><strong>{t('takes.hintLabel', 'Hinweis')}</strong>:</label><span className="info-value">{t('takes.emptyEdit', 'Noch keine Takes hinzugefügt.')}</span></div>
             ) : (
               (editedShot.takes || []).map(take => (
                 <div key={take.id} className="take-item">
                   <div className="take-header">
                     <span className="take-name">{take.name}</span>
-                    <button type="button" className="btn-outline take-remove" onClick={() => removeTake(take.id)} title="Take entfernen">
+                    <button type="button" className="btn-outline take-remove" onClick={() => removeTake(take.id)} title={t('takes.removeTitle', 'Take entfernen')}>
                       <FiTrash />
                     </button>
                   </div>
                   <div className="take-content">
-                    <div className="form-group" style={{ width: '100%' }}>
-                      <label>Notiz:</label>
-                      <textarea
-                        value={take.note || ''}
-                        placeholder="Kurze Notiz zum Take"
-                        onChange={(e) => updateTakeNote(take.id, e.target.value)}
-                      />
-                    </div>
-                    <div className="form-group" style={{ width: '100%' }}>
-                      <label>Änderungen:</label>
-                      <textarea
-                        value={take.changes || ''}
-                        placeholder="Geänderte Punkte, Abweichungen, Hinweise …"
-                        onChange={(e) => updateTakeChanges(take.id, e.target.value)}
-                      />
-                    </div>
-                    <div className="take-ratings" aria-label="Schnellbewertung">
-                      {["DIR","DOP","VFX"].map((label, idx) => (
-                        <div key={`rating-${take.id}-${idx}`} className="rating-item">
-                          <span className="rating-label">{label}</span>
-                          <button
-                            type="button"
-                            className={`rating-dot ${take.ratings?.[idx] || 'none'}`}
-                            onClick={() => toggleTakeRating(take.id, idx)}
-                            title={`${label} Bewertung`}
-                            aria-label={`${label} Bewertung: ${take.ratings?.[idx] || 'none'}`}
-                          />
+                    {(() => {
+                      const setups = [
+                        { label: `${t('takes.cameraLabelPrefix', 'Kamera')} A`, settings: editedShot?.cameraSettings || {} },
+                        ...(Array.isArray(editedShot?.additionalCameraSetups)
+                          ? editedShot.additionalCameraSetups.map((s, idx) => ({
+                              label: `${t('takes.cameraLabelPrefix', 'Kamera')} ${String.fromCharCode('A'.charCodeAt(0) + idx + 1)}`,
+                              settings: s?.cameraSettings || {}
+                            }))
+                          : [])
+                      ];
+                      return setups.map((s, i) => (
+                        <div
+                          key={`take-setup-${take.id}-${i}`}
+                          className="take-setup-line"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'auto 1fr 1fr auto',
+                            gap: '0.75rem',
+                            alignItems: 'start'
+                          }}
+                        >
+                          <div className="info-item">
+                            <label><strong>{s.label}</strong>:</label>
+                            <span className="clip-id-inline">{`${t('takes.clipIdLabel')}: ${take.setupClipIds?.[i] || formatClipIdFromSettings(s.settings)}`}</span>
+                            {(() => {
+                              const compact = formatCompactSettings(s.settings);
+                              return compact ? (
+                                <div className="compact-settings">{compact}</div>
+                              ) : null;
+                            })()}
+                          </div>
+                          <div className="form-group">
+                            <label>{t('takes.noteLabel')}:</label>
+                            <textarea
+                              value={take.note || ''}
+                              placeholder={t('takes.notePlaceholder')}
+                              onChange={(e) => updateTakeNote(take.id, e.target.value)}
+                            />
+                          </div>
+                          <div className="form-group">
+                            <label>{t('takes.changesLabel')}:</label>
+                            <textarea
+                              value={take.changes || ''}
+                              placeholder={t('takes.changesPlaceholder')}
+                              onChange={(e) => updateTakeChanges(take.id, e.target.value)}
+                            />
+                          </div>
+                          <div className="take-ratings inline" aria-label={t('takes.quickRatingAria')}>
+                            {["DIR","DOP","VFX"].map((label, idx) => (
+                              <div key={`rating-${take.id}-${i}-${idx}`} className="rating-item">
+                                <span className="rating-label">{label}</span>
+                                <button
+                                  type="button"
+                                  className={`rating-dot ${take.ratings?.[idx] || 'none'}`}
+                                  onClick={() => toggleTakeRating(take.id, idx)}
+                                  title={`${label} ${t('takes.ratingTitlePrefix')}`}
+                                  aria-label={`${label} ${t('takes.ratingTitlePrefix')}: ${take.ratings?.[idx] || 'none'}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      ));
+                    })()}
+                    {/* Ratings jetzt hinter jeder Zeile, globaler Block entfernt */}
                   </div>
                 </div>
               ))
@@ -4168,7 +4259,7 @@ const updatedShot = (selectedSetupIndex === 0)
         ) : (
           <div className="takes-readonly-list">
             {(shot?.takes || []).length === 0 ? (
-              <div className="info-item"><label><strong>Hinweis</strong>:</label><span className="info-value">Keine Takes vorhanden.</span></div>
+              <div className="info-item"><label><strong>{t('takes.hintLabel')}</strong>:</label><span className="info-value">{t('takes.emptyRead')}</span></div>
             ) : (
               (shot.takes || []).map(take => (
                 <div key={take.id} className="take-item">
@@ -4176,30 +4267,65 @@ const updatedShot = (selectedSetupIndex === 0)
                     <span className="take-name">{take.name}</span>
                   </div>
                   <div className="take-content">
-                    {take.note && (
-                      <div className="info-item" style={{ width: '100%' }}>
-                        <label><strong>Notiz</strong>:</label>
-                        <span className="info-value">{take.note}</span>
-                      </div>
-                    )}
-                    {take.changes && (
-                      <div className="info-item" style={{ width: '100%' }}>
-                        <label><strong>Änderungen</strong>:</label>
-                        <span className="info-value">{take.changes}</span>
-                      </div>
-                    )}
-                    <div className="take-ratings readonly" aria-label="Schnellbewertung">
-                      {["DIR","DOP","VFX"].map((label, idx) => (
-                        <div key={`rating-ro-${take.id}-${idx}`} className="rating-item">
-                          <span className="rating-label">{label}</span>
-                          <span
-                            className={`rating-dot ${take.ratings?.[idx] || 'none'}`}
-                            title={`${label} Bewertung`}
-                            aria-label={`${label} Bewertung: ${take.ratings?.[idx] || 'none'}`}
-                          />
+                    {(() => {
+                      const setups = [
+                        { label: `${t('takes.cameraLabelPrefix')} A`, settings: shot?.cameraSettings || {} },
+                        ...(Array.isArray(shot?.additionalCameraSetups)
+                          ? shot.additionalCameraSetups.map((s, idx) => ({
+                              label: `${t('takes.cameraLabelPrefix')} ${String.fromCharCode('A'.charCodeAt(0) + idx + 1)}`,
+                              settings: s?.cameraSettings || {}
+                            }))
+                          : [])
+                      ];
+                      return setups.map((s, i) => (
+                        <div
+                          key={`take-setup-ro-${take.id}-${i}`}
+                          className="take-setup-line"
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: 'auto 1fr 1fr auto',
+                            gap: '0.75rem',
+                            alignItems: 'start'
+                          }}
+                        >
+                          <div className="info-item">
+                            <label><strong>{s.label}</strong>:</label>
+                            <span className="clip-id-inline">{`${t('takes.clipIdLabel')}: ${take.setupClipIds?.[i] || formatClipIdFromSettings(s.settings)}`}</span>
+                            {(() => {
+                              const compact = formatCompactSettings(s.settings);
+                              return compact ? (
+                                <div className="compact-settings">{compact}</div>
+                              ) : null;
+                            })()}
+                          </div>
+                          {take.note && (
+                            <div className="info-item">
+                              <label><strong>{t('takes.noteLabel')}</strong>:</label>
+                              <span className="info-value">{take.note}</span>
+                            </div>
+                          )}
+                          {take.changes && (
+                            <div className="info-item">
+                              <label><strong>{t('takes.changesLabel')}</strong>:</label>
+                              <span className="info-value">{take.changes}</span>
+                            </div>
+                          )}
+                          <div className="take-ratings readonly inline" aria-label={t('takes.quickRatingAria')}>
+                            {["DIR","DOP","VFX"].map((label, idx) => (
+                              <div key={`rating-ro-${take.id}-${i}-${idx}`} className="rating-item">
+                                <span className="rating-label">{label}</span>
+                                <span
+                                  className={`rating-dot ${take.ratings?.[idx] || 'none'}`}
+                                  title={`${label} ${t('takes.ratingTitlePrefix')}`}
+                                  aria-label={`${label} ${t('takes.ratingTitlePrefix')}: ${take.ratings?.[idx] || 'none'}`}
+                                />
+                              </div>
+                            ))}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+                      ));
+                    })()}
+                    {/* Ratings jetzt hinter jeder Zeile, globaler Block entfernt */}
                   </div>
                 </div>
               ))

@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { authRouter } from './auth.js';
 import { cloudConfigRouter } from './cloudConfig.js';
@@ -9,9 +10,20 @@ import { cloudConfigRouter } from './cloudConfig.js';
 import bcrypt from 'bcryptjs';
 import { getUserByEmail, createUser, setUserEmailVerified, setUserName } from './db.js';
 import { isMailerConfigured } from './mailer.js';
-import pkg from '../package.json' assert { type: 'json' };
 
 const app = express();
+
+// Robust: Version aus package.json via fs lesen (kompatibel mit breitem Node-Spektrum)
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+let APP_VERSION = '0.0.0';
+try {
+  const pkgRaw = fs.readFileSync(path.join(__dirname, '../package.json'), 'utf-8');
+  const pkg = JSON.parse(pkgRaw);
+  APP_VERSION = pkg?.version || APP_VERSION;
+} catch (e) {
+  // still default
+}
 
 // Dynamische CORS-Whitelist inkl. Cloudflare Pages (*.pages.dev)
 const allowedOrigins = [
@@ -95,7 +107,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     ok: true,
     service: 'vfx-supervision-api',
-    version: pkg?.version || '0.0.0',
+    version: APP_VERSION,
     uptimeSeconds: Math.round(process.uptime()),
     timestamp: new Date().toISOString(),
     mode: {
@@ -123,7 +135,7 @@ app.get('/api/auth/health', (req, res) => {
   res.json({
     ok: true,
     auth: true,
-    version: pkg?.version || '0.0.0',
+    version: APP_VERSION,
     mailerConfigured: isMailerConfigured(),
     platform,
     timestamp: new Date().toISOString(),
@@ -152,8 +164,6 @@ try {
 }
 
 // Serve static if needed in production (optional)
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 app.use(express.static(path.join(__dirname, '../dist')));
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));

@@ -571,15 +571,35 @@
 
 .take-content {
   display: grid;
-  grid-template-columns: 1fr 1fr auto;
+  grid-template-columns: 1fr; /* Zeilen untereinander */
   gap: 12px;
   align-items: start;
 }
 
-@media (max-width: 700px) {
-  .take-content {
-    grid-template-columns: 1fr;
-  }
+.take-setup-line .info-item {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.clip-id-inline {
+  font-size: 0.85rem;
+  color: var(--text-secondary, #666);
+}
+
+.dark-mode .clip-id-inline {
+  color: #cfcfcf;
+}
+
+.compact-settings {
+  font-size: 0.8rem;
+  color: var(--text-secondary, #666);
+  margin-top: 4px;
+}
+
+.dark-mode .compact-settings {
+  color: #cfcfcf;
 }
 
 .take-ratings {

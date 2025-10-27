@@ -231,7 +231,12 @@ const [annotator, setAnnotator] = useState({ open: false, shotId: null, imageUrl
         shutterAngle: '180°',
         imageStabilization: 'Aus',
         isAnamorphic: false,
-        lensStabilization: 'Aus'
+        lensStabilization: 'Aus',
+        // Clip-Benennung Defaults für Hauptsetup (A)
+        clipCameraIndex: 'A',
+        clipReelNumber: '001',
+        clipCounter: '001',
+        manualClipId: ''
       },
       cameraMovement: {
         movementType: '',

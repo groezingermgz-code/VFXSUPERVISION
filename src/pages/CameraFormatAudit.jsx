@@ -277,7 +277,7 @@ const CameraFormatAudit = () => {
               <th style={{ textAlign: 'left', padding: 8 }}>AR (recorded)</th>
               <th style={{ textAlign: 'left', padding: 8 }}>Codecs</th>
               <th style={{ textAlign: 'left', padding: 8 }}>Farbräume</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Hinweise</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{t('common.notes', 'Hinweise')}</th>
             </tr>
           </thead>
           <tbody>

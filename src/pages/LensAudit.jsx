@@ -113,7 +113,7 @@ const LensAudit = () => {
               <th style={{ textAlign: 'left', padding: 8 }}>Objektiv</th>
               <th style={{ textAlign: 'left', padding: 8 }}>Typ</th>
               <th style={{ textAlign: 'left', padding: 8 }}>Brennweite (mm)</th>
-              <th style={{ textAlign: 'left', padding: 8 }}>Hinweise</th>
+              <th style={{ textAlign: 'left', padding: 8 }}>{t('common.notes', 'Hinweise')}</th>
             </tr>
           </thead>
           <tbody>
