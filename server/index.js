@@ -84,6 +84,14 @@ app.get('/api', (req, res) => {
 });
 
 app.get('/api/health', (req, res) => {
+  const platform = {
+    isRender: !!process.env.RENDER,
+    serviceName: process.env.RENDER_SERVICE_NAME || null,
+    serviceId: process.env.RENDER_SERVICE_ID || null,
+    instanceId: process.env.RENDER_INSTANCE_ID || null,
+    externalUrl: process.env.RENDER_EXTERNAL_URL || null,
+  };
+
   res.json({
     ok: true,
     service: 'vfx-supervision-api',
@@ -94,6 +102,7 @@ app.get('/api/health', (req, res) => {
       openLoginMode: process.env.OPEN_LOGIN_MODE === 'true',
       disableRegistration: process.env.DISABLE_REGISTRATION === 'true',
     },
+    platform,
     endpoints: {
       health: '/api/health',
       authHealth: '/api/auth/health',
@@ -103,11 +112,20 @@ app.get('/api/health', (req, res) => {
 
 // Zusätzlicher Health‑Endpunkt für Auth/Mailer Setup
 app.get('/api/auth/health', (req, res) => {
+  const platform = {
+    isRender: !!process.env.RENDER,
+    serviceName: process.env.RENDER_SERVICE_NAME || null,
+    serviceId: process.env.RENDER_SERVICE_ID || null,
+    instanceId: process.env.RENDER_INSTANCE_ID || null,
+    externalUrl: process.env.RENDER_EXTERNAL_URL || null,
+  };
+
   res.json({
     ok: true,
     auth: true,
     version: pkg?.version || '0.0.0',
     mailerConfigured: isMailerConfigured(),
+    platform,
     timestamp: new Date().toISOString(),
   });
 });
