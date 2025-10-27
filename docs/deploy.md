@@ -43,6 +43,12 @@
   - `render.yaml` enthält `healthCheckPath: /api/health` (ist bereits so konfiguriert).
   - Bei sporadischen 502 hilft es, den Preflight erneut auszuführen oder kurz manuell die Render‑Basis‑URL im Browser zu öffnen (Warm‑up).
 
+#### Optional: Soft‑Fail im CI
+- Falls der Healthcheck gelegentlich fehlschlägt (z. B. wegen Render‑Cold‑Start), kann der Deploy nicht abgebrochen werden:
+  - Setze GitHub Repository‑Variable `HEALTHCHECK_SOFT_FAIL` = `true`.
+  - Der Workflow markiert den Schritt als Warnung und fährt fort.
+  - Nutze dies nur temporär; dauerhafte 502/Timeouts sollten behoben werden (siehe Troubleshooting).
+
 ## CORS
 - Der Server erlaubt lokale Dev-Origins und Domains unter `*.pages.dev` dynamisch.
 - Eigene Domain `der-automat.com` ist whitelistet.
@@ -84,6 +90,14 @@
 - Frontend‑Fallbacks:
   - Dev: `http://localhost:5174/api`
   - Prod: `'/api'` (relativ) — funktioniert nur, wenn Frontend und Backend unter derselben Domain laufen (nicht der Fall bei Pages + Render). Daher immer `VITE_API_URL` setzen.
+
+## Troubleshooting (502/Timeout)
+- Falsche `VITE_API_URL`: Stelle den Wert exakt auf `https://<render-service>.onrender.com/api`.
+- Render Cold‑Start: Free‑Plan braucht bis zu 2 Minuten; nutze Warm‑up (Browser öffnen) oder warte auf den CI‑Preflight.
+- Falscher Health‑Pfad: Prüfe `render.yaml` (`/api/health`) und ob der Server diesen Endpunkt liefert.
+- CORS/Domain‑Mismatch: Bei getrenntem Frontend/Backend setze `VITE_API_URL`; relative `'/api'` reicht nicht.
+- DNS/Propagation: Nach Domain‑Änderungen kann es zu temporären 502 kommen.
+- Rate‑Limits / Netzwerk: Wiederholte CI‑Pings können limitiert werden; der Workflow zeigt Header/Body‑Preview zur Diagnose an.
 
 ## Wichtige Klarstellung: Cloudflare Projekt vs. GitHub Repository
 - `CLOUDFLARE_PROJECT_NAME` bezieht sich auf den Namen des Cloudflare Pages Projekts (z. B. `vfx-supervision`). Dieser Name bestimmt die Pages-Subdomain (`https://vfx-supervision.pages.dev`).
