@@ -169,7 +169,7 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
-const PORT = parseInt(process.env.PORT || '5174', 10);
+const PORT = parseInt(process.env.PORT || '5180', 10);
 app.listen(PORT, () => {
   console.log(`Auth server running on http://localhost:${PORT}`);
   const isRender = !!process.env.RENDER;

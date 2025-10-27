@@ -50,17 +50,16 @@ const Notes = () => {
 
   const filteredNotes = notes.filter(note => {
     if (!filter) return true;
-    
     const filterLower = filter.toLowerCase();
     return (
       note.title.toLowerCase().includes(filterLower) ||
       note.content.toLowerCase().includes(filterLower) ||
-      note.tags.some(tag => tag.toLowerCase().includes(filterLower))
+      (Array.isArray(note.tags) && note.tags.some(tag => tag.toLowerCase().includes(filterLower)))
     );
   });
 
   // Alle Tags sammeln für die Filterauswahl
-  const allTags = [...new Set(notes.flatMap(note => note.tags))];
+  const allTags = [...new Set(notes.flatMap(note => Array.isArray(note.tags) ? note.tags : []))];
 
   return (
     <div className="notes-page">
@@ -111,7 +110,7 @@ const Notes = () => {
                 <img src={note.imageDataUrl} alt="Skizze" style={{ maxWidth: '100%', borderRadius: 8 }} />
               </div>
             )}
-            {note.tags.length > 0 && (
+            {Array.isArray(note.tags) && note.tags.length > 0 && (
               <div className="note-tags">
                 {note.tags.map(tag => (
                   <span className="tag" key={tag}>{tag}</span>

@@ -3,17 +3,7 @@ import { useLanguage } from '../contexts/LanguageContext';
 import './CameraSettings.css';
 import { cameraDatabase, cameraColorSpaces, getManufacturers, getModelsByManufacturer, flickerSafeGuidelines, logCExposureInfo, eiBehaviorNotes } from '../data/cameraDatabase';
 import { lensDatabase, getLensManufacturers, getLensesByManufacturer, getLensMeta, isZoomLens } from '../data/lensDatabase';
-
-// Exportiere die Presets als globale Variable, damit sie in anderen Komponenten verfügbar sind
-let globalPresets = [];
-
-export const getPresets = () => {
-  return globalPresets;
-};
-
-export const setGlobalPresets = (presets) => {
-  globalPresets = presets;
-};
+import { setGlobalPresets } from '../services/presetsStore';
 
 const CameraSettings = () => {
   const { t } = useLanguage();
@@ -275,6 +265,78 @@ const CameraSettings = () => {
                 name="iso" 
                 value={newPreset.iso} 
                 onChange={handlePresetChange} 
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('camera.format')}:</label>
+              <input 
+                type="text" 
+                name="format" 
+                value={newPreset.format || ''} 
+                onChange={handlePresetChange} 
+                placeholder="z.B. 4K UHD, Full HD"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>{t('camera.codec')}:</label>
+              <input 
+                type="text" 
+                name="codec" 
+                value={newPreset.codec || ''} 
+                onChange={handlePresetChange} 
+                placeholder="z.B. H.264, ProRes"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('camera.framerate')}:</label>
+              <input 
+                type="text" 
+                name="framerate" 
+                value={newPreset.framerate || ''} 
+                onChange={handlePresetChange} 
+                placeholder="z.B. 25 fps, 50 fps"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>{t('camera.shutterAngle')}:</label>
+              <input 
+                type="text" 
+                name="shutterAngle" 
+                value={newPreset.shutterAngle || ''} 
+                onChange={handlePresetChange} 
+                placeholder="z.B. 180°, 90°"
+              />
+            </div>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label>{t('camera.whiteBalance')}:</label>
+              <input 
+                type="text" 
+                name="whiteBalance" 
+                value={newPreset.whiteBalance || ''} 
+                onChange={handlePresetChange} 
+                placeholder="z.B. 5600K, Tungsten"
+              />
+            </div>
+            
+            <div className="form-group">
+              <label>{t('camera.colorSpace')}:</label>
+              <input 
+                type="text" 
+                name="colorSpace" 
+                value={newPreset.colorSpace || ''} 
+                onChange={handlePresetChange} 
+                placeholder="z.B. Rec.709, S-Log3"
               />
             </div>
           </div>

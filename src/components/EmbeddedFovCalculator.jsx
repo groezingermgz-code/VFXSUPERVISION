@@ -50,6 +50,8 @@ const EmbeddedFovCalculator = ({
   diagramOnly = false,
   slotAfterFocus = null,
   hideManualFocalInput = false,
+  titleHint,
+  disabled = false,
 }) => {
   const { t } = useLanguage();
   const [projectionType, setProjectionType] = useState('rectilinear');
@@ -214,7 +216,7 @@ const EmbeddedFovCalculator = ({
             <div className="control-row">
               <div className="form-group">
                 <label>{t('tools.fov.controls.manufacturer', 'Manufacturer')}</label>
-                <select value={selectedManufacturer || ''} onChange={onManufacturerChange}>
+                <select value={selectedManufacturer || ''} onChange={onManufacturerChange} disabled={disabled}>
                   <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
                   {manufacturers.map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -223,7 +225,7 @@ const EmbeddedFovCalculator = ({
               </div>
               <div className="form-group">
                 <label>{t('tools.fov.controls.camera', 'Camera')}</label>
-                <select value={selectedModel || ''} onChange={onModelChange} disabled={!selectedManufacturer}>
+                <select value={selectedModel || ''} onChange={onModelChange} disabled={disabled || !selectedManufacturer}>
                   <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
                   {models.map(m => (
                     <option key={m} value={m}>{m}</option>
@@ -232,7 +234,7 @@ const EmbeddedFovCalculator = ({
               </div>
               <div className="form-group">
                 <label>{t('tools.fov.controls.format', 'Format')}</label>
-                <select value={settings?.format || ''} onChange={onCameraChange} name="format" disabled={!selectedModel}>
+                <select value={settings?.format || ''} onChange={onCameraChange} name="format" disabled={disabled || !selectedModel}>
                   <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
                   {formats.map(f => (
                     <option key={f} value={f}>{f}</option>
@@ -245,7 +247,7 @@ const EmbeddedFovCalculator = ({
           <div className="control-row">
             <div className="form-group">
               <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.lensManufacturer', 'Lens Manufacturer')}</label>
-              <select value={selectedLensManufacturer || ''} onChange={onLensManufacturerChange} style={{ color: (!selectedLensManufacturer ? 'red' : undefined) }}>
+              <select value={selectedLensManufacturer || ''} onChange={onLensManufacturerChange} disabled={disabled} style={{ color: (!selectedLensManufacturer ? 'red' : undefined) }}>
                 <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
                 {lensManufacturers.map(m => (
                   <option key={m} value={m}>{m}</option>
@@ -268,7 +270,7 @@ const EmbeddedFovCalculator = ({
                   setAnamorphicFactor(af);
                   onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(af) } });
                 }}
-                disabled={!selectedLensManufacturer}
+                disabled={disabled || !selectedLensManufacturer}
                 style={{ color: (!selectedLens ? 'red' : undefined) }}
               >
                 <option value="">{t('tools.fov.controls.selectPrompt', 'Please select…')}</option>
@@ -286,28 +288,30 @@ const EmbeddedFovCalculator = ({
                   const yes = e.target.value === 'yes';
                   onAnamorphicToggle?.({ target: { checked: yes } });
                 }}
+                disabled={disabled}
               >
                 <option value="no">{t('common.no', 'Nein')}</option>
                 <option value="yes">{t('common.yes', 'Ja')}</option>
               </select>
             </div>
-            {!!isAnamorphicEnabled && (
-              <div className="form-group">
-                <label>{t('tools.fov.controls.anamorphFactor', 'Squeeze‑Faktor')}</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  min="1"
-                  value={String(anamorphicFactor || 1)}
-                  onChange={(e) => {
-                    const v = parseFloat(e.target.value);
-                    const next = (!isNaN(v) && v >= 1) ? v : 1;
-                    setAnamorphicFactor(next);
-                    onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(next) } });
-                  }}
-                />
-              </div>
-            )}
+              {!!isAnamorphicEnabled && (
+                <div className="form-group">
+                  <label>{t('tools.fov.controls.anamorphFactor', 'Squeeze‑Faktor')}</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="1"
+                    value={String(anamorphicFactor || 1)}
+                    onChange={(e) => {
+                      const v = parseFloat(e.target.value);
+                      const next = (!isNaN(v) && v >= 1) ? v : 1;
+                      setAnamorphicFactor(next);
+                      onCameraChange?.({ target: { name: 'anamorphicFactor', value: String(next) } });
+                    }}
+                    disabled={disabled}
+                  />
+                </div>
+              )}
             {/* Squeeze‑Faktor Block wird weiter oben direkt nach der Lens‑Auswahl eingefügt */}
             {/* Lens Stabilization wurde unter Focus Distance verschoben */}
           </div>
@@ -350,18 +354,19 @@ const EmbeddedFovCalculator = ({
                   onCameraChange({ target: { name: 'focalLength', value: v } });
                 }}
                 style={{ color: (!settings?.focalLength ? 'red' : undefined) }}
+                disabled={disabled}
               />
               {isZoomLens(selectedLensManufacturer, selectedLens) && !hideManualFocalInput && (
                 null
               )}
             </div>
-            {isZoomLens(selectedLensManufacturer, selectedLens) && !hideManualFocalInput && (
-              <div className="form-group">
-                <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.manualFocalLength', 'Brennweite (manuell)')}</label>
-                <input
-                  type="number"
-                  name="focalLength"
-                  step="0.1"
+              {isZoomLens(selectedLensManufacturer, selectedLens) && !hideManualFocalInput && (
+                <div className="form-group">
+                  <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.manualFocalLength', 'Brennweite (manuell)')}</label>
+                  <input
+                    type="number"
+                    name="focalLength"
+                    step="0.1"
                   placeholder={(function(){
                     const m = getLensMeta(selectedLensManufacturer, selectedLens);
                     if (!m || m.minMm == null || m.maxMm == null) return t('lens.focalLengthPlaceholderShort', 'z. B. 35');
@@ -375,8 +380,8 @@ const EmbeddedFovCalculator = ({
                     const m = getLensMeta(selectedLensManufacturer, selectedLens);
                     return (m && m.maxMm != null) ? m.maxMm : undefined;
                   })()}
-                  value={settings?.focalLength || ''}
-                  onChange={(e) => {
+                    value={settings?.focalLength || ''}
+                    onChange={(e) => {
                     const m = getLensMeta(selectedLensManufacturer, selectedLens);
                     let v = sanitizeDecimal(e.target.value);
                     if (m && m.minMm != null && m.maxMm != null) {
@@ -386,12 +391,13 @@ const EmbeddedFovCalculator = ({
                         v = String(clamped);
                       }
                     }
-                    onCameraChange({ target: { name: 'focalLength', value: v } });
-                  }}
-                  style={{ marginTop: '4px' }}
-                />
-              </div>
-            )}
+                      onCameraChange({ target: { name: 'focalLength', value: v } });
+                    }}
+                    style={{ marginTop: '4px' }}
+                    disabled={disabled}
+                  />
+                </div>
+              )}
             <div className="form-group">
               <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.apertureFN', 'Aperture (f/N)')}</label>
               <input
@@ -405,6 +411,7 @@ const EmbeddedFovCalculator = ({
                   onCameraChange({ target: { name: 'aperture', value: v } });
                 }}
                 style={{ color: (!settings?.aperture ? 'red' : undefined) }}
+                disabled={disabled}
               />
             </div>
             {isZoomLens(selectedLensManufacturer, selectedLens) && !hideManualFocalInput && (
@@ -421,6 +428,7 @@ const EmbeddedFovCalculator = ({
                       const v = sanitizeDecimal(e.target.value);
                       onCameraChange({ target: { name: 'focusDistance', value: e.target.value } });
                     }}
+                    disabled={disabled}
                   />
                 </div>
                 <div className="form-group" style={{flex: 1}}>
@@ -432,6 +440,7 @@ const EmbeddedFovCalculator = ({
                     step="0.1"
                     value={Number(parseFloat(settings?.focusDistance ?? 3) || 3)}
                     onChange={(e) => onCameraChange({ target: { name: 'focusDistance', value: e.target.value } })}
+                    disabled={disabled}
                   />
                   <div className="value">{(parseFloat(settings?.focusDistance ?? 3) || 3).toFixed(2)} m</div>
                 </div>
@@ -444,28 +453,30 @@ const EmbeddedFovCalculator = ({
             <div className="control-row">
               <div className="form-group">
                 <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.focusDistance', 'Focus Distance (m)')}</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  placeholder="e.g., 5"
-                  name="focusDistance"
-                  value={settings?.focusDistance ?? '3'}
-                  onChange={(e) => {
-                    const v = sanitizeDecimal(e.target.value);
-                    onCameraChange({ target: { name: 'focusDistance', value: e.target.value } });
-                  }}
-                />
+              <input
+                type="text"
+                inputMode="decimal"
+                placeholder="e.g., 5"
+                name="focusDistance"
+                value={settings?.focusDistance ?? '3'}
+                onChange={(e) => {
+                  const v = sanitizeDecimal(e.target.value);
+                  onCameraChange({ target: { name: 'focusDistance', value: e.target.value } });
+                }}
+                disabled={disabled}
+              />
               </div>
               <div className="form-group" style={{flex: 1}}>
                 <label style={{ color: '#6cbc75' }}>{t('tools.fov.controls.focusDistance', 'Focus Distance')}</label>
-                <input
-                  type="range"
-                  min="0.3"
-                  max="100"
-                  step="0.1"
-                  value={Number(parseFloat(settings?.focusDistance ?? 3) || 3)}
-                  onChange={(e) => onCameraChange({ target: { name: 'focusDistance', value: e.target.value } })}
-                />
+              <input
+                type="range"
+                min="0.3"
+                max="100"
+                step="0.1"
+                value={Number(parseFloat(settings?.focusDistance ?? 3) || 3)}
+                onChange={(e) => onCameraChange({ target: { name: 'focusDistance', value: e.target.value } })}
+                disabled={disabled}
+              />
                 <div className="value">{(parseFloat(settings?.focusDistance ?? 3) || 3).toFixed(2)} m</div>
               </div>
             </div>
@@ -486,6 +497,7 @@ const EmbeddedFovCalculator = ({
                 name="lensStabilization" 
                 value={settings?.lensStabilization || 'Aus'}
                 onChange={onCameraChange}
+                disabled={disabled}
               >
                 <option value="">{t('common.select')}</option>
                 <option value="Aus">{t('common.off')}</option>
@@ -500,6 +512,7 @@ const EmbeddedFovCalculator = ({
                   value={settings?.manualLensStabilization || ''}
                   onChange={onCameraChange}
                   style={{ marginTop: '8px' }}
+                  disabled={disabled}
                 />
               )}
             </div>
@@ -577,7 +590,12 @@ const EmbeddedFovCalculator = ({
       )}
 
       <div className="card" style={plain ? { background: 'transparent', boxShadow: 'none', border: 'none' } : undefined}>
-        <h3 style={plain ? { fontSize: 14, marginBottom: 6 } : undefined}>{t('tools.fov.controls.diagramTitle', 'FOV Diagram')}</h3>
+        <h3 style={plain ? { fontSize: 14, marginBottom: 6 } : undefined}>
+          {t('tools.fov.controls.diagramTitle', 'FOV Diagram')}
+          {titleHint ? (
+            <span style={{ color: 'var(--color-success, #2ecc71)' }}> ({titleHint})</span>
+          ) : ''}
+        </h3>
         <div className="fov-diagram-grid">
           <div>
             <div className="panel-title">{t('tools.fov.controls.panel2D', '2D')}</div>

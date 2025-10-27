@@ -31,6 +31,7 @@ const translations = {
       teams: "Teams",
       cameraControl: "Camera Control (Beta)",
     },
+    
     takes: {
       title: "Takes",
       add: "Take hinzufügen",
@@ -296,6 +297,7 @@ const translations = {
       setupLabel: "Setup",
     },
     camera: {
+      lockSetup: "Setup sperren",
       manufacturer: "Hersteller",
       model: "Kamera",
       sensor: "Sensor",
@@ -538,6 +540,7 @@ const translations = {
         hintTitle: "Hinweis",
         hintText:
           "Schematische Darstellung. Zeigt Winkelbeziehungen und Sensormaßstab, keine Projektion/Verzeichnung.",
+        requiredFieldsHint: "Alle grünen Felder ausfüllen damit die Berechnung funktioniert",
         controls: {
           manufacturer: "Hersteller",
           camera: "Kamera",
@@ -876,6 +879,7 @@ const translations = {
       setupLabel: "Setup",
     },
     camera: {
+      lockSetup: "Lock setup",
       manufacturer: "Manufacturer",
       model: "Camera",
       sensor: "Sensor",
@@ -1114,6 +1118,7 @@ const translations = {
         hintTitle: "Note",
         hintText:
           "Schematic view: angles and sensor scale, not lens distortion.",
+        requiredFieldsHint: "Fill all green fields so the calculation works",
         controls: {
           manufacturer: "Manufacturer",
           camera: "Camera",
@@ -1326,6 +1331,7 @@ const translations = {
       setupLabel: "Setup",
     },
     camera: {
+      lockSetup: "Verrouiller le setup",
       manufacturer: "Fabricant",
       model: "Caméra",
       sensor: "Capteur",
@@ -1747,6 +1753,7 @@ const translations = {
       framerate: "Frecuencia de fotogramas",
       shutter: "Velocidad de obturación",
       shutterAngle: "Ángulo de obturación",
+      lockSetup: "Bloquear setup",
       wb: "Balance de blancos",
       format: "Formato",
       codec: "Códec",
@@ -2044,5 +2051,4 @@ export const LanguageProvider = ({ children }) => {
 };
 
 export const useLanguage = () => useContext(LanguageContext);
-
-export default LanguageContext;
+export default LanguageProvider;

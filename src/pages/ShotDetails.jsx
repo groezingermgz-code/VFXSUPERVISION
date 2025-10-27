@@ -40,7 +40,7 @@ import {
   extractAnamorphicFactor,
   extractFocalLength
 } from '../utils/fovCalculator';
-import { getPresets } from './CameraSettings';
+import { getPresets } from '../services/presetsStore';
 import { 
   loadShotFromFile, 
   saveShotToFile, 
@@ -107,6 +107,16 @@ const ShotDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { t } = useLanguage();
+
+  // Preset handling for Camera Setup
+  const [presetsList, setPresetsList] = useState([]);
+  const [selectedPresetId, setSelectedPresetId] = useState('');
+  useEffect(() => {
+    try {
+      const list = getPresets() || [];
+      setPresetsList(Array.isArray(list) ? list : []);
+    } catch {}
+  }, []);
 
   // HDRI Bracket (Beta): read latest camera bracket session from localStorage and sync via event
   const [latestBracket, setLatestBracket] = useState(null);
@@ -211,6 +221,8 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   const [isAnamorphicEnabled, setIsAnamorphicEnabled] = useState(false);
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [filterToAdd, setFilterToAdd] = useState('');
+  // Overrides: Draft state per Take for inline add form
+  const [takeOverrideDrafts, setTakeOverrideDrafts] = useState({});
 
   const [selectedSetupIndex, setSelectedSetupIndex] = useState(0);
 
@@ -220,6 +232,8 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   const [isCameraMovementCollapsed, setCameraMovementCollapsed] = useState(false);
   const [isVfxTasksCollapsed, setVfxTasksCollapsed] = useState(false);
   const [isReferencesCollapsed, setReferencesCollapsed] = useState(false);
+
+  // Einklappen, wenn Setup gelockt ist (nach Deklaration von isCameraSetupLocked)
 
   // TAKES helpers
   const getShotBaseName = () => {
@@ -269,6 +283,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
       version: nextVersion,
       note: '',
       changes: '',
+      setupOverrides: {},
       ratings: ['none', 'none', 'none'],
       clipId,
       setupClipIds
@@ -355,6 +370,56 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
     setEditedShot(updatedShot);
     autoSaveShotToFile(id, updatedShot);
   };
+
+  // Overrides handlers
+  const setOverrideDraft = (takeId, setupIdx, field, value) => {
+    setTakeOverrideDrafts(prev => {
+      const prevTake = prev[takeId] || {};
+      const prevDraft = prevTake[setupIdx] || { type: '', text: '' };
+      const nextDraft = {
+        type: field === 'type' ? value : (prevDraft.type || ''),
+        text: field === 'text' ? value : (prevDraft.text || ''),
+      };
+      return { ...prev, [takeId]: { ...prevTake, [setupIdx]: nextDraft } };
+    });
+  };
+
+  const addTakeOverride = (takeId, setupIdx) => {
+    const draft = takeOverrideDrafts[takeId]?.[setupIdx] || { type: '', text: '' };
+    const type = String(draft.type || '').trim();
+    const text = String(draft.text || '').trim();
+    if (!type && !text) return; // nothing to add
+    const updatedTakes = (editedShot?.takes || []).map(t => {
+      if (t.id !== takeId) return t;
+      const current = t.setupOverrides || {};
+      const arr = Array.isArray(current[setupIdx]) ? [...current[setupIdx]] : [];
+      arr.push({ type, text, ts: Date.now() });
+      const updatedOverrides = { ...current, [setupIdx]: arr };
+      return { ...t, setupOverrides: updatedOverrides };
+    });
+    const updatedShot = { ...editedShot, takes: updatedTakes };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+    // clear draft after add
+    setTakeOverrideDrafts(prev => {
+      const prevTake = prev[takeId] || {};
+      return { ...prev, [takeId]: { ...prevTake, [setupIdx]: { type: '', text: '' } } };
+    });
+  };
+
+  const removeTakeOverride = (takeId, setupIdx, index) => {
+    const updatedTakes = (editedShot?.takes || []).map(t => {
+      if (t.id !== takeId) return t;
+      const current = t.setupOverrides || {};
+      const arr = Array.isArray(current[setupIdx]) ? [...current[setupIdx]] : [];
+      arr.splice(index, 1);
+      const updatedOverrides = { ...current, [setupIdx]: arr };
+      return { ...t, setupOverrides: updatedOverrides };
+    });
+    const updatedShot = { ...editedShot, takes: updatedTakes };
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
+  };
   const cycleColor = (c) => {
     if (c === 'none') return 'green';
     if (c === 'green') return 'yellow';
@@ -383,9 +448,18 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   const currentEditedCameraSettings = selectedSetupIndex === 0
     ? (editedShot?.cameraSettings || {})
     : ((editedShot?.additionalCameraSetups?.[selectedSetupIndex - 1]?.cameraSettings) || {});
+  const isCameraSetupLocked = Boolean(currentEditedCameraSettings?.cameraSetupLocked);
   const currentEditedCameraMovement = selectedSetupIndex === 0
     ? (editedShot?.cameraMovement || {})
     : ((editedShot?.additionalCameraSetups?.[selectedSetupIndex - 1]?.cameraMovement) || {});
+
+  // Wenn Setup gelockt ist, Inhalte automatisch einklappen
+  useEffect(() => {
+    if (isCameraSetupLocked) {
+      setCameraSettingsCollapsed(true);
+      setLensSettingsCollapsed(true);
+    }
+  }, [isCameraSetupLocked]);
 
   // Anzeige-Referenzen für Nicht-Bearbeitungsmodus
   const currentShotCameraSettings = selectedSetupIndex === 0
@@ -697,7 +771,8 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
           clipCameraIndex: String(((shotData.cameraSettings || {}).clipCameraIndex || 'A')).toUpperCase().replace(/[^A-Z]/g, '').slice(0,1),
           clipReelNumber: String(((shotData.cameraSettings || {}).clipReelNumber || '001')).replace(/\D/g, '').padStart(3, '0'),
           clipCounter: String(((shotData.cameraSettings || {}).clipCounter || '001')).replace(/\D/g, '').padStart(3, '0'),
-          manualClipId: String(((shotData.cameraSettings || {}).manualClipId || '')).trim()
+          manualClipId: String(((shotData.cameraSettings || {}).manualClipId || '')).trim(),
+          cameraSetupLocked: Boolean(((shotData.cameraSettings || {}).cameraSetupLocked))
         };
 
         const baseReel = normalizedCameraSettings.clipReelNumber || '001';
@@ -710,7 +785,8 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
                 clipCameraIndex: String(cs.clipCameraIndex || defaultIndex).toUpperCase().replace(/[^A-Z]/g, '').slice(0,1),
                 clipReelNumber: String(cs.clipReelNumber || baseReel || '001').replace(/\D/g, '').padStart(3, '0'),
                 clipCounter: String(cs.clipCounter || '001').replace(/\D/g, '').padStart(3, '0'),
-                manualClipId: String(cs.manualClipId || '').trim()
+                manualClipId: String(cs.manualClipId || '').trim(),
+                cameraSetupLocked: Boolean(cs.cameraSetupLocked)
               };
               return {
                 ...setup,
@@ -894,6 +970,31 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
     setIsEditing(false);
   };
 
+  const handleCameraSetupLockToggle = (e) => {
+    const locked = e.target.checked;
+    const updatedShot = (selectedSetupIndex === 0)
+      ? {
+          ...editedShot,
+          cameraSettings: {
+            ...(editedShot.cameraSettings || {}),
+            cameraSetupLocked: locked
+          }
+        }
+      : {
+          ...editedShot,
+          additionalCameraSetups: (() => {
+            const arr = Array.isArray(editedShot.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
+            const idx = selectedSetupIndex - 1;
+            const setup = { ...(arr[idx] || { cameraSettings: {}, cameraMovement: {} }) };
+            setup.cameraSettings = { ...(setup.cameraSettings || {}), cameraSetupLocked: locked };
+            arr[idx] = setup;
+            return arr;
+          })()
+        };
+    setEditedShot(updatedShot);
+    try { autoSaveShotToFile(id, updatedShot); } catch (err) {}
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setEditedShot(prev => ({
@@ -903,6 +1004,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   };
 
   const handleCameraChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const { name, value } = e.target;
     let sanitizedValue = value;
     if (name === 'clipReelNumber' || name === 'clipCounter') {
@@ -954,6 +1056,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
 
   // ISO Auswahl- und Custom-Handling
   const handleISOSelectChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const value = e.target.value;
     setEditedShot(prev => {
       const compute = (base) => ({
@@ -982,6 +1085,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   };
 
   const handleManualISOChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const value = e.target.value;
     setEditedShot(prev => {
       if (selectedSetupIndex === 0) {
@@ -1001,6 +1105,88 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
       additional[idx] = setup;
       return { ...prev, additionalCameraSetups: additional };
     });
+  };
+
+  // Apply a camera/lens preset to the current setup
+  const handleApplyPreset = () => {
+    if (isCameraSetupLocked) return;
+    const preset = presetsList.find(p => String(p.id) === String(selectedPresetId));
+    if (!preset) return;
+
+    // Apply camera manufacturer and model via existing handlers
+    if (preset.cameraManufacturer) {
+      handleManufacturerChange({ target: { value: preset.cameraManufacturer } });
+      if (preset.cameraModel) {
+        setTimeout(() => {
+          handleModelChange({ target: { value: preset.cameraModel } });
+        }, 0);
+      }
+    }
+
+    // Apply lens manufacturer and model via existing handlers
+    if (preset.lensManufacturer) {
+      setTimeout(() => {
+        handleLensManufacturerChange({ target: { value: preset.lensManufacturer } });
+        if (preset.lensModel) {
+          setTimeout(() => {
+            handleLensChange({ target: { value: preset.lensModel } });
+          }, 0);
+        }
+      }, 0);
+    }
+
+    // Apply ISO using ISO handlers (supports custom values)
+    const isoVal = String(preset.iso || '').trim();
+    if (isoVal) {
+      const allowed = ['100','125','160','200','250','320','400','500','640','800','1000','1250','1600','2000','2500','3200','4000','5000','6400'];
+      if (allowed.includes(isoVal)) {
+        handleISOSelectChange({ target: { value: isoVal } });
+      } else {
+        handleISOSelectChange({ target: { value: 'Custom' } });
+        handleManualISOChange({ target: { value: isoVal } });
+      }
+    }
+
+    // Apply aperture, focal length and additional camera settings directly
+    const updatedShot = (selectedSetupIndex === 0)
+      ? {
+          ...editedShot,
+          cameraSettings: {
+            ...editedShot.cameraSettings,
+            ...(preset.aperture ? { aperture: preset.aperture } : {}),
+            ...(preset.focalLength ? { focalLength: preset.focalLength } : {}),
+            ...(preset.format ? { format: preset.format } : {}),
+            ...(preset.codec ? { codec: preset.codec } : {}),
+            ...(preset.framerate ? { framerate: preset.framerate } : {}),
+            ...(preset.shutterAngle ? { shutterAngle: preset.shutterAngle } : {}),
+            ...(preset.whiteBalance ? { whiteBalance: preset.whiteBalance } : {}),
+            ...(preset.colorSpace ? { colorSpace: preset.colorSpace } : {})
+          }
+        }
+      : {
+          ...editedShot,
+          additionalCameraSetups: (() => {
+            const arr = Array.isArray(editedShot.additionalCameraSetups) ? [...editedShot.additionalCameraSetups] : [];
+            const idx = selectedSetupIndex - 1;
+            const setup = { ...(arr[idx] || { cameraSettings: {}, cameraMovement: {} }) };
+            setup.cameraSettings = {
+              ...(setup.cameraSettings || {}),
+              ...(preset.aperture ? { aperture: preset.aperture } : {}),
+              ...(preset.focalLength ? { focalLength: preset.focalLength } : {}),
+              ...(preset.format ? { format: preset.format } : {}),
+              ...(preset.codec ? { codec: preset.codec } : {}),
+              ...(preset.framerate ? { framerate: preset.framerate } : {}),
+              ...(preset.shutterAngle ? { shutterAngle: preset.shutterAngle } : {}),
+              ...(preset.whiteBalance ? { whiteBalance: preset.whiteBalance } : {}),
+              ...(preset.colorSpace ? { colorSpace: preset.colorSpace } : {})
+            };
+            arr[idx] = setup;
+            return arr;
+          })()
+        };
+
+    setEditedShot(updatedShot);
+    autoSaveShotToFile(id, updatedShot);
   };
 
   const handleVFXChange = (e) => {
@@ -1108,6 +1294,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   };
 
   const handleManufacturerChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const manufacturer = e.target.value;
     setSelectedManufacturer(manufacturer);
     setSelectedModel('');
@@ -1154,6 +1341,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   };
 
   const handleModelChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const model = e.target.value;
     setSelectedModel(model);
     
@@ -1259,6 +1447,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   };
 
   const handleLensManufacturerChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const manufacturer = e.target.value;
     setSelectedLensManufacturer(manufacturer);
     setSelectedLens('');
@@ -1306,6 +1495,7 @@ const [annotatorState, setAnnotatorState] = useState({ open: false, refId: null,
   };
 
   const handleLensChange = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const lens = e.target.value;
     setSelectedLens(lens);
     
@@ -1406,6 +1596,7 @@ const updatedShot = (selectedSetupIndex === 0)
   };
 
   const handleAnamorphicToggle = (e) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const isEnabled = e.target.checked;
     setIsAnamorphicEnabled(isEnabled);
     setSelectedLensManufacturer('');
@@ -1478,11 +1669,13 @@ const updatedShot = (selectedSetupIndex === 0)
   };
 
   const handleAddFilter = () => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     addFilter(filterToAdd);
     setFilterToAdd('');
   };
 
   const handleRemoveFilter = (filter) => {
+    if (currentEditedCameraSettings?.cameraSetupLocked) return;
     const newFilters = selectedFilters.filter(f => f !== filter);
     setSelectedFilters(newFilters);
     const updatedShot = (selectedSetupIndex === 0)
@@ -1895,16 +2088,50 @@ const updatedShot = (selectedSetupIndex === 0)
         <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2>{t('section.cameraSettings')}</h2>
           {isEditing && (
-            <button
-              type="button"
-              className="collapse-toggle"
-              onClick={() => setCameraSettingsCollapsed(prev => !prev)}
-              aria-label={isCameraSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
-              title={isCameraSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
-            >
-              {isCameraSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={isCameraSetupLocked}
+                  onChange={handleCameraSetupLockToggle}
+                />
+                {t('camera.lockSetup')}
+              </label>
+              {!isCameraSetupLocked && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <select
+                    value={selectedPresetId}
+                    onChange={(e) => setSelectedPresetId(e.target.value)}
+                    style={{ padding: '6px 8px' }}
+                  >
+                    <option value="">{t('camera.selectPreset', 'Preset wählen')}</option>
+                    {presetsList.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    className="btn btn-secondary"
+                    onClick={handleApplyPreset}
+                    disabled={!selectedPresetId}
+                  >
+                    {t('camera.loadPreset', 'Preset laden')}
+                  </button>
+                </div>
+              )}
+              {!isCameraSetupLocked && (
+                <button
+                  type="button"
+                  className="collapse-toggle"
+                  onClick={() => setCameraSettingsCollapsed(prev => !prev)}
+                  aria-label={isCameraSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+                  title={isCameraSettingsCollapsed ? 'Erweitern' : 'Minimieren'}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+                >
+                  {isCameraSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+                </button>
+              )}
+            </div>
           )}
         </div>
         {!isEditing ? (
@@ -2176,6 +2403,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   value={selectedManufacturer} 
                   onChange={handleManufacturerChange}
                   style={{ color: (!selectedManufacturer ? 'red' : undefined) }}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('camera.selectManufacturer')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2193,6 +2421,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualManufacturer || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2203,6 +2432,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   value={selectedModel} 
                   onChange={handleModelChange}
                   style={{ color: (!selectedModel ? 'red' : undefined) }}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('camera.selectModel')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2220,6 +2450,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualModel || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2232,7 +2463,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="format" 
                   value={currentEditedCameraSettings.format || ''} 
                   onChange={handleCameraChange}
-                  disabled={!selectedModel}
+                  disabled={!selectedModel || isCameraSetupLocked}
                   style={{ color: (!(currentEditedCameraSettings.format) ? 'red' : undefined) }}
                 >
                   <option value="">{t('camera.selectFormat')}</option>
@@ -2251,6 +2482,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualFormat || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2260,7 +2492,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="codec" 
                   value={currentEditedCameraSettings.codec || ''} 
                   onChange={handleCameraChange}
-                  disabled={!selectedModel}
+                  disabled={!selectedModel || isCameraSetupLocked}
                   style={{ color: (!(currentEditedCameraSettings.codec) ? 'red' : undefined) }}
                 >
                   <option value="">{t('camera.selectCodec')}</option>
@@ -2279,6 +2511,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualCodec || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2291,7 +2524,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="colorSpace" 
                   value={currentEditedCameraSettings.colorSpace || ''} 
                   onChange={handleCameraChange}
-                  disabled={!selectedModel}
+                  disabled={!selectedModel || isCameraSetupLocked}
                 >
                   <option value="">{t('camera.selectColorSpace')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2309,6 +2542,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualColorSpace || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2318,6 +2552,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="whiteBalance" 
                   value={currentEditedCameraSettings.whiteBalance || ''} 
                   onChange={handleCameraChange}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Auto">{t('common.auto')}</option>
@@ -2336,6 +2571,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualWhiteBalance || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2348,6 +2584,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="lut"
                   value={currentEditedCameraSettings.lut || ''}
                   onChange={handleCameraChange}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('camera.selectLut')}</option>
                   {availableLuts.map(lut => (
@@ -2365,6 +2602,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   value={currentEditedCameraSettings.isoSelection || currentEditedCameraSettings.iso || '400'} 
                   onChange={handleISOSelectChange}
                   style={{ color: (!((currentEditedCameraSettings.isoSelection || currentEditedCameraSettings.iso))) ? 'red' : undefined }}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="100">100</option>
@@ -2396,6 +2634,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualISO || currentEditedCameraSettings.iso || ''}
                     onChange={handleManualISOChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2405,7 +2644,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="framerate" 
                   value={currentEditedCameraSettings.framerate || '25 fps'} 
                   onChange={handleCameraChange}
-                  disabled={!selectedModel || !currentEditedCameraSettings.codec}
+                  disabled={!selectedModel || !currentEditedCameraSettings.codec || isCameraSetupLocked}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2421,6 +2660,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualFramerate || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2433,6 +2673,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="shutterAngle" 
                   value={currentEditedCameraSettings.shutterAngle || '180°'} 
                   onChange={handleCameraChange}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Manuell">{t('common.manual')}</option>
@@ -2450,6 +2691,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualShutterAngle || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2459,6 +2701,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="imageStabilization" 
                   value={currentEditedCameraSettings.imageStabilization || 'Aus'} 
                   onChange={handleCameraChange}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Aus">{t('camera.imageStabilizationOptions.off')}</option>
@@ -2475,6 +2718,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualImageStabilization || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2487,6 +2731,7 @@ const updatedShot = (selectedSetupIndex === 0)
                   name="ndFilter" 
                   value={currentEditedCameraSettings.ndFilter || ''} 
                   onChange={handleCameraChange}
+                  disabled={isCameraSetupLocked}
                 >
                   <option value="">{t('common.select')}</option>
                   <option value="Kein">{t('camera.ndFilterOptions.none')}</option>
@@ -2506,6 +2751,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     value={currentEditedCameraSettings.manualNDFilter || ''}
                     onChange={handleCameraChange}
                     style={{ marginTop: '8px' }}
+                    disabled={isCameraSetupLocked}
                   />
                 )}
               </div>
@@ -2523,6 +2769,7 @@ const updatedShot = (selectedSetupIndex === 0)
                       placeholder={t('clip.cameraIndexPlaceholder', 'A')}
                       value={currentEditedCameraSettings.clipCameraIndex || ''}
                       onChange={handleCameraChange}
+                      disabled={isCameraSetupLocked}
                     />
                   </div>
                   <div className="form-group">
@@ -2536,6 +2783,7 @@ const updatedShot = (selectedSetupIndex === 0)
                       placeholder={t('clip.reelNumberPlaceholder', '001')}
                       value={currentEditedCameraSettings.clipReelNumber || ''}
                       onChange={handleCameraChange}
+                      disabled={isCameraSetupLocked}
                     />
                   </div>
                   <div className="form-group">
@@ -2549,6 +2797,7 @@ const updatedShot = (selectedSetupIndex === 0)
                       placeholder={t('clip.clipNumberPlaceholder', '001')}
                       value={currentEditedCameraSettings.clipCounter || ''}
                       onChange={handleCameraChange}
+                      disabled={isCameraSetupLocked}
                     />
                   </div>
                   <div className="form-group" style={{ minWidth: '240px' }}>
@@ -2559,6 +2808,7 @@ const updatedShot = (selectedSetupIndex === 0)
                       placeholder={t('clip.manualIdPlaceholder', 'frei')}
                       value={currentEditedCameraSettings.manualClipId || ''}
                       onChange={handleCameraChange}
+                      disabled={isCameraSetupLocked}
                     />
                   </div>
                 </div>
@@ -2577,16 +2827,18 @@ const updatedShot = (selectedSetupIndex === 0)
         <div className="card-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2>{t('section.lensSettings')}</h2>
           {isEditing && (
-            <button
-              type="button"
-              className="collapse-toggle"
-              onClick={() => setLensSettingsCollapsed(prev => !prev)}
-              aria-label={isLensSettingsCollapsed ? t('common.expand') : t('common.collapse')}
-              title={isLensSettingsCollapsed ? t('common.expand') : t('common.collapse')}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
-            >
-              {isLensSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
-            </button>
+            !isCameraSetupLocked && (
+              <button
+                type="button"
+                className="collapse-toggle"
+                onClick={() => setLensSettingsCollapsed(prev => !prev)}
+                aria-label={isLensSettingsCollapsed ? t('common.expand') : t('common.collapse')}
+                title={isLensSettingsCollapsed ? t('common.expand') : t('common.collapse')}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, lineHeight: 1 }}
+              >
+                {isLensSettingsCollapsed ? (<FiChevronDown size={24} />) : (<FiChevronUp size={24} />)}
+              </button>
+            )
           )}
         </div>
         {!isEditing ? (
@@ -2878,10 +3130,12 @@ const updatedShot = (selectedSetupIndex === 0)
               onLensManufacturerChange={handleLensManufacturerChange}
               onLensChange={handleLensChange}
               onAnamorphicToggle={handleAnamorphicToggle}
+              disabled={isCameraSetupLocked}
               compact={true}
               hideCameraSelectors={true}
               plain={true}
               hideManualFocalInput={false}
+              titleHint={t('tools.fov.requiredFieldsHint', 'Alle grünen Felder ausfüllen damit die Berechnung funktioniert')}
               slotAfterFocus={(
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <div className="form-group">
@@ -2890,6 +3144,7 @@ const updatedShot = (selectedSetupIndex === 0)
                       name="filters"
                       value={filterToAdd}
                       onChange={handleFilterSelectChange}
+                      disabled={isCameraSetupLocked}
                     >
                       <option value="">{t('common.select')}</option>
                       {getAllFilters().map(f => (
@@ -2898,7 +3153,7 @@ const updatedShot = (selectedSetupIndex === 0)
                     </select>
                   </div>
                   <div className="form-group" style={{ alignSelf: 'flex-end' }}>
-                    <button type="button" className="btn btn-secondary" onClick={handleAddFilter}>
+                    <button type="button" className="btn btn-secondary" onClick={handleAddFilter} disabled={isCameraSetupLocked}>
                       {t('action.add')}
                     </button>
                   </div>
@@ -2908,7 +3163,7 @@ const updatedShot = (selectedSetupIndex === 0)
                         {selectedFilters.map(f => (
                           <span key={f} className="filter-chip">
                             {f}
-                            <button type="button" className="chip-remove" onClick={() => handleRemoveFilter(f)}>×</button>
+                            <button type="button" className="chip-remove" onClick={() => handleRemoveFilter(f)} disabled={isCameraSetupLocked}>×</button>
                           </span>
                         ))}
                       </div>
@@ -4204,7 +4459,10 @@ const updatedShot = (selectedSetupIndex === 0)
                             display: 'grid',
                             gridTemplateColumns: 'auto 1fr 1fr auto',
                             gap: '0.75rem',
-                            alignItems: 'start'
+                            alignItems: 'start',
+                            borderTop: i > 0 ? '1px solid #ddd' : 'none',
+                            paddingTop: i > 0 ? '0.75rem' : undefined,
+                            marginTop: i > 0 ? '0.75rem' : undefined
                           }}
                         >
                           <div className="info-item">
@@ -4247,6 +4505,65 @@ const updatedShot = (selectedSetupIndex === 0)
                               </div>
                             ))}
                           </div>
+                          {/* Overrides pro Setup (Edit) */}
+                          <div className="take-overrides" style={{ marginTop: '0.5rem', gridColumn: '1 / -1' }}>
+                            {(() => {
+                              const list = Array.isArray(take.setupOverrides?.[i]) ? take.setupOverrides[i] : [];
+                              const isEmpty = list.length === 0;
+                              return (
+                                <>
+                                  <div className="override-header" style={{ display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 600, color: 'inherit' }}>{t('takes.overridesTitle', 'Overrides')}:</span>
+                                    {isEmpty ? (
+                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{t('takes.overridesEmpty', 'Keine Overrides hinzugefügt.')}</span>
+                                    ) : (
+                                      <span />
+                                    )}
+                                    <span />
+                                  </div>
+                                  {!isEmpty && list.map((ov, idx) => (
+                                    <div key={`override-${take.id}-${i}-${idx}`} className="override-item" style={{ display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: '0.5rem', alignItems: 'center' }}>
+                                      <span className="override-type" style={{ fontWeight: 600 }}>{ov.type || t('takes.overrideTypeUnknown', 'Override')}</span>
+                                      <span className="override-text">{ov.text}</span>
+                                      <button type="button" className="btn-outline" onClick={() => removeTakeOverride(take.id, i, idx)} title={t('takes.removeOverrideTitle', 'Override entfernen')}>
+                                        <FiTrash />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </>
+                              );
+                            })()}
+                            <div className="override-add" style={{ display: 'grid', gridTemplateColumns: '160px 1fr auto', gap: '0.5rem', alignItems: 'center', marginTop: '0.5rem' }}>
+                              <select
+                                value={takeOverrideDrafts[take.id]?.[i]?.type || ''}
+                                onChange={(e) => setOverrideDraft(take.id, i, 'type', e.target.value)}
+                                aria-label={t('takes.addOverrideLabel', 'Add Override')}
+                              >
+                                <option value="">{t('common.select', 'Bitte wählen')}</option>
+                                <option value="Lens">{t('override.type.lens', 'Optik')}</option>
+                                <option value="Focal Length">{t('override.type.focalLength', 'Brennweite')}</option>
+                                <option value="Aperture">{t('override.type.aperture', 'Blende')}</option>
+                                <option value="ISO">{t('override.type.iso', 'ISO')}</option>
+                                <option value="Format">{t('override.type.format', 'Format')}</option>
+                                <option value="Codec">{t('override.type.codec', 'Codec')}</option>
+                                <option value="Framerate">{t('override.type.framerate', 'Framerate')}</option>
+                                <option value="Shutter Angle">{t('override.type.shutter', 'Shutter Angle')}</option>
+                                <option value="White Balance">{t('override.type.whiteBalance', 'Weißabgleich')}</option>
+                                <option value="Color Space">{t('override.type.colorSpace', 'Farbraum')}</option>
+                                <option value="Notes">{t('override.type.notes', 'Notizen')}</option>
+                                <option value="Other">{t('override.type.other', 'Sonstiges')}</option>
+                              </select>
+                              <input
+                                type="text"
+                                value={takeOverrideDrafts[take.id]?.[i]?.text || ''}
+                                onChange={(e) => setOverrideDraft(take.id, i, 'text', e.target.value)}
+                                placeholder={t('takes.overrideTextPlaceholder', 'Was wurde geändert? z. B. Optik 50 mm')}
+                              />
+                              <button type="button" className="btn btn-secondary" onClick={() => addTakeOverride(take.id, i)}>
+                                {t('takes.addOverrideBtn', 'Hinzufügen')}
+                              </button>
+                            </div>
+                          </div>
                         </div>
                       ));
                     })()}
@@ -4285,7 +4602,10 @@ const updatedShot = (selectedSetupIndex === 0)
                             display: 'grid',
                             gridTemplateColumns: 'auto 1fr 1fr auto',
                             gap: '0.75rem',
-                            alignItems: 'start'
+                            alignItems: 'start',
+                            borderTop: i > 0 ? '1px solid #ddd' : 'none',
+                            paddingTop: i > 0 ? '0.75rem' : undefined,
+                            marginTop: i > 0 ? '0.75rem' : undefined
                           }}
                         >
                           <div className="info-item">
@@ -4321,6 +4641,31 @@ const updatedShot = (selectedSetupIndex === 0)
                                 />
                               </div>
                             ))}
+                          </div>
+                          {/* Overrides pro Setup (Read-Only) */}
+                          <div className="take-overrides" style={{ marginTop: '0.5rem', gridColumn: '1 / -1' }}>
+                            {(() => {
+                              const list = Array.isArray(take.setupOverrides?.[i]) ? take.setupOverrides[i] : [];
+                              const isEmpty = list.length === 0;
+                              return (
+                                <>
+                                  <div className="override-header" style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '0.5rem', alignItems: 'center' }}>
+                                    <span style={{ fontWeight: 600, color: 'inherit' }}>{t('takes.overridesTitle', 'Overrides')}:</span>
+                                    {isEmpty ? (
+                                      <span style={{ color: 'var(--text-secondary)', fontWeight: 400 }}>{t('takes.overridesEmpty', 'Keine Overrides hinzugefügt.')}</span>
+                                    ) : (
+                                      <span />
+                                    )}
+                                  </div>
+                                  {!isEmpty && list.map((ov, idx) => (
+                                    <div key={`override-ro-${take.id}-${i}-${idx}`} className="override-item" style={{ display: 'grid', gridTemplateColumns: '160px 1fr', gap: '0.5rem', alignItems: 'center' }}>
+                                      <span className="override-type" style={{ fontWeight: 600 }}>{ov.type || t('takes.overrideTypeUnknown', 'Override')}</span>
+                                      <span className="override-text">{ov.text}</span>
+                                    </div>
+                                  ))}
+                                </>
+                              );
+                            })()}
                           </div>
                         </div>
                       ));
