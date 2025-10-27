@@ -60,6 +60,10 @@ jobs:
             HEALTH_URL="$BASE/api/health"
           fi
 
+          echo "Resolved BASE=$BASE"
+          echo "Resolved HEALTH_URL=$HEALTH_URL"
+          echo "HEALTHCHECK_SOFT_FAIL=${HEALTHCHECK_SOFT_FAIL:-false}"
+
           echo "::group::Backend warm-up"
           # Initial warm-up to nudge Render free instances
           curl -sS -o /dev/null --max-time 10 "$BASE" || true

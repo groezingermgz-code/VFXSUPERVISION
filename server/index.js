@@ -8,6 +8,8 @@ import { cloudConfigRouter } from './cloudConfig.js';
 // Neu: Imports für DummyUser-Seeding
 import bcrypt from 'bcryptjs';
 import { getUserByEmail, createUser, setUserEmailVerified, setUserName } from './db.js';
+import { isMailerConfigured } from './mailer.js';
+import pkg from '../package.json' assert { type: 'json' };
 
 const app = express();
 
@@ -81,7 +83,34 @@ app.get('/api', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => res.json({ ok: true }));
+app.get('/api/health', (req, res) => {
+  res.json({
+    ok: true,
+    service: 'vfx-supervision-api',
+    version: pkg?.version || '0.0.0',
+    uptimeSeconds: Math.round(process.uptime()),
+    timestamp: new Date().toISOString(),
+    mode: {
+      openLoginMode: process.env.OPEN_LOGIN_MODE === 'true',
+      disableRegistration: process.env.DISABLE_REGISTRATION === 'true',
+    },
+    endpoints: {
+      health: '/api/health',
+      authHealth: '/api/auth/health',
+    }
+  });
+});
+
+// Zusätzlicher Health‑Endpunkt für Auth/Mailer Setup
+app.get('/api/auth/health', (req, res) => {
+  res.json({
+    ok: true,
+    auth: true,
+    version: pkg?.version || '0.0.0',
+    mailerConfigured: isMailerConfigured(),
+    timestamp: new Date().toISOString(),
+  });
+});
 app.use('/api/auth', authRouter);
 app.use('/api/config', cloudConfigRouter);
 
