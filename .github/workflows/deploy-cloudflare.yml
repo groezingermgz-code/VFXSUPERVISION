@@ -97,6 +97,33 @@ jobs:
           VITE_API_URL: ${{ vars.VITE_API_URL }}
           HEALTHCHECK_SOFT_FAIL: ${{ vars.HEALTHCHECK_SOFT_FAIL }}
 
+      - name: Smoke test Auth health
+        run: |
+          set -euo pipefail
+          if [ -z "${VITE_API_URL:-}" ]; then
+            echo "VITE_API_URL is empty. Set repository variable VITE_API_URL to your backend base (preferably ending with /api).";
+            exit 1;
+          fi
+
+          BASE=$(printf "%s" "$VITE_API_URL" | sed 's#/*$##')
+          if echo "$BASE" | grep -Eq '/api$'; then
+            AUTH_HEALTH_URL="$BASE/auth/health"
+          else
+            AUTH_HEALTH_URL="$BASE/api/auth/health"
+          fi
+
+          echo "Resolved AUTH_HEALTH_URL=$AUTH_HEALTH_URL"
+          echo "::group::Ping $AUTH_HEALTH_URL"
+          RESP=$(curl -sS -w "\nHTTP_STATUS=%{http_code}\n" --connect-timeout 5 --max-time 20 "$AUTH_HEALTH_URL" || true)
+          echo "$RESP" | head -n 100
+          STATUS=$(printf "%s" "$RESP" | sed -n 's/^HTTP_STATUS=//p')
+          if [ "${STATUS:-000}" != "200" ]; then
+            echo "::warning::Auth health smoke test non-200 (status=${STATUS:-unknown}). Check mailer config and auth setup.";
+          fi
+          echo "::endgroup::"
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL }}
+
       - name: Preflight Cloudflare config
         run: |
           echo "::group::Cloudflare Config"
